@@ -1,0 +1,15 @@
+ "name": "Admin User",
+  "email": "admin@attendx.com",
+  "password": "password123",
+  "role": "admin"
+
+{
+  "name": "John Teacher",
+  "email": "teacher@attendx.com",
+  "password": "password123",
+  "role": "teacher",
+  "info": {
+    "department": "Computer Science",
+    "designation": "Assistant Professor"
+  }
+}
