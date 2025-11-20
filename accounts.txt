@@ -13,3 +13,17 @@
     "designation": "Assistant Professor"
   }
 }
+
+{
+  "name": "Jane Student",
+  "email": "student@attendx.com",
+  "password": "password123",
+  "role": "student",
+  "info": {
+    "rollNo": "CS-2021-001",
+    "semester": 6,
+    "department": "Computer Science",
+    "batch": "2021-2025",
+    "year": "2025"
+  }
+}
