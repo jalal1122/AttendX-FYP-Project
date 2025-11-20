@@ -1,4 +1,4 @@
-import express from 'express';
+import express from "express";
 import {
   startSession,
   getQRToken,
@@ -6,9 +6,9 @@ import {
   createRetroactiveSession,
   getSessionsByClass,
   getSessionDetails,
-} from '../controllers/session.controller.js';
-import { verifyJWT } from '../middlewares/auth.middleware.js';
-import { hasRole } from '../middlewares/role.middleware.js';
+} from "../controllers/session.controller.js";
+import { verifyJWT } from "../middlewares/auth.middleware.js";
+import { hasRole } from "../middlewares/role.middleware.js";
 
 const router = express.Router();
 
@@ -16,21 +16,25 @@ const router = express.Router();
 router.use(verifyJWT);
 
 // Start live session (Teacher/Admin only)
-router.post('/start', hasRole('teacher', 'admin'), startSession);
+router.post("/start", hasRole("teacher", "admin"), startSession);
 
 // Get QR token for active session (Teacher/Admin only)
-router.get('/:id/qr-token', hasRole('teacher', 'admin'), getQRToken);
+router.get("/:id/qr-token", hasRole("teacher", "admin"), getQRToken);
 
 // End session (Teacher/Admin only)
-router.post('/:id/end', hasRole('teacher', 'admin'), endSession);
+router.post("/:id/end", hasRole("teacher", "admin"), endSession);
 
 // Create retroactive session (Teacher/Admin only)
-router.post('/create-retroactive', hasRole('teacher', 'admin'), createRetroactiveSession);
+router.post(
+  "/create-retroactive",
+  hasRole("teacher", "admin"),
+  createRetroactiveSession
+);
 
 // Get all sessions for a class
-router.get('/class/:classId', getSessionsByClass);
+router.get("/class/:classId", getSessionsByClass);
 
 // Get session details
-router.get('/:id', getSessionDetails);
+router.get("/:id", getSessionDetails);
 
 export default router;
