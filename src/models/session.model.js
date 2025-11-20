@@ -1,22 +1,22 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 const sessionSchema = new mongoose.Schema(
   {
     classId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Class',
-      required: [true, 'Class ID is required'],
+      ref: "Class",
+      required: [true, "Class ID is required"],
       index: true,
     },
     teacherId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
-      required: [true, 'Teacher ID is required'],
+      ref: "User",
+      required: [true, "Teacher ID is required"],
       index: true,
     },
     startTime: {
       type: Date,
-      required: [true, 'Start time is required'],
+      required: [true, "Start time is required"],
     },
     endTime: {
       type: Date,
@@ -35,12 +35,12 @@ const sessionSchema = new mongoose.Schema(
     },
     teacherIP: {
       type: String,
-      required: [true, 'Teacher IP is required'],
+      required: [true, "Teacher IP is required"],
     },
     type: {
       type: String,
-      enum: ['Lecture', 'Lab', 'Exam'],
-      default: 'Lecture',
+      enum: ["Lecture", "Lab", "Exam"],
+      default: "Lecture",
     },
   },
   {
@@ -52,6 +52,6 @@ const sessionSchema = new mongoose.Schema(
 sessionSchema.index({ classId: 1, active: 1 });
 sessionSchema.index({ teacherId: 1, createdAt: -1 });
 
-const Session = mongoose.model('Session', sessionSchema);
+const Session = mongoose.model("Session", sessionSchema);
 
 export default Session;

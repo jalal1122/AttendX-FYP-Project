@@ -1,18 +1,18 @@
-import asyncHandler from '../utils/asyncHandler.js';
-import ApiError from '../../utils/ApiError.js';
-import ApiResponse from '../../utils/ApiResponse.js';
-import Attendance from '../models/attendance.model.js';
-import Session from '../models/session.model.js';
-import Class from '../models/class.model.js';
-import jwt from 'jsonwebtoken';
+import asyncHandler from "../utils/asyncHandler.js";
+import ApiError from "../../utils/ApiError.js";
+import ApiResponse from "../../utils/ApiResponse.js";
+import Attendance from "../models/attendance.model.js";
+import Session from "../models/session.model.js";
+import Class from "../models/class.model.js";
+import jwt from "jsonwebtoken";
 
 /**
  * Get client IP address (handles proxies and localhost)
  */
 const getClientIP = (req) => {
   return (
-    req.headers['x-forwarded-for']?.split(',')[0].trim() ||
-    req.headers['x-real-ip'] ||
+    req.headers["x-forwarded-for"]?.split(",")[0].trim() ||
+    req.headers["x-real-ip"] ||
     req.connection.remoteAddress ||
     req.socket.remoteAddress ||
     req.ip
@@ -28,12 +28,12 @@ export const markAttendance = asyncHandler(async (req, res) => {
 
   // Validate token
   if (!token) {
-    throw ApiError.badRequest('QR token is required');
+    throw ApiError.badRequest("QR token is required");
   }
 
   // Verify student role
-  if (req.user.role !== 'student') {
-    throw ApiError.forbidden('Only students can mark attendance via QR scan');
+  if (req.user.role !== "student") {
+    throw ApiError.forbidden("Only students can mark attendance via QR scan");
   }
 
   // Verify and decode token
@@ -44,10 +44,12 @@ export const markAttendance = asyncHandler(async (req, res) => {
       process.env.QR_SECRET || process.env.JWT_ACCESS_SECRET
     );
   } catch (error) {
-    if (error.name === 'TokenExpiredError') {
-      throw ApiError.badRequest('QR code has expired. Please refresh and try again.');
+    if (error.name === "TokenExpiredError") {
+      throw ApiError.badRequest(
+        "QR code has expired. Please refresh and try again."
+      );
     }
-    throw ApiError.badRequest('Invalid QR token');
+    throw ApiError.badRequest("Invalid QR token");
   }
 
   const { sessionId, classId } = decodedToken;
@@ -55,18 +57,18 @@ export const markAttendance = asyncHandler(async (req, res) => {
   // Find session
   const session = await Session.findById(sessionId);
   if (!session) {
-    throw ApiError.notFound('Session not found');
+    throw ApiError.notFound("Session not found");
   }
 
   // Check if session is active
   if (!session.active) {
-    throw ApiError.badRequest('Session is no longer active');
+    throw ApiError.badRequest("Session is no longer active");
   }
 
   // Find class
   const classDoc = await Class.findById(classId);
   if (!classDoc) {
-    throw ApiError.notFound('Class not found');
+    throw ApiError.notFound("Class not found");
   }
 
   // Check if student is enrolled in this class
@@ -75,7 +77,7 @@ export const markAttendance = asyncHandler(async (req, res) => {
   );
 
   if (!isEnrolled) {
-    throw ApiError.forbidden('You are not enrolled in this class');
+    throw ApiError.forbidden("You are not enrolled in this class");
   }
 
   // IP Validation (Log mismatch but don't block in development)
@@ -83,10 +85,12 @@ export const markAttendance = asyncHandler(async (req, res) => {
   const teacherIP = session.teacherIP;
 
   if (studentIP !== teacherIP) {
-    console.log('⚠️  IP Mismatch Warning:');
+    console.log("⚠️  IP Mismatch Warning:");
     console.log(`   Teacher IP: ${teacherIP}`);
     console.log(`   Student IP: ${studentIP}`);
-    console.log('   (This is normal on localhost. In production, this would be flagged.)');
+    console.log(
+      "   (This is normal on localhost. In production, this would be flagged.)"
+    );
   }
 
   // Check if attendance already marked
@@ -106,16 +110,16 @@ export const markAttendance = asyncHandler(async (req, res) => {
     sessionId,
     studentId: req.user._id,
     classId,
-    status: 'Present',
-    verificationMethod: 'QR',
+    status: "Present",
+    verificationMethod: "QR",
     date: new Date(),
   });
 
   // Populate references
   const populatedAttendance = await Attendance.findById(attendance._id)
-    .populate('studentId', 'name email info')
-    .populate('sessionId', 'startTime type')
-    .populate('classId', 'name code');
+    .populate("studentId", "name email info")
+    .populate("sessionId", "startTime type")
+    .populate("classId", "name code");
 
   res.status(201).json(
     new ApiResponse(
@@ -126,7 +130,7 @@ export const markAttendance = asyncHandler(async (req, res) => {
         studentIP,
         teacherIP,
       },
-      'Attendance marked successfully'
+      "Attendance marked successfully"
     )
   );
 });
@@ -140,33 +144,39 @@ export const manualUpdate = asyncHandler(async (req, res) => {
 
   // Validate required fields
   if (!sessionId || !studentId || !status) {
-    throw ApiError.badRequest('Session ID, student ID, and status are required');
+    throw ApiError.badRequest(
+      "Session ID, student ID, and status are required"
+    );
   }
 
   // Validate status
-  const validStatuses = ['Present', 'Absent', 'Late', 'Leave'];
+  const validStatuses = ["Present", "Absent", "Late", "Leave"];
   if (!validStatuses.includes(status)) {
-    throw ApiError.badRequest(`Status must be one of: ${validStatuses.join(', ')}`);
+    throw ApiError.badRequest(
+      `Status must be one of: ${validStatuses.join(", ")}`
+    );
   }
 
   // Find session
   const session = await Session.findById(sessionId);
   if (!session) {
-    throw ApiError.notFound('Session not found');
+    throw ApiError.notFound("Session not found");
   }
 
   // Verify teacher owns this session or is admin
   const isTeacher = session.teacherId.toString() === req.user._id.toString();
-  const isAdmin = req.user.role === 'admin';
+  const isAdmin = req.user.role === "admin";
 
   if (!isTeacher && !isAdmin) {
-    throw ApiError.forbidden('You are not authorized to update attendance for this session');
+    throw ApiError.forbidden(
+      "You are not authorized to update attendance for this session"
+    );
   }
 
   // Find class
   const classDoc = await Class.findById(session.classId);
   if (!classDoc) {
-    throw ApiError.notFound('Class not found');
+    throw ApiError.notFound("Class not found");
   }
 
   // Check if student is enrolled in this class
@@ -175,7 +185,7 @@ export const manualUpdate = asyncHandler(async (req, res) => {
   );
 
   if (!isEnrolled) {
-    throw ApiError.badRequest('Student is not enrolled in this class');
+    throw ApiError.badRequest("Student is not enrolled in this class");
   }
 
   // Update or create attendance record (upsert)
@@ -186,7 +196,7 @@ export const manualUpdate = asyncHandler(async (req, res) => {
       studentId,
       classId: session.classId,
       status,
-      verificationMethod: 'Manual',
+      verificationMethod: "Manual",
       date: new Date(session.startTime),
     },
     {
@@ -195,17 +205,13 @@ export const manualUpdate = asyncHandler(async (req, res) => {
       runValidators: true,
     }
   )
-    .populate('studentId', 'name email info')
-    .populate('sessionId', 'startTime type')
-    .populate('classId', 'name code');
+    .populate("studentId", "name email info")
+    .populate("sessionId", "startTime type")
+    .populate("classId", "name code");
 
-  res.status(200).json(
-    new ApiResponse(
-      200,
-      attendance,
-      'Attendance updated successfully'
-    )
-  );
+  res
+    .status(200)
+    .json(new ApiResponse(200, attendance, "Attendance updated successfully"));
 });
 
 /**
@@ -218,13 +224,16 @@ export const getAttendanceBySession = asyncHandler(async (req, res) => {
   // Find session
   const session = await Session.findById(sessionId);
   if (!session) {
-    throw ApiError.notFound('Session not found');
+    throw ApiError.notFound("Session not found");
   }
 
   // Find class
-  const classDoc = await Class.findById(session.classId).populate('students', 'name email info');
+  const classDoc = await Class.findById(session.classId).populate(
+    "students",
+    "name email info"
+  );
   if (!classDoc) {
-    throw ApiError.notFound('Class not found');
+    throw ApiError.notFound("Class not found");
   }
 
   // Check if user has access
@@ -232,15 +241,15 @@ export const getAttendanceBySession = asyncHandler(async (req, res) => {
   const isStudent = classDoc.students.some(
     (student) => student._id.toString() === req.user._id.toString()
   );
-  const isAdmin = req.user.role === 'admin';
+  const isAdmin = req.user.role === "admin";
 
   if (!isTeacher && !isStudent && !isAdmin) {
-    throw ApiError.forbidden('You do not have access to this session');
+    throw ApiError.forbidden("You do not have access to this session");
   }
 
   // Get attendance records
   const attendanceRecords = await Attendance.find({ sessionId })
-    .populate('studentId', 'name email info')
+    .populate("studentId", "name email info")
     .sort({ createdAt: 1 });
 
   // Get list of all enrolled students
@@ -262,7 +271,7 @@ export const getAttendanceBySession = asyncHandler(async (req, res) => {
         email: student.email,
         info: student.info,
       },
-      status: attendance ? attendance.status : 'Absent',
+      status: attendance ? attendance.status : "Absent",
       verificationMethod: attendance ? attendance.verificationMethod : null,
       markedAt: attendance ? attendance.createdAt : null,
       attendanceId: attendance ? attendance._id : null,
@@ -272,10 +281,11 @@ export const getAttendanceBySession = asyncHandler(async (req, res) => {
   // Calculate statistics
   const stats = {
     total: allStudents.length,
-    present: completeAttendanceList.filter((a) => a.status === 'Present').length,
-    absent: completeAttendanceList.filter((a) => a.status === 'Absent').length,
-    late: completeAttendanceList.filter((a) => a.status === 'Late').length,
-    leave: completeAttendanceList.filter((a) => a.status === 'Leave').length,
+    present: completeAttendanceList.filter((a) => a.status === "Present")
+      .length,
+    absent: completeAttendanceList.filter((a) => a.status === "Absent").length,
+    late: completeAttendanceList.filter((a) => a.status === "Late").length,
+    leave: completeAttendanceList.filter((a) => a.status === "Leave").length,
   };
 
   res.status(200).json(
@@ -292,7 +302,7 @@ export const getAttendanceBySession = asyncHandler(async (req, res) => {
         stats,
         attendance: completeAttendanceList,
       },
-      'Attendance retrieved successfully'
+      "Attendance retrieved successfully"
     )
   );
 });
@@ -307,10 +317,10 @@ export const getStudentAttendance = asyncHandler(async (req, res) => {
 
   // Check authorization
   const isOwnRecord = req.user._id.toString() === studentId;
-  const isAdmin = req.user.role === 'admin';
+  const isAdmin = req.user.role === "admin";
 
   if (!isOwnRecord && !isAdmin) {
-    throw ApiError.forbidden('You can only view your own attendance records');
+    throw ApiError.forbidden("You can only view your own attendance records");
   }
 
   // Build query
@@ -321,8 +331,8 @@ export const getStudentAttendance = asyncHandler(async (req, res) => {
 
   // Get attendance records
   const attendanceRecords = await Attendance.find(query)
-    .populate('classId', 'name code semester')
-    .populate('sessionId', 'startTime type')
+    .populate("classId", "name code semester")
+    .populate("sessionId", "startTime type")
     .sort({ date: -1 });
 
   res.status(200).json(
@@ -332,7 +342,7 @@ export const getStudentAttendance = asyncHandler(async (req, res) => {
         count: attendanceRecords.length,
         attendance: attendanceRecords,
       },
-      'Attendance history retrieved successfully'
+      "Attendance history retrieved successfully"
     )
   );
 });
