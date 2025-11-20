@@ -4,6 +4,7 @@ import helmet from "helmet";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import connectDB from "./config/db.js";
+import authRoutes from "./src/routes/auth.routes.js";
 
 // Load environment variables
 dotenv.config();
@@ -39,8 +40,8 @@ app.get("/health", (req, res) => {
   });
 });
 
-// API routes will be mounted here
-// app.use('/api/v1/auth', authRoutes);
+// API routes
+app.use("/api/v1/auth", authRoutes);
 // app.use('/api/v1/class', classRoutes);
 // app.use('/api/v1/session', sessionRoutes);
 // app.use('/api/v1/attendance', attendanceRoutes);
