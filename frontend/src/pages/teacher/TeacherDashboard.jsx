@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
 import { selectCurrentUser } from "../../features/auth/authSlice";
 import classAPI from "../../services/classAPI";
 import Button from "../../components/ui/Button";
@@ -8,6 +9,7 @@ import Modal from "../../components/ui/Modal";
 import Input from "../../components/ui/Input";
 
 const TeacherDashboard = () => {
+  const navigate = useNavigate();
   const user = useSelector(selectCurrentUser);
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -181,7 +183,14 @@ const TeacherDashboard = () => {
                       {cls.students?.length || 0}
                     </p>
                   </div>
-                  <div className="mt-4 pt-4 border-t">
+                  <div className="mt-4 pt-4 border-t space-y-2">
+                    <Button
+                      variant="primary"
+                      className="w-full"
+                      onClick={() => navigate(`/teacher/session/${cls._id}`)}
+                    >
+                      Start Session
+                    </Button>
                     <Button
                       variant="outline"
                       className="w-full"

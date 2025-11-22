@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
 import { selectCurrentUser } from "../../features/auth/authSlice";
 import classAPI from "../../services/classAPI";
 import Button from "../../components/ui/Button";
@@ -7,6 +8,7 @@ import Card from "../../components/ui/Card";
 import Input from "../../components/ui/Input";
 
 const StudentDashboard = () => {
+  const navigate = useNavigate();
   const user = useSelector(selectCurrentUser);
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -70,10 +72,19 @@ const StudentDashboard = () => {
       {/* Header */}
       <div className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <h1 className="text-3xl font-bold text-gray-900">
-            Student Dashboard
-          </h1>
-          <p className="mt-1 text-sm text-gray-600">Welcome, {user?.name}!</p>
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">
+                Student Dashboard
+              </h1>
+              <p className="mt-1 text-sm text-gray-600">
+                Welcome, {user?.name}!
+              </p>
+            </div>
+            <Button variant="success" onClick={() => navigate("/student/scan")}>
+              📱 Scan Attendance
+            </Button>
+          </div>
         </div>
       </div>
 
