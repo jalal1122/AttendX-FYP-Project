@@ -19,9 +19,11 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 
 // Teacher Pages
 import TeacherDashboard from "./pages/teacher/TeacherDashboard";
+import LiveSession from "./pages/teacher/LiveSession";
 
 // Student Pages
 import StudentDashboard from "./pages/student/StudentDashboard";
+import ScanAttendance from "./pages/student/ScanAttendance";
 
 function App() {
   const isAuthenticated = useSelector(selectIsAuthenticated);
@@ -74,6 +76,14 @@ function App() {
             </PrivateRoute>
           }
         />
+        <Route
+          path="/teacher/session/:classId"
+          element={
+            <PrivateRoute allowedRoles={["teacher", "admin"]}>
+              <LiveSession />
+            </PrivateRoute>
+          }
+        />
 
         {/* Student Routes */}
         <Route
@@ -81,6 +91,14 @@ function App() {
           element={
             <PrivateRoute allowedRoles={["student"]}>
               <StudentDashboard />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/student/scan"
+          element={
+            <PrivateRoute allowedRoles={["student"]}>
+              <ScanAttendance />
             </PrivateRoute>
           }
         />
