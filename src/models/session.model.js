@@ -42,6 +42,18 @@ const sessionSchema = new mongoose.Schema(
       enum: ["Lecture", "Lab", "Exam"],
       default: "Lecture",
     },
+    location: {
+      latitude: {
+        type: Number,
+      },
+      longitude: {
+        type: Number,
+      },
+      radius: {
+        type: Number,
+        default: 50, // Default 50 meters radius
+      },
+    },
   },
   {
     timestamps: true,

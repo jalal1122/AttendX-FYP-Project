@@ -35,6 +35,16 @@ export const userAPI = {
     const response = await api.delete(`/user/${userId}`);
     return response.data;
   },
+
+  // Create user (with FormData for file upload)
+  createUser: async (formData) => {
+    const response = await api.post("/user/create", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+    return response.data;
+  },
 };
 
 export default userAPI;

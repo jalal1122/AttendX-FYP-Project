@@ -20,20 +20,26 @@ const ScanAttendance = () => {
   useEffect(() => {
     return () => {
       // Cleanup: Stop scanner on unmount
-      if (html5QrCodeRef.current && isScanning) {
-        html5QrCodeRef.current
-          .stop()
-          .then(() => {
-            html5QrCodeRef.current?.clear();
-          })
-          .catch((err) => console.error("Error stopping scanner:", err));
+      if (html5QrCodeRef.current) {
+        const scanner = html5QrCodeRef.current;
+        if (scanner.getState && scanner.getState() === 2) {
+          // State 2 means scanner is running
+          scanner
+            .stop()
+            .then(() => scanner.clear())
+            .catch((err) => console.log("Cleanup error:", err));
+        }
       }
     };
-  }, [isScanning]);
+  }, []);
 
   const startScanning = async () => {
     try {
       setMessage({ type: "", text: "" });
+      setIsScanning(true); // Set this first to render the qr-reader div
+
+      // Wait for DOM to update
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       const html5QrCode = new Html5Qrcode("qr-reader");
       html5QrCodeRef.current = html5QrCode;
@@ -51,16 +57,34 @@ const ScanAttendance = () => {
         onScanError
       );
 
-      setIsScanning(true);
       setMessage({
         type: "info",
         text: "Scanner active. Point camera at QR code.",
       });
     } catch (err) {
       console.error("Failed to start scanner:", err);
+      setIsScanning(false); // Reset scanning state on error
+      html5QrCodeRef.current = null; // Clear the reference
+
+      let errorMessage = "Failed to access camera. ";
+      const errMsg = err?.message || "";
+      const errName = err?.name || "";
+
+      if (
+        errName === "NotAllowedError" ||
+        errMsg.includes("Permission denied")
+      ) {
+        errorMessage +=
+          "Please click the camera icon in your browser's address bar and allow camera access, then try again.";
+      } else if (errName === "NotFoundError") {
+        errorMessage += "No camera found on your device.";
+      } else {
+        errorMessage += "Please check your camera permissions and try again.";
+      }
+
       setMessage({
         type: "error",
-        text: "Failed to access camera. Please allow camera permissions and try again.",
+        text: errorMessage,
       });
     }
   };
@@ -68,12 +92,21 @@ const ScanAttendance = () => {
   const stopScanning = async () => {
     if (html5QrCodeRef.current) {
       try {
-        await html5QrCodeRef.current.stop();
-        html5QrCodeRef.current.clear();
+        const scanner = html5QrCodeRef.current;
+        if (scanner.getState && scanner.getState() === 2) {
+          // Only stop if scanner is actually running (state 2)
+          await scanner.stop();
+          scanner.clear();
+        }
         setIsScanning(false);
+        html5QrCodeRef.current = null;
       } catch (err) {
         console.error("Error stopping scanner:", err);
+        setIsScanning(false);
+        html5QrCodeRef.current = null;
       }
+    } else {
+      setIsScanning(false);
     }
   };
 
@@ -89,55 +122,118 @@ const ScanAttendance = () => {
     await markAttendance(decodedText);
   };
 
-  const onScanError = (error) => {
+  const onScanError = () => {
     // Ignore scan errors (happens continuously while scanning)
-    // console.warn('Scan error:', error);
   };
 
   const markAttendance = async (token) => {
-    try {
-      setProcessing(true);
-      setMessage({ type: "info", text: "Marking attendance..." });
+    setProcessing(true);
+    setMessage({ type: "info", text: "Marking attendance..." });
 
-      const response = await attendanceAPI.markAttendance(token);
+    // Get student's location
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const { latitude, longitude } = position.coords;
+          console.log("📍 Student location captured:", { latitude, longitude });
 
-      // Success!
-      setMessage({
-        type: "success",
-        text: `✓ Attendance marked successfully! Welcome, ${
-          response.data.studentId?.name || "Student"
-        }!`,
-      });
+          try {
+            const response = await attendanceAPI.markAttendance(
+              token,
+              latitude,
+              longitude
+            );
 
-      // Stop scanner
-      await stopScanning();
+            // Success!
+            setMessage({
+              type: "success",
+              text: `✓ Attendance marked successfully! Welcome, ${
+                response.data.studentId?.name || "Student"
+              }!`,
+            });
 
-      // Redirect to dashboard after 2 seconds
-      setTimeout(() => {
-        navigate("/student/dashboard");
-      }, 2000);
-    } catch (error) {
-      console.error("Attendance marking error:", error);
+            // Stop scanner
+            await stopScanning();
 
-      const errorMessage =
-        error.response?.data?.message ||
-        "Failed to mark attendance. Invalid or expired token.";
+            // Redirect to dashboard after 2 seconds
+            setTimeout(() => {
+              navigate("/student/dashboard");
+            }, 2000);
+          } catch (error) {
+            handleAttendanceError(error);
+          } finally {
+            setProcessing(false);
+          }
+        },
+        async (error) => {
+          console.warn("Location access denied:", error);
+          setMessage({
+            type: "error",
+            text: "Location access is required to mark attendance. Please enable location permissions.",
+          });
+          setProcessing(false);
 
-      setMessage({
-        type: "error",
-        text: `✗ ${errorMessage}`,
-      });
-
-      setProcessing(false);
-
-      // Resume scanning after 2 seconds
-      setTimeout(() => {
-        if (html5QrCodeRef.current && isScanning) {
-          html5QrCodeRef.current.resume();
-          setMessage({ type: "info", text: "Scanner active. Try again." });
+          // Resume scanning
+          setTimeout(() => {
+            if (html5QrCodeRef.current && isScanning) {
+              html5QrCodeRef.current.resume();
+              setMessage({
+                type: "info",
+                text: "Scanner active. Enable location to try again.",
+              });
+            }
+          }, 3000);
         }
-      }, 2000);
+      );
+    } else {
+      // Browser doesn't support geolocation - try without location
+      try {
+        const response = await attendanceAPI.markAttendance(token);
+
+        // Success!
+        setMessage({
+          type: "success",
+          text: `✓ Attendance marked successfully! Welcome, ${
+            response.data.studentId?.name || "Student"
+          }!`,
+        });
+
+        // Stop scanner
+        await stopScanning();
+
+        // Redirect to dashboard after 2 seconds
+        setTimeout(() => {
+          navigate("/student/dashboard");
+        }, 2000);
+      } catch (error) {
+        handleAttendanceError(error);
+      } finally {
+        setProcessing(false);
+      }
     }
+  };
+
+  const handleAttendanceError = (error) => {
+    console.error("Attendance marking error:", error);
+
+    const errorMessage =
+      error.response?.data?.message ||
+      "Failed to mark attendance. Invalid or expired token.";
+
+    setMessage({
+      type: "error",
+      text: `✗ ${errorMessage}`,
+    });
+
+    setProcessing(false);
+
+    // Resume scanning after 2 seconds
+    setTimeout(() => {
+      if (html5QrCodeRef.current && isScanning) {
+        html5QrCodeRef.current.resume();
+        setMessage({ type: "info", text: "Scanner active. Try again." });
+      }
+    }, 2000);
   };
 
   const handleDevSubmit = async (e) => {

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import userAPI from "../../services/userAPI";
 import Card from "../../components/ui/Card";
 import Button from "../../components/ui/Button";
+import CreateUserModal from "../../components/modals/CreateUserModal";
 
 const ManageUsers = () => {
   const navigate = useNavigate();
@@ -11,6 +12,7 @@ const ManageUsers = () => {
   const [filter, setFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [message, setMessage] = useState({ type: "", text: "" });
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -105,12 +107,20 @@ const ManageUsers = () => {
                 Manage all users in the system
               </p>
             </div>
-            <Button
-              variant="outline"
-              onClick={() => navigate("/admin/dashboard")}
-            >
-              Back to Dashboard
-            </Button>
+            <div className="flex gap-3">
+              <Button
+                variant="primary"
+                onClick={() => setShowCreateModal(true)}
+              >
+                + Create User
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => navigate("/admin/dashboard")}
+              >
+                Back to Dashboard
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -239,6 +249,16 @@ const ManageUsers = () => {
             </table>
           </div>
         )}
+
+        {/* Create User Modal */}
+        <CreateUserModal
+          isOpen={showCreateModal}
+          onClose={() => setShowCreateModal(false)}
+          onSuccess={() => {
+            setMessage({ type: "success", text: "User created successfully" });
+            fetchUsers();
+          }}
+        />
       </div>
     </div>
   );

@@ -2,10 +2,16 @@ import api from "./api";
 
 const analyticsAPI = {
   // Get class analytics with weekly/monthly trends
-  getClassAnalytics: async (classId, period = "weekly") => {
-    const response = await api.get(
-      `/analytics/class/${classId}?period=${period}`
-    );
+  getClassAnalytics: async (
+    classId,
+    period = "weekly",
+    startDate = null,
+    endDate = null
+  ) => {
+    let url = `/analytics/class/${classId}?period=${period}`;
+    if (startDate) url += `&startDate=${startDate}`;
+    if (endDate) url += `&endDate=${endDate}`;
+    const response = await api.get(url);
     return response.data;
   },
 

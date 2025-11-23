@@ -2,8 +2,12 @@ import api from "./api";
 
 const attendanceAPI = {
   // Mark attendance using QR token
-  markAttendance: async (token) => {
-    const response = await api.post("/attendance/scan", { token });
+  markAttendance: async (token, latitude = null, longitude = null) => {
+    const response = await api.post("/attendance/scan", {
+      token,
+      latitude,
+      longitude,
+    });
     return response.data;
   },
 
