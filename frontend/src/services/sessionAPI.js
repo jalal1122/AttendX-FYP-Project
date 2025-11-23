@@ -30,6 +30,18 @@ const sessionAPI = {
     const response = await api.get(`/session/class/${classId}`);
     return response.data;
   },
+
+  // Create retroactive session for manual attendance entry
+  createRetroactiveSession: async (sessionData) => {
+    const response = await api.post("/session/create-retroactive", sessionData);
+    return response.data;
+  },
+
+  // Get session details
+  getSessionDetails: async (sessionId) => {
+    const response = await api.get(`/session/${sessionId}`);
+    return response.data;
+  },
 };
 
 export default sessionAPI;

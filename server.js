@@ -9,6 +9,7 @@ import classRoutes from "./src/routes/class.routes.js";
 import sessionRoutes from "./src/routes/session.routes.js";
 import attendanceRoutes from "./src/routes/attendance.routes.js";
 import analyticsRoutes from "./src/routes/analytics.routes.js";
+import userRoutes from "./src/routes/user.routes.js";
 
 // Load environment variables
 dotenv.config();
@@ -50,6 +51,7 @@ app.use("/api/v1/class", classRoutes);
 app.use("/api/v1/session", sessionRoutes);
 app.use("/api/v1/attendance", attendanceRoutes);
 app.use("/api/v1/analytics", analyticsRoutes);
+app.use("/api/v1/user", userRoutes);
 
 // Global error handler
 app.use((err, req, res, next) => {

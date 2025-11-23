@@ -29,6 +29,20 @@ export const register = createAsyncThunk(
   }
 );
 
+// Async thunk for logout
+export const logoutUser = createAsyncThunk(
+  "auth/logout",
+  async (_, { rejectWithValue }) => {
+    try {
+      await api.post("/auth/logout");
+      return true;
+    } catch (error) {
+      // Even if the API call fails, we should still clear local state
+      return rejectWithValue(error.response?.data?.message || "Logout failed");
+    }
+  }
+);
+
 // Get initial state from localStorage
 const storedUser = localStorage.getItem("user");
 const storedToken = localStorage.getItem("accessToken");
@@ -137,6 +151,35 @@ const authSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
         state.isAuthenticated = false;
+      });
+
+    // Logout
+    builder
+      .addCase(logoutUser.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(logoutUser.fulfilled, (state) => {
+        state.loading = false;
+        state.user = null;
+        state.token = null;
+        state.isAuthenticated = false;
+        state.error = null;
+
+        // Clear localStorage
+        localStorage.removeItem("user");
+        localStorage.removeItem("accessToken");
+      })
+      .addCase(logoutUser.rejected, (state) => {
+        // Clear state even if API call fails
+        state.loading = false;
+        state.user = null;
+        state.token = null;
+        state.isAuthenticated = false;
+        state.error = null;
+
+        // Clear localStorage
+        localStorage.removeItem("user");
+        localStorage.removeItem("accessToken");
       });
   },
 });

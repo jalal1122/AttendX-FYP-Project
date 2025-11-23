@@ -187,16 +187,18 @@ const TeacherDashboard = () => {
                     <Button
                       variant="primary"
                       className="w-full"
-                      onClick={() => navigate(`/teacher/session/${cls._id}`)}
+                      onClick={() =>
+                        navigate(`/teacher/session/${String(cls._id)}`)
+                      }
                     >
                       Start Session
                     </Button>
                     <Button
                       variant="outline"
                       className="w-full"
-                      onClick={() => {
-                        /* Navigate to class details */
-                      }}
+                      onClick={() =>
+                        navigate(`/teacher/class/${String(cls._id)}`)
+                      }
                     >
                       View Details
                     </Button>
