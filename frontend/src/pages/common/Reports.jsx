@@ -74,57 +74,240 @@ const Reports = () => {
     setDateRange({ startDate, endDate });
   };
 
-  const exportToExcel = () => {
+  const exportToExcel = async () => {
     if (!analytics || !classData) return;
 
-    const exportData = [
-      { Class: classData.name, Code: classData.code },
-      { "Attendance Rate": `${attendanceRate}%` },
-      { "Total Present": analytics.overallStats?.totalPresent || 0 },
-      { "Total Absent": analytics.overallStats?.totalAbsent || 0 },
-      { "Total Late": analytics.overallStats?.totalLate || 0 },
-      {},
-      { "Defaulters (<75%)": "" },
-      ...defaulters.map((s) => ({
-        Name: s.studentName,
-        "Roll No": s.rollNo || "N/A",
-        Attendance: `${s.attendancePercentage.toFixed(1)}%`,
-        Sessions: `${s.present}/${s.totalSessions}`,
-      })),
+    const wb = XLSX.utils.book_new();
+    const currentDate = new Date().toLocaleString();
+
+    // Fetch detailed attendance data
+    let detailedData = null;
+    try {
+      const detailedResponse = await analyticsAPI.getDetailedAttendance(
+        classId,
+        dateRange.startDate,
+        dateRange.endDate
+      );
+      detailedData = detailedResponse?.data || detailedResponse;
+    } catch (error) {
+      console.error("Failed to fetch detailed attendance:", error);
+    }
+
+    // Sheet 1: Class Information & Summary
+    const summaryData = [
+      ["CLASS ATTENDANCE REPORT"],
+      [""],
+      ["Class Information"],
+      ["Class Name:", classData.name],
+      ["Class Code:", classData.code],
+      ["Department:", classData.department || "N/A"],
+      ["Semester:", classData.semester || "N/A"],
+      ["Teacher:", analytics.class?.teacher?.name || "N/A"],
+      ["Teacher Email:", analytics.class?.teacher?.email || "N/A"],
+      ["Report Generated:", currentDate],
+      [""],
+      ["Attendance Summary"],
+      ["Total Sessions:", analytics.totalSessions || 0],
+      ["Attendance Rate:", `${attendanceRate}%`],
+      ["Total Present:", analytics.overallStats?.totalPresent || 0],
+      ["Total Absent:", analytics.overallStats?.totalAbsent || 0],
+      ["Total Late:", analytics.overallStats?.totalLate || 0],
     ];
 
-    const ws = XLSX.utils.json_to_sheet(exportData, { skipHeader: true });
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Analytics");
-    XLSX.writeFile(wb, `${classData.code}_Analytics.xlsx`);
+    const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
+
+    // Set column widths
+    wsSummary["!cols"] = [{ wch: 20 }, { wch: 30 }];
+
+    XLSX.utils.book_append_sheet(wb, wsSummary, "Summary");
+
+    // Sheet 2: Defaulters List (if any)
+    if (defaulters.length > 0) {
+      const defaultersData = [
+        ["STUDENTS BELOW 75% ATTENDANCE"],
+        [""],
+        ["Name", "Roll No", "Attendance %", "Present", "Total Sessions"],
+        ...defaulters.map((s) => [
+          s.studentName,
+          s.rollNo || "N/A",
+          s.attendancePercentage.toFixed(1) + "%",
+          s.present,
+          s.totalSessions,
+        ]),
+      ];
+
+      const wsDefaulters = XLSX.utils.aoa_to_sheet(defaultersData);
+      wsDefaulters["!cols"] = [
+        { wch: 25 },
+        { wch: 15 },
+        { wch: 15 },
+        { wch: 10 },
+        { wch: 15 },
+      ];
+      XLSX.utils.book_append_sheet(wb, wsDefaulters, "Defaulters");
+    }
+
+    // Sheet 3: Attendance Trends
+    if (analytics.trends && analytics.trends.length > 0) {
+      const trendsData = [
+        ["ATTENDANCE TRENDS"],
+        [""],
+        ["Period", "Present", "Absent", "Late", "Total"],
+        ...analytics.trends.map((t) => [
+          period === "weekly" ? `Week ${t._id}` : `Month ${t._id}`,
+          t.present || 0,
+          t.absent || 0,
+          t.late || 0,
+          (t.present || 0) + (t.absent || 0) + (t.late || 0),
+        ]),
+      ];
+
+      const wsTrends = XLSX.utils.aoa_to_sheet(trendsData);
+      wsTrends["!cols"] = [
+        { wch: 15 },
+        { wch: 12 },
+        { wch: 12 },
+        { wch: 12 },
+        { wch: 12 },
+      ];
+      XLSX.utils.book_append_sheet(wb, wsTrends, "Trends");
+    }
+
+    // Sheet 4: Detailed Student Attendance (if available)
+    if (detailedData && detailedData.attendance && detailedData.sessions) {
+      const detailedAttendanceData = [
+        ["DETAILED STUDENT ATTENDANCE"],
+        [""],
+        [
+          "Student Name",
+          "Roll No",
+          ...detailedData.sessions.map((s) =>
+            new Date(s.date).toLocaleDateString()
+          ),
+        ],
+        ...detailedData.attendance.map((student) => [
+          student.studentName,
+          student.rollNo,
+          ...student.sessions.map((session) => {
+            if (session.status === "Present") return "P";
+            if (session.status === "Absent") return "A";
+            if (session.status === "Late") return "L";
+            return "-";
+          }),
+        ]),
+      ];
+
+      const wsDetailed = XLSX.utils.aoa_to_sheet(detailedAttendanceData);
+      const colWidths = [
+        { wch: 25 },
+        { wch: 15 },
+        ...detailedData.sessions.map(() => ({ wch: 12 })),
+      ];
+      wsDetailed["!cols"] = colWidths;
+      XLSX.utils.book_append_sheet(wb, wsDetailed, "Detailed Attendance");
+    }
+
+    // Generate filename with date
+    const filename = `${classData.code}_Attendance_Report_${
+      new Date().toISOString().split("T")[0]
+    }.xlsx`;
+    XLSX.writeFile(wb, filename);
   };
 
-  const exportToCSV = () => {
+  const exportToCSV = async () => {
     if (!analytics || !classData) return;
 
-    const exportData = [
-      { Class: classData.name, Code: classData.code },
-      { "Attendance Rate": `${attendanceRate}%` },
-      { "Total Present": analytics.overallStats?.totalPresent || 0 },
-      { "Total Absent": analytics.overallStats?.totalAbsent || 0 },
-      { "Total Late": analytics.overallStats?.totalLate || 0 },
-      {},
-      { "Defaulters (<75%)": "" },
-      ...defaulters.map((s) => ({
-        Name: s.studentName,
-        "Roll No": s.rollNo || "N/A",
-        Attendance: `${s.attendancePercentage.toFixed(1)}%`,
-        Sessions: `${s.present}/${s.totalSessions}`,
-      })),
-    ];
+    const currentDate = new Date().toLocaleString();
 
-    const ws = XLSX.utils.json_to_sheet(exportData, { skipHeader: true });
-    const csv = XLSX.utils.sheet_to_csv(ws);
-    const blob = new Blob([csv], { type: "text/csv" });
+    // Fetch detailed attendance data
+    let detailedData = null;
+    try {
+      const detailedResponse = await analyticsAPI.getDetailedAttendance(
+        classId,
+        dateRange.startDate,
+        dateRange.endDate
+      );
+      detailedData = detailedResponse?.data || detailedResponse;
+    } catch (error) {
+      console.error("Failed to fetch detailed attendance:", error);
+    }
+
+    let csvContent = "CLASS ATTENDANCE REPORT\n\n";
+    csvContent += "Class Information\n";
+    csvContent += `Class Name,${classData.name}\n`;
+    csvContent += `Class Code,${classData.code}\n`;
+    csvContent += `Department,${classData.department || "N/A"}\n`;
+    csvContent += `Semester,${classData.semester || "N/A"}\n`;
+    csvContent += `Teacher,${analytics.class?.teacher?.name || "N/A"}\n`;
+    csvContent += `Teacher Email,${analytics.class?.teacher?.email || "N/A"}\n`;
+    csvContent += `Report Generated,${currentDate}\n\n`;
+
+    csvContent += "Attendance Summary\n";
+    csvContent += `Total Sessions,${analytics.totalSessions || 0}\n`;
+    csvContent += `Attendance Rate,${attendanceRate}%\n`;
+    csvContent += `Total Present,${
+      analytics.overallStats?.totalPresent || 0
+    }\n`;
+    csvContent += `Total Absent,${analytics.overallStats?.totalAbsent || 0}\n`;
+    csvContent += `Total Late,${analytics.overallStats?.totalLate || 0}\n\n`;
+
+    if (defaulters.length > 0) {
+      csvContent += "STUDENTS BELOW 75% ATTENDANCE\n";
+      csvContent += "Name,Roll No,Attendance %,Present,Total Sessions\n";
+      defaulters.forEach((s) => {
+        csvContent += `${s.studentName},${
+          s.rollNo || "N/A"
+        },${s.attendancePercentage.toFixed(1)}%,${s.present},${
+          s.totalSessions
+        }\n`;
+      });
+      csvContent += "\n";
+    }
+
+    if (analytics.trends && analytics.trends.length > 0) {
+      csvContent += "ATTENDANCE TRENDS\n";
+      csvContent += "Period,Present,Absent,Late,Total\n";
+      analytics.trends.forEach((t) => {
+        const periodLabel =
+          period === "weekly" ? `Week ${t._id}` : `Month ${t._id}`;
+        const total = (t.present || 0) + (t.absent || 0) + (t.late || 0);
+        csvContent += `${periodLabel},${t.present || 0},${t.absent || 0},${
+          t.late || 0
+        },${total}\n`;
+      });
+      csvContent += "\n";
+    }
+
+    // Add detailed student attendance
+    if (detailedData && detailedData.attendance && detailedData.sessions) {
+      csvContent += "DETAILED STUDENT ATTENDANCE\n";
+      csvContent +=
+        "Student Name,Roll No," +
+        detailedData.sessions
+          .map((s) => new Date(s.date).toLocaleDateString())
+          .join(",") +
+        "\n";
+
+      detailedData.attendance.forEach((student) => {
+        const statuses = student.sessions.map((session) => {
+          if (session.status === "Present") return "P";
+          if (session.status === "Absent") return "A";
+          if (session.status === "Late") return "L";
+          return "-";
+        });
+        csvContent += `${student.studentName},${student.rollNo},${statuses.join(
+          ","
+        )}\n`;
+      });
+    }
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${classData.code}_Analytics.csv`;
+    a.download = `${classData.code}_Attendance_Report_${
+      new Date().toISOString().split("T")[0]
+    }.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -144,7 +327,9 @@ const Reports = () => {
         dateRange.startDate,
         dateRange.endDate
       );
-      setAnalytics(analyticsResponse.data);
+      console.log("Analytics response:", analyticsResponse);
+      console.log("Analytics data:", analyticsResponse?.data);
+      setAnalytics(analyticsResponse?.data || analyticsResponse);
 
       // Fetch defaulters
       const defaultersResponse = await analyticsAPI.getDefaulters(classId, 75);

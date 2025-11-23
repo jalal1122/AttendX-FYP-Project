@@ -36,6 +36,17 @@ const analyticsAPI = {
     const response = await api.get(`/analytics/teacher/stats`);
     return response.data;
   },
+
+  // Get detailed attendance records for export
+  getDetailedAttendance: async (classId, startDate = null, endDate = null) => {
+    let url = `/attendance/class/${classId}/detailed`;
+    const params = [];
+    if (startDate) params.push(`startDate=${startDate}`);
+    if (endDate) params.push(`endDate=${endDate}`);
+    if (params.length > 0) url += `?${params.join("&")}`;
+    const response = await api.get(url);
+    return response.data;
+  },
 };
 
 export default analyticsAPI;

@@ -389,3 +389,108 @@ export const getStudentAttendance = asyncHandler(async (req, res) => {
     )
   );
 });
+
+/**
+ * Get Detailed Attendance Records for Class (for exports)
+ * GET /api/v1/attendance/class/:classId/detailed
+ */
+export const getDetailedClassAttendance = asyncHandler(async (req, res) => {
+  const { classId } = req.params;
+  const { startDate, endDate } = req.query;
+
+  // Validate class exists
+  const classDoc = await Class.findById(classId)
+    .populate("students", "name email info")
+    .populate("teacher", "name");
+  if (!classDoc) {
+    throw ApiError.notFound("Class not found");
+  }
+
+  // Check authorization
+  const isTeacher = classDoc.teacher._id.toString() === req.user._id.toString();
+  const isAdmin = req.user.role === "admin";
+
+  if (!isTeacher && !isAdmin) {
+    throw ApiError.forbidden("You do not have access to this class attendance");
+  }
+
+  // Build date filter
+  const dateFilter = { classId };
+  if (startDate || endDate) {
+    dateFilter.date = {};
+    if (startDate) {
+      dateFilter.date.$gte = new Date(startDate);
+    }
+    if (endDate) {
+      dateFilter.date.$lte = new Date(endDate);
+    }
+  }
+
+  // Get all sessions for the class in date range
+  const sessionFilter = { classId };
+  if (startDate || endDate) {
+    sessionFilter.startTime = {};
+    if (startDate) {
+      sessionFilter.startTime.$gte = new Date(startDate);
+    }
+    if (endDate) {
+      sessionFilter.startTime.$lte = new Date(endDate);
+    }
+  }
+
+  const sessions = await Session.find(sessionFilter).sort({ startTime: 1 });
+
+  // Get all attendance records for these sessions
+  const sessionIds = sessions.map((s) => s._id);
+  const attendanceRecords = await Attendance.find({
+    sessionId: { $in: sessionIds },
+  }).populate("studentId", "name email info");
+
+  // Build detailed report structure
+  const report = classDoc.students.map((student) => {
+    const studentAttendance = {
+      studentId: student._id,
+      studentName: student.name,
+      email: student.email,
+      rollNo: student.info?.rollNo || "N/A",
+      sessions: [],
+    };
+
+    sessions.forEach((session) => {
+      const attendance = attendanceRecords.find(
+        (a) =>
+          a.sessionId.toString() === session._id.toString() &&
+          a.studentId._id.toString() === student._id.toString()
+      );
+
+      studentAttendance.sessions.push({
+        sessionId: session._id,
+        date: session.startTime,
+        status: attendance ? attendance.status : "Absent",
+        markedAt: attendance?.markedAt || null,
+      });
+    });
+
+    return studentAttendance;
+  });
+
+  res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        class: {
+          name: classDoc.name,
+          code: classDoc.code,
+          teacher: classDoc.teacher.name,
+        },
+        sessions: sessions.map((s) => ({
+          _id: s._id,
+          date: s.startTime,
+          type: s.type,
+        })),
+        attendance: report,
+      },
+      "Detailed attendance retrieved successfully"
+    )
+  );
+});
