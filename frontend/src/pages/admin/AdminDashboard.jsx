@@ -1,12 +1,15 @@
 import { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
 import { selectCurrentUser } from "../../features/auth/authSlice";
 import classAPI from "../../services/classAPI";
+import userAPI from "../../services/userAPI";
 import Card from "../../components/ui/Card";
 import Button from "../../components/ui/Button";
 
 const AdminDashboard = () => {
   const user = useSelector(selectCurrentUser);
+  const navigate = useNavigate();
   const [stats, setStats] = useState({
     totalClasses: 0,
     totalStudents: 0,
@@ -28,21 +31,14 @@ const AdminDashboard = () => {
       const classesResponse = await classAPI.getAllClasses();
       const classes = classesResponse.data.classes || [];
 
-      // Calculate stats
-      const totalStudents = classes.reduce(
-        (sum, cls) => sum + (cls.students?.length || 0),
-        0
-      );
-
-      // Get unique teachers
-      const uniqueTeachers = new Set(
-        classes.map((cls) => cls.teacher?._id).filter(Boolean)
-      );
+      // Fetch user stats
+      const userStatsResponse = await userAPI.getUserStats();
+      const userStats = userStatsResponse.data;
 
       setStats({
         totalClasses: classes.length,
-        totalStudents,
-        totalTeachers: uniqueTeachers.size,
+        totalStudents: userStats.totalStudents || 0,
+        totalTeachers: userStats.totalTeachers || 0,
         activeSessions: 0, // Will be updated when session API is integrated
       });
 
@@ -114,14 +110,23 @@ const AdminDashboard = () => {
                 Quick Actions
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Button variant="primary" onClick={() => {}}>
+                <Button
+                  variant="primary"
+                  onClick={() => navigate("/admin/users")}
+                >
                   View All Users
                 </Button>
-                <Button variant="success" onClick={() => {}}>
-                  Generate Reports
+                <Button
+                  variant="success"
+                  onClick={() => navigate("/admin/classes")}
+                >
+                  View All Classes
                 </Button>
-                <Button variant="secondary" onClick={() => {}}>
-                  System Settings
+                <Button
+                  variant="secondary"
+                  onClick={() => navigate("/admin/reports")}
+                >
+                  Generate Reports
                 </Button>
               </div>
             </Card>

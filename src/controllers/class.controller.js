@@ -140,7 +140,13 @@ export const joinClass = asyncHandler(async (req, res) => {
 export const getAllClasses = asyncHandler(async (req, res) => {
   let classes;
 
-  if (req.user.role === "teacher" || req.user.role === "admin") {
+  if (req.user.role === "admin") {
+    // Admin gets ALL classes in the system
+    classes = await Class.find({})
+      .populate("teacher", "name email role")
+      .populate("students", "name email info")
+      .sort({ createdAt: -1 });
+  } else if (req.user.role === "teacher") {
     // Get classes created by teacher
     classes = await Class.find({ teacher: req.user._id })
       .populate("teacher", "name email role")

@@ -27,3 +27,17 @@
     "year": "2025"
   }
 }
+
+{
+  "name": "Ahmed Ali",
+  "email": "ahmed.ali@attendx.com",
+  "password": "password123",
+  "role": "student",
+  "info": {
+    "rollNo": "CS-2021-042",
+    "semester": 6,
+    "department": "Computer Science",
+    "batch": "2021-2025",
+    "year": "2025"
+  }
+}
