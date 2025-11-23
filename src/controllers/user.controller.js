@@ -2,6 +2,8 @@ import asyncHandler from "../utils/asyncHandler.js";
 import ApiError from "../../utils/ApiError.js";
 import ApiResponse from "../../utils/ApiResponse.js";
 import User from "../models/user.model.js";
+import { uploadToCloudinary } from "../../config/cloudinary.js";
+import fs from "fs";
 
 /**
  * Get All Users (Admin only)
@@ -145,4 +147,74 @@ export const deleteUser = asyncHandler(async (req, res) => {
   await User.findByIdAndDelete(id);
 
   res.status(200).json(new ApiResponse(200, null, "User deleted successfully"));
+});
+
+/**
+ * Create User (Admin only)
+ * POST /api/v1/user/create
+ */
+export const createUser = asyncHandler(async (req, res) => {
+  const { name, email, password, role, info } = req.body;
+
+  // Validate required fields
+  if (!name || !email || !password || !role) {
+    throw ApiError.badRequest(
+      "All fields are required: name, email, password, role"
+    );
+  }
+
+  // Validate role
+  if (!["admin", "teacher", "student"].includes(role)) {
+    throw ApiError.badRequest(
+      "Invalid role. Must be admin, teacher, or student"
+    );
+  }
+
+  // Check if user already exists
+  const existingUser = await User.findOne({ email });
+  if (existingUser) {
+    throw ApiError.conflict("User with this email already exists");
+  }
+
+  // Handle avatar upload
+  let avatarUrl = null;
+  if (req.file) {
+    try {
+      avatarUrl = await uploadToCloudinary(req.file.path);
+      // Delete local file after upload
+      fs.unlinkSync(req.file.path);
+    } catch (error) {
+      console.error("Avatar upload error:", error);
+      // Continue without avatar if upload fails
+    }
+  }
+
+  // Parse info if it's a JSON string
+  let parsedInfo = info;
+  if (typeof info === "string") {
+    try {
+      parsedInfo = JSON.parse(info);
+    } catch (error) {
+      parsedInfo = {};
+    }
+  }
+
+  // Create user
+  const user = await User.create({
+    name,
+    email,
+    password,
+    role,
+    info: parsedInfo || {},
+    avatar: avatarUrl,
+  });
+
+  // Remove sensitive data
+  const userResponse = user.toObject();
+  delete userResponse.password;
+  delete userResponse.refreshToken;
+
+  res
+    .status(201)
+    .json(new ApiResponse(201, userResponse, "User created successfully"));
 });

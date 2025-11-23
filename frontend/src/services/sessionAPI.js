@@ -2,8 +2,11 @@ import api from "./api";
 
 const sessionAPI = {
   // Start a new attendance session
-  startSession: async (classId) => {
-    const response = await api.post("/session/start", { classId });
+  startSession: async (classId, options = {}) => {
+    const response = await api.post("/session/start", {
+      classId,
+      ...options,
+    });
     return response.data;
   },
 

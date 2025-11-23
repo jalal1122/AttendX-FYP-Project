@@ -23,7 +23,7 @@ const getClientIP = (req) => {
  * POST /api/v1/session/start
  */
 export const startSession = asyncHandler(async (req, res) => {
-  const { classId, type } = req.body;
+  const { classId, type, latitude, longitude, radius } = req.body;
 
   // Validate required fields
   if (!classId) {
@@ -64,6 +64,14 @@ export const startSession = asyncHandler(async (req, res) => {
   // Capture teacher's IP
   const teacherIP = getClientIP(req);
 
+  // Prepare location data
+  const location = {};
+  if (latitude !== undefined && longitude !== undefined) {
+    location.latitude = parseFloat(latitude);
+    location.longitude = parseFloat(longitude);
+    location.radius = radius ? parseFloat(radius) : 50; // Default 50 meters
+  }
+
   // Create session
   const session = await Session.create({
     classId,
@@ -73,6 +81,7 @@ export const startSession = asyncHandler(async (req, res) => {
     isRetroactive: false,
     teacherIP,
     type: type || "Lecture",
+    location: Object.keys(location).length > 0 ? location : undefined,
   });
 
   // Populate class and teacher info

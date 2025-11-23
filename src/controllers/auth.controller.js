@@ -3,6 +3,8 @@ import ApiError from "../../utils/ApiError.js";
 import ApiResponse from "../../utils/ApiResponse.js";
 import User from "../models/user.model.js";
 import jwt from "jsonwebtoken";
+import { uploadToCloudinary } from "../../config/cloudinary.js";
+import fs from "fs";
 
 /**
  * Generate Access and Refresh Tokens
@@ -69,6 +71,19 @@ export const registerUser = asyncHandler(async (req, res) => {
     }
   }
 
+  // Handle avatar upload
+  let avatarUrl = null;
+  if (req.file) {
+    try {
+      avatarUrl = await uploadToCloudinary(req.file.path);
+      // Delete local file after upload
+      fs.unlinkSync(req.file.path);
+    } catch (error) {
+      console.error("Avatar upload error:", error);
+      // Continue without avatar if upload fails
+    }
+  }
+
   // Create user
   const user = await User.create({
     name,
@@ -76,6 +91,7 @@ export const registerUser = asyncHandler(async (req, res) => {
     password,
     role,
     info: info || {},
+    avatar: avatarUrl,
   });
 
   // Generate tokens

@@ -24,6 +24,19 @@ const LiveSession = () => {
   const countIntervalRef = useRef(null);
   const timerIntervalRef = useRef(null);
 
+  const fetchClassDetails = async () => {
+    try {
+      const response = await classAPI.getClassDetails(classId);
+      setClassData(response.data);
+      setTotalStudents(response.data.students?.length || 0);
+      setLoading(false);
+    } catch (err) {
+      console.error("Failed to load class details:", err);
+      setError("Failed to load class details");
+      setLoading(false);
+    }
+  };
+
   // Fetch class details on mount
   useEffect(() => {
     fetchClassDetails();
@@ -33,41 +46,70 @@ const LiveSession = () => {
       if (countIntervalRef.current) clearInterval(countIntervalRef.current);
       if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [classId]);
-
-  const fetchClassDetails = async () => {
-    try {
-      const response = await classAPI.getClassDetails(classId);
-      setClassData(response.data);
-      setTotalStudents(response.data.students?.length || 0);
-      setLoading(false);
-    } catch (error) {
-      setError("Failed to load class details");
-      setLoading(false);
-    }
-  };
 
   const startSession = async () => {
     try {
       setError("");
       setLoading(true);
 
-      // Start the session
-      const response = await sessionAPI.startSession(classId);
-      setSessionId(response.data._id);
-      setIsActive(true);
+      // Get teacher's location
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          async (position) => {
+            const { latitude, longitude } = position.coords;
+            console.log("📍 Teacher location captured:", {
+              latitude,
+              longitude,
+            });
 
+            // Start the session with location
+            const response = await sessionAPI.startSession(classId, {
+              latitude,
+              longitude,
+            });
+            setSessionId(response.data._id);
+            setIsActive(true);
+            continueSessionSetup(response.data._id);
+          },
+          async (error) => {
+            console.warn("Location access denied:", error);
+            // Start session without location
+            const response = await sessionAPI.startSession(classId);
+            setSessionId(response.data._id);
+            setIsActive(true);
+            continueSessionSetup(response.data._id);
+          }
+        );
+        return;
+      } else {
+        // Browser doesn't support geolocation
+        const response = await sessionAPI.startSession(classId);
+        setSessionId(response.data._id);
+        setIsActive(true);
+        continueSessionSetup(response.data._id);
+      }
+    } catch (err) {
+      console.error("Failed to start session:", err);
+      setError(err.response?.data?.message || "Failed to start session");
+      setLoading(false);
+    }
+  };
+
+  const continueSessionSetup = async (sessionId) => {
+    try {
       // Get first QR token immediately
-      await fetchNewQRToken(response.data._id);
+      await fetchNewQRToken(sessionId);
 
       // Start QR rotation (every 20 seconds)
       qrIntervalRef.current = setInterval(() => {
-        fetchNewQRToken(response.data._id);
+        fetchNewQRToken(sessionId);
       }, 20000);
 
       // Start attendance count updates (every 5 seconds)
       countIntervalRef.current = setInterval(() => {
-        fetchAttendanceCount(response.data._id);
+        fetchAttendanceCount(sessionId);
       }, 5000);
 
       // Start countdown timer (every second)

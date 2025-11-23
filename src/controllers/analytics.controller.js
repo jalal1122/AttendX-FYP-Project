@@ -144,10 +144,11 @@ export const getStudentReport = asyncHandler(async (req, res) => {
 
 /**
  * Get Class Analytics (Temporal: Weekly + Monthly + Overall)
- * GET /api/v1/analytics/class/:classId
+ * GET /api/v1/analytics/class/:classId?startDate=...&endDate=...
  */
 export const getClassAnalytics = asyncHandler(async (req, res) => {
   const { classId } = req.params;
+  const { startDate, endDate } = req.query;
 
   // Validate class exists
   const classDoc = await Class.findById(classId).populate(
@@ -166,11 +167,24 @@ export const getClassAnalytics = asyncHandler(async (req, res) => {
     throw ApiError.forbidden("You do not have access to this class analytics");
   }
 
+  // Build date filter
+  const dateFilter = {};
+  if (startDate || endDate) {
+    dateFilter.createdAt = {};
+    if (startDate) {
+      dateFilter.createdAt.$gte = new Date(startDate);
+    }
+    if (endDate) {
+      dateFilter.createdAt.$lte = new Date(endDate);
+    }
+  }
+
   // Overall Statistics
   const overallStats = await Attendance.aggregate([
     {
       $match: {
         classId: new mongoose.Types.ObjectId(classId),
+        ...dateFilter,
       },
     },
     {
@@ -225,6 +239,7 @@ export const getClassAnalytics = asyncHandler(async (req, res) => {
     {
       $match: {
         classId: new mongoose.Types.ObjectId(classId),
+        ...dateFilter,
       },
     },
     {

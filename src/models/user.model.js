@@ -33,6 +33,10 @@ const userSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.Mixed,
       default: {},
     },
+    avatar: {
+      type: String,
+      default: null,
+    },
     refreshToken: {
       type: String,
     },

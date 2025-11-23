@@ -5,6 +5,7 @@ import Attendance from "../models/attendance.model.js";
 import Session from "../models/session.model.js";
 import Class from "../models/class.model.js";
 import jwt from "jsonwebtoken";
+import { calculateDistance, isWithinRadius } from "../utils/geolocation.js";
 
 /**
  * Get client IP address (handles proxies and localhost)
@@ -24,7 +25,7 @@ const getClientIP = (req) => {
  * POST /api/v1/attendance/scan
  */
 export const markAttendance = asyncHandler(async (req, res) => {
-  const { token, location } = req.body;
+  const { token, latitude, longitude } = req.body;
 
   // Validate token
   if (!token) {
@@ -63,6 +64,48 @@ export const markAttendance = asyncHandler(async (req, res) => {
   // Check if session is active
   if (!session.active) {
     throw ApiError.badRequest("Session is no longer active");
+  }
+
+  // Geofencing validation - check if student is within allowed radius
+  if (
+    session.location &&
+    session.location.latitude &&
+    session.location.longitude
+  ) {
+    if (!latitude || !longitude) {
+      throw ApiError.badRequest("Location is required for this session");
+    }
+
+    const studentLat = parseFloat(latitude);
+    const studentLon = parseFloat(longitude);
+    const sessionLat = session.location.latitude;
+    const sessionLon = session.location.longitude;
+    const allowedRadius = session.location.radius || 50;
+
+    const distance = calculateDistance(
+      sessionLat,
+      sessionLon,
+      studentLat,
+      studentLon
+    );
+
+    if (
+      !isWithinRadius(
+        sessionLat,
+        sessionLon,
+        studentLat,
+        studentLon,
+        allowedRadius
+      )
+    ) {
+      throw ApiError.badRequest(
+        `You are too far from the class location (${distance}m away, ${allowedRadius}m allowed). Please move closer to mark attendance.`
+      );
+    }
+
+    console.log(
+      `✓ Geofencing passed: Student is ${distance}m away (within ${allowedRadius}m radius)`
+    );
   }
 
   // Find class

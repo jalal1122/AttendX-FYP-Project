@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import * as XLSX from "xlsx";
 import {
   PieChart,
   Pie,
@@ -32,12 +33,101 @@ const Reports = () => {
   const [analytics, setAnalytics] = useState(null);
   const [defaulters, setDefaulters] = useState([]);
   const [period, setPeriod] = useState("weekly");
+  const [dateRange, setDateRange] = useState({ startDate: "", endDate: "" });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    fetchData();
-  }, [classId, period]);
+  const setDatePreset = (preset) => {
+    const now = new Date();
+    let startDate, endDate;
+
+    switch (preset) {
+      case "thisWeek": {
+        const weekStart = new Date(now);
+        weekStart.setDate(now.getDate() - now.getDay());
+        startDate = weekStart.toISOString().split("T")[0];
+        endDate = now.toISOString().split("T")[0];
+        break;
+      }
+      case "thisMonth": {
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1)
+          .toISOString()
+          .split("T")[0];
+        endDate = now.toISOString().split("T")[0];
+        break;
+      }
+      case "thisSemester": {
+        const month = now.getMonth();
+        const semesterStart =
+          month >= 7
+            ? new Date(now.getFullYear(), 7, 1)
+            : new Date(now.getFullYear(), 0, 1);
+        startDate = semesterStart.toISOString().split("T")[0];
+        endDate = now.toISOString().split("T")[0];
+        break;
+      }
+      default:
+        startDate = "";
+        endDate = "";
+    }
+
+    setDateRange({ startDate, endDate });
+  };
+
+  const exportToExcel = () => {
+    if (!analytics || !classData) return;
+
+    const exportData = [
+      { Class: classData.name, Code: classData.code },
+      { "Attendance Rate": `${attendanceRate}%` },
+      { "Total Present": analytics.overallStats?.totalPresent || 0 },
+      { "Total Absent": analytics.overallStats?.totalAbsent || 0 },
+      { "Total Late": analytics.overallStats?.totalLate || 0 },
+      {},
+      { "Defaulters (<75%)": "" },
+      ...defaulters.map((s) => ({
+        Name: s.studentName,
+        "Roll No": s.rollNo || "N/A",
+        Attendance: `${s.attendancePercentage.toFixed(1)}%`,
+        Sessions: `${s.present}/${s.totalSessions}`,
+      })),
+    ];
+
+    const ws = XLSX.utils.json_to_sheet(exportData, { skipHeader: true });
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Analytics");
+    XLSX.writeFile(wb, `${classData.code}_Analytics.xlsx`);
+  };
+
+  const exportToCSV = () => {
+    if (!analytics || !classData) return;
+
+    const exportData = [
+      { Class: classData.name, Code: classData.code },
+      { "Attendance Rate": `${attendanceRate}%` },
+      { "Total Present": analytics.overallStats?.totalPresent || 0 },
+      { "Total Absent": analytics.overallStats?.totalAbsent || 0 },
+      { "Total Late": analytics.overallStats?.totalLate || 0 },
+      {},
+      { "Defaulters (<75%)": "" },
+      ...defaulters.map((s) => ({
+        Name: s.studentName,
+        "Roll No": s.rollNo || "N/A",
+        Attendance: `${s.attendancePercentage.toFixed(1)}%`,
+        Sessions: `${s.present}/${s.totalSessions}`,
+      })),
+    ];
+
+    const ws = XLSX.utils.json_to_sheet(exportData, { skipHeader: true });
+    const csv = XLSX.utils.sheet_to_csv(ws);
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${classData.code}_Analytics.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const fetchData = async () => {
     try {
@@ -50,7 +140,9 @@ const Reports = () => {
       // Fetch analytics
       const analyticsResponse = await analyticsAPI.getClassAnalytics(
         classId,
-        period
+        period,
+        dateRange.startDate,
+        dateRange.endDate
       );
       setAnalytics(analyticsResponse.data);
 
@@ -65,6 +157,11 @@ const Reports = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [classId, period, dateRange]);
 
   // Prepare pie chart data
   const getPieChartData = () => {
@@ -129,7 +226,7 @@ const Reports = () => {
       {/* Header */}
       <div className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex justify-between items-center">
+          <div className="flex justify-between items-center mb-4">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">
                 Class Analytics
@@ -144,6 +241,74 @@ const Reports = () => {
             >
               Back to Class
             </Button>
+          </div>
+
+          {/* Date Filter Controls */}
+          <div className="flex flex-wrap gap-4 items-end">
+            <div className="flex-1 min-w-[200px]">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Start Date
+              </label>
+              <input
+                type="date"
+                value={dateRange.startDate}
+                onChange={(e) =>
+                  setDateRange({ ...dateRange, startDate: e.target.value })
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+              />
+            </div>
+            <div className="flex-1 min-w-[200px]">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                End Date
+              </label>
+              <input
+                type="date"
+                value={dateRange.endDate}
+                onChange={(e) =>
+                  setDateRange({ ...dateRange, endDate: e.target.value })
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setDatePreset("thisWeek")}
+              >
+                This Week
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setDatePreset("thisMonth")}
+              >
+                This Month
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setDatePreset("thisSemester")}
+              >
+                This Semester
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setDateRange({ startDate: "", endDate: "" })}
+              >
+                Clear
+              </Button>
+            </div>
+            <div className="flex gap-2">
+              <Button variant="primary" size="sm" onClick={exportToExcel}>
+                📊 Export Excel
+              </Button>
+              <Button variant="secondary" size="sm" onClick={exportToCSV}>
+                📄 Export CSV
+              </Button>
+            </div>
           </div>
         </div>
       </div>
