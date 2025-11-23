@@ -235,7 +235,7 @@ export const getClassAnalytics = asyncHandler(async (req, res) => {
   ]);
 
   // Weekly Trends
-  const weeklyTrends = await Attendance.aggregate([
+  const weeklyTrendsRaw = await Attendance.aggregate([
     {
       $match: {
         classId: new mongoose.Types.ObjectId(classId),
@@ -256,16 +256,22 @@ export const getClassAnalytics = asyncHandler(async (req, res) => {
             $cond: [{ $eq: ["$status", "Absent"] }, 1, 0],
           },
         },
+        lateCount: {
+          $sum: {
+            $cond: [{ $eq: ["$status", "Late"] }, 1, 0],
+          },
+        },
       },
     },
     {
       $project: {
-        _id: 0,
+        _id: "$_id.weekNumber",
         weekNumber: "$_id.weekNumber",
         year: "$_id.year",
+        present: "$presentCount",
+        absent: "$absentCount",
+        late: "$lateCount",
         totalRecords: 1,
-        presentCount: 1,
-        absentCount: 1,
         attendancePercentage: {
           $cond: [
             { $gt: ["$totalRecords", 0] },
@@ -282,11 +288,14 @@ export const getClassAnalytics = asyncHandler(async (req, res) => {
     },
   ]);
 
+  const weeklyTrends = weeklyTrendsRaw;
+
   // Monthly Trends
-  const monthlyTrends = await Attendance.aggregate([
+  const monthlyTrendsRaw = await Attendance.aggregate([
     {
       $match: {
         classId: new mongoose.Types.ObjectId(classId),
+        ...dateFilter,
       },
     },
     {
@@ -303,16 +312,22 @@ export const getClassAnalytics = asyncHandler(async (req, res) => {
             $cond: [{ $eq: ["$status", "Absent"] }, 1, 0],
           },
         },
+        lateCount: {
+          $sum: {
+            $cond: [{ $eq: ["$status", "Late"] }, 1, 0],
+          },
+        },
       },
     },
     {
       $project: {
-        _id: 0,
+        _id: "$_id.month",
         month: "$_id.month",
         year: "$_id.year",
+        present: "$presentCount",
+        absent: "$absentCount",
+        late: "$lateCount",
         totalRecords: 1,
-        presentCount: 1,
-        absentCount: 1,
         attendancePercentage: {
           $cond: [
             { $gt: ["$totalRecords", 0] },
@@ -329,8 +344,35 @@ export const getClassAnalytics = asyncHandler(async (req, res) => {
     },
   ]);
 
+  const monthlyTrends = monthlyTrendsRaw;
+
   // Get total sessions count
   const totalSessions = await Session.countDocuments({ classId });
+
+  // Get the period parameter from query
+  const { period = "weekly" } = req.query;
+
+  // Prepare overall stats with consistent naming
+  const stats = overallStats[0] || {
+    totalRecords: 0,
+    presentCount: 0,
+    absentCount: 0,
+    lateCount: 0,
+    leaveCount: 0,
+    averageAttendance: 0,
+  };
+
+  // Map to frontend expected format
+  const overallStatsFormatted = {
+    totalPresent: stats.presentCount,
+    totalAbsent: stats.absentCount,
+    totalLate: stats.lateCount,
+    totalLeave: stats.leaveCount,
+    averageAttendance: stats.averageAttendance,
+  };
+
+  // Select trends based on period
+  const trends = period === "weekly" ? weeklyTrends : monthlyTrends;
 
   res.status(200).json(
     new ApiResponse(
@@ -345,14 +387,8 @@ export const getClassAnalytics = asyncHandler(async (req, res) => {
           teacher: classDoc.teacher,
         },
         totalSessions,
-        overallStats: overallStats[0] || {
-          totalRecords: 0,
-          presentCount: 0,
-          absentCount: 0,
-          lateCount: 0,
-          leaveCount: 0,
-          averageAttendance: 0,
-        },
+        overallStats: overallStatsFormatted,
+        trends,
         weeklyTrends,
         monthlyTrends,
       },
