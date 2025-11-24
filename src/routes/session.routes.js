@@ -5,6 +5,7 @@ import {
   endSession,
   createRetroactiveSession,
   getSessionsByClass,
+  getActiveSessionByClass,
   getSessionDetails,
 } from "../controllers/session.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
@@ -29,6 +30,13 @@ router.post(
   "/create-retroactive",
   hasRole("teacher", "admin"),
   createRetroactiveSession
+);
+
+// Get active session for a class (Teacher/Admin only)
+router.get(
+  "/class/:classId/active",
+  hasRole("teacher", "admin"),
+  getActiveSessionByClass
 );
 
 // Get all sessions for a class

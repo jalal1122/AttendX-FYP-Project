@@ -2,8 +2,10 @@ import asyncHandler from "../utils/asyncHandler.js";
 import ApiError from "../../utils/ApiError.js";
 import ApiResponse from "../../utils/ApiResponse.js";
 import User from "../models/user.model.js";
+import OTP from "../models/otp.model.js";
 import jwt from "jsonwebtoken";
 import { uploadToCloudinary } from "../../config/cloudinary.js";
+import sendEmail from "../utils/sendEmail.js";
 import fs from "fs";
 
 /**
@@ -151,14 +153,35 @@ export const loginUser = asyncHandler(async (req, res) => {
     throw ApiError.unauthorized("Invalid email or password");
   }
 
-  // Generate tokens
+  // Check if 2FA is enabled
+  if (user.isTwoFactorEnabled) {
+    // Generate temporary short-lived token (5 minutes)
+    const tempToken = jwt.sign(
+      { _id: user._id, temp2FA: true },
+      process.env.JWT_ACCESS_SECRET,
+      { expiresIn: "5m" }
+    );
+
+    return res.status(200).json(
+      new ApiResponse(
+        200,
+        {
+          require2FA: true,
+          tempToken,
+        },
+        "2FA verification required"
+      )
+    );
+  }
+
+  // Generate tokens (if 2FA not enabled)
   const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(
     user._id
   );
 
   // Remove password and refresh token from response
   const loggedInUser = await User.findById(user._id).select(
-    "-password -refreshToken"
+    "-password -refreshToken -twoFactorSecret"
   );
 
   // Set refresh token in HTTP-only cookie
@@ -182,6 +205,24 @@ export const loginUser = asyncHandler(async (req, res) => {
         "User logged in successfully"
       )
     );
+});
+
+/**
+ * Get Current User
+ * GET /api/v1/auth/me
+ */
+export const getCurrentUser = asyncHandler(async (req, res) => {
+  const user = await User.findById(req.user._id).select(
+    "-password -refreshToken -twoFactorSecret"
+  );
+
+  if (!user) {
+    throw ApiError.notFound("User not found");
+  }
+
+  res
+    .status(200)
+    .json(new ApiResponse(200, { user }, "User fetched successfully"));
 });
 
 /**
@@ -265,4 +306,322 @@ export const refreshAccessToken = asyncHandler(async (req, res) => {
   } catch (error) {
     throw ApiError.unauthorized(error?.message || "Invalid refresh token");
   }
+});
+
+/**
+ * Enable 2FA - Generate QR Code
+ * POST /api/v1/auth/2fa/enable
+ */
+export const enable2FA = asyncHandler(async (req, res) => {
+  const { authenticator } = await import("otplib");
+  const QRCode = await import("qrcode");
+
+  const user = await User.findById(req.user._id);
+
+  if (!user) {
+    throw ApiError.notFound("User not found");
+  }
+
+  if (user.isTwoFactorEnabled) {
+    throw ApiError.badRequest("2FA is already enabled for this account");
+  }
+
+  // Generate a new secret
+  const secret = authenticator.generateSecret();
+
+  // Generate OTP Auth URL for QR Code
+  const otpauth = authenticator.keyuri(user.email, "AttendX", secret);
+
+  // Generate QR Code as Data URL
+  const qrCodeDataUrl = await QRCode.toDataURL(otpauth);
+
+  res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        qrCode: qrCodeDataUrl,
+        secret: secret,
+        email: user.email,
+      },
+      "2FA QR Code generated. Scan with your authenticator app and verify."
+    )
+  );
+});
+
+/**
+ * Verify and Activate 2FA
+ * POST /api/v1/auth/2fa/verify
+ */
+export const verify2FA = asyncHandler(async (req, res) => {
+  const { token, secret } = req.body;
+  const { authenticator } = await import("otplib");
+
+  if (!token || !secret) {
+    throw ApiError.badRequest("Token and secret are required");
+  }
+
+  const user = await User.findById(req.user._id);
+
+  if (!user) {
+    throw ApiError.notFound("User not found");
+  }
+
+  // Verify the token
+  const isValid = authenticator.verify({ token, secret });
+
+  if (!isValid) {
+    throw ApiError.badRequest("Invalid verification code. Please try again.");
+  }
+
+  // Save 2FA settings
+  user.isTwoFactorEnabled = true;
+  user.twoFactorSecret = secret;
+  await user.save({ validateBeforeSave: false });
+
+  res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        isTwoFactorEnabled: true,
+      },
+      "2FA enabled successfully"
+    )
+  );
+});
+
+/**
+ * Disable 2FA
+ * POST /api/v1/auth/2fa/disable
+ */
+export const disable2FA = asyncHandler(async (req, res) => {
+  const { token } = req.body;
+  const { authenticator } = await import("otplib");
+
+  if (!token) {
+    throw ApiError.badRequest("Verification code is required");
+  }
+
+  const user = await User.findById(req.user._id);
+
+  if (!user) {
+    throw ApiError.notFound("User not found");
+  }
+
+  if (!user.isTwoFactorEnabled) {
+    throw ApiError.badRequest("2FA is not enabled for this account");
+  }
+
+  // Verify the token before disabling
+  const isValid = authenticator.verify({
+    token,
+    secret: user.twoFactorSecret,
+  });
+
+  if (!isValid) {
+    throw ApiError.badRequest("Invalid verification code");
+  }
+
+  // Disable 2FA
+  user.isTwoFactorEnabled = false;
+  user.twoFactorSecret = null;
+  await user.save({ validateBeforeSave: false });
+
+  res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        isTwoFactorEnabled: false,
+      },
+      "2FA disabled successfully"
+    )
+  );
+});
+
+/**
+ * Validate 2FA during Login
+ * POST /api/v1/auth/2fa/validate
+ */
+export const validate2FALogin = asyncHandler(async (req, res) => {
+  const { tempToken, otp } = req.body;
+  const { authenticator } = await import("otplib");
+
+  if (!tempToken || !otp) {
+    throw ApiError.badRequest("Temporary token and OTP are required");
+  }
+
+  // Verify temp token
+  let decoded;
+  try {
+    decoded = jwt.verify(tempToken, process.env.JWT_ACCESS_SECRET);
+  } catch (error) {
+    throw ApiError.unauthorized("Invalid or expired temporary token");
+  }
+
+  const user = await User.findById(decoded._id);
+
+  if (!user || !user.isTwoFactorEnabled) {
+    throw ApiError.unauthorized("Invalid authentication state");
+  }
+
+  // Verify OTP
+  const isValid = authenticator.verify({
+    token: otp,
+    secret: user.twoFactorSecret,
+  });
+
+  if (!isValid) {
+    throw ApiError.unauthorized("Invalid verification code");
+  }
+
+  // Generate actual access and refresh tokens
+  const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(
+    user._id
+  );
+
+  // Remove sensitive fields
+  const loggedInUser = await User.findById(user._id).select(
+    "-password -refreshToken -twoFactorSecret"
+  );
+
+  // Cookie options
+  const cookieOptions = {
+    httpOnly: true,
+    secure: process.env.COOKIE_SECURE === "true",
+    sameSite: process.env.COOKIE_SAME_SITE || "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  };
+
+  res
+    .status(200)
+    .cookie("refreshToken", refreshToken, cookieOptions)
+    .json(
+      new ApiResponse(
+        200,
+        {
+          user: loggedInUser,
+          accessToken,
+          refreshToken,
+        },
+        "Login successful"
+      )
+    );
+});
+
+/**
+ * Forgot Password - Send OTP
+ * POST /api/v1/auth/forgot-password
+ */
+export const forgotPassword = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    throw ApiError.badRequest("Email is required");
+  }
+
+  // Check if user exists
+  const user = await User.findOne({ email: email.toLowerCase() });
+  if (!user) {
+    throw ApiError.notFound("No account found with this email address");
+  }
+
+  // Generate 6-digit OTP
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+  // Delete any existing OTPs for this email
+  await OTP.deleteMany({ email: email.toLowerCase() });
+
+  // Save new OTP to database
+  await OTP.create({
+    email: email.toLowerCase(),
+    otp,
+  });
+
+  // Send email with OTP
+  try {
+    await sendEmail({
+      to: email,
+      subject: "Password Reset OTP - AttendX",
+      text: `Your OTP for password reset is: ${otp}\n\nThis OTP will expire in 10 minutes.\n\nIf you didn't request this, please ignore this email.`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <h2 style="color: #4F46E5;">Password Reset Request</h2>
+          <p>You have requested to reset your password for AttendX.</p>
+          <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0;">
+            <p style="margin: 0; color: #6b7280; font-size: 14px;">Your OTP Code:</p>
+            <h1 style="margin: 10px 0; color: #4F46E5; font-size: 36px; letter-spacing: 5px;">${otp}</h1>
+          </div>
+          <p style="color: #6b7280; font-size: 14px;">This OTP will expire in <strong>10 minutes</strong>.</p>
+          <p style="color: #6b7280; font-size: 14px;">If you didn't request this password reset, please ignore this email.</p>
+        </div>
+      `,
+    });
+  } catch (error) {
+    console.error("Error sending OTP email:", error);
+    // Don't throw error - OTP is still valid even if email fails
+  }
+
+  res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        email: email.toLowerCase(),
+        message: "OTP sent successfully",
+      },
+      "Password reset OTP sent to your email"
+    )
+  );
+});
+
+/**
+ * Reset Password with OTP
+ * POST /api/v1/auth/reset-password
+ */
+export const resetPassword = asyncHandler(async (req, res) => {
+  const { email, otp, newPassword } = req.body;
+
+  // Validate inputs
+  if (!email || !otp || !newPassword) {
+    throw ApiError.badRequest("Email, OTP, and new password are required");
+  }
+
+  if (newPassword.length < 6) {
+    throw ApiError.badRequest("Password must be at least 6 characters long");
+  }
+
+  // Find OTP record
+  const otpRecord = await OTP.findOne({
+    email: email.toLowerCase(),
+    otp,
+  });
+
+  if (!otpRecord) {
+    throw ApiError.badRequest("Invalid or expired OTP");
+  }
+
+  // Find user
+  const user = await User.findOne({ email: email.toLowerCase() });
+  if (!user) {
+    throw ApiError.notFound("User not found");
+  }
+
+  // Update password
+  user.password = newPassword;
+  await user.save();
+
+  // Delete used OTP
+  await OTP.deleteOne({ _id: otpRecord._id });
+
+  // Clear all refresh tokens for security
+  user.refreshToken = undefined;
+  await user.save({ validateBeforeSave: false });
+
+  res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        {},
+        "Password reset successful. Please login with your new password."
+      )
+    );
 });

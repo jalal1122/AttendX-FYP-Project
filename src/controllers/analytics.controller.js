@@ -13,6 +13,7 @@ import mongoose from "mongoose";
  */
 export const getStudentReport = asyncHandler(async (req, res) => {
   const { studentId } = req.params;
+  const { range = "all" } = req.query; // week, month, semester, all
 
   // Validate student exists
   const student = await User.findById(studentId);
@@ -25,11 +26,40 @@ export const getStudentReport = asyncHandler(async (req, res) => {
     throw ApiError.forbidden("You can only view your own attendance report");
   }
 
+  // Build date filter based on range
+  const dateFilter = {};
+  const now = new Date();
+
+  switch (range) {
+    case "week":
+      const weekStart = new Date(now);
+      weekStart.setDate(now.getDate() - 7);
+      dateFilter.date = { $gte: weekStart };
+      break;
+    case "month":
+      const monthStart = new Date(now);
+      monthStart.setDate(now.getDate() - 30);
+      dateFilter.date = { $gte: monthStart };
+      break;
+    case "semester":
+      const month = now.getMonth();
+      const semesterStart =
+        month >= 7
+          ? new Date(now.getFullYear(), 7, 1)
+          : new Date(now.getFullYear(), 0, 1);
+      dateFilter.date = { $gte: semesterStart };
+      break;
+    default:
+      // "all" - no date filter
+      break;
+  }
+
   // Aggregation pipeline for subject-wise attendance
   const subjectWiseReport = await Attendance.aggregate([
     {
       $match: {
         studentId: new mongoose.Types.ObjectId(studentId),
+        ...dateFilter,
       },
     },
     {
@@ -100,10 +130,14 @@ export const getStudentReport = asyncHandler(async (req, res) => {
   // Calculate overall statistics
   let totalClassesOverall = 0;
   let totalPresentOverall = 0;
+  let totalAbsentOverall = 0;
+  let totalLateOverall = 0;
 
   subjectWiseReport.forEach((subject) => {
     totalClassesOverall += subject.totalClasses;
     totalPresentOverall += subject.presentCount;
+    totalAbsentOverall += subject.absentCount;
+    totalLateOverall += subject.lateCount;
   });
 
   const overallPercentage =
@@ -116,6 +150,55 @@ export const getStudentReport = asyncHandler(async (req, res) => {
     (subject) => subject.attendancePercentage < 75
   );
 
+  // Get recent sessions/attendance records
+  const recentSessions = await Attendance.find({
+    studentId: new mongoose.Types.ObjectId(studentId),
+    ...dateFilter,
+  })
+    .populate("classId", "name code")
+    .populate("sessionId", "startTime type")
+    .sort({ date: -1 })
+    .limit(20)
+    .lean();
+
+  // Prepare chart data for trends
+  const chartData = await Attendance.aggregate([
+    {
+      $match: {
+        studentId: new mongoose.Types.ObjectId(studentId),
+        ...dateFilter,
+      },
+    },
+    {
+      $group: {
+        _id: {
+          $dateToString: { format: "%Y-%m-%d", date: "$date" },
+        },
+        present: {
+          $sum: { $cond: [{ $eq: ["$status", "Present"] }, 1, 0] },
+        },
+        absent: {
+          $sum: { $cond: [{ $eq: ["$status", "Absent"] }, 1, 0] },
+        },
+        late: {
+          $sum: { $cond: [{ $eq: ["$status", "Late"] }, 1, 0] },
+        },
+      },
+    },
+    {
+      $project: {
+        _id: 0,
+        name: "$_id",
+        present: 1,
+        absent: 1,
+        late: 1,
+      },
+    },
+    {
+      $sort: { name: 1 },
+    },
+  ]);
+
   res.status(200).json(
     new ApiResponse(
       200,
@@ -126,12 +209,17 @@ export const getStudentReport = asyncHandler(async (req, res) => {
           email: student.email,
           info: student.info,
         },
+        range,
         overall: {
           totalClasses: totalClassesOverall,
           presentCount: totalPresentOverall,
+          absentCount: totalAbsentOverall,
+          lateCount: totalLateOverall,
           attendancePercentage: parseFloat(overallPercentage),
         },
         subjectWise: subjectWiseReport,
+        recentSessions,
+        chartData,
         warnings: {
           hasLowAttendance: lowAttendanceSubjects.length > 0,
           lowAttendanceSubjects,

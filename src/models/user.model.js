@@ -40,6 +40,19 @@ const userSchema = new mongoose.Schema(
     refreshToken: {
       type: String,
     },
+    // 2FA fields
+    isTwoFactorEnabled: {
+      type: Boolean,
+      default: false,
+    },
+    twoFactorSecret: {
+      type: String,
+      default: null,
+    },
+    mobileNumber: {
+      type: String,
+      default: null,
+    },
   },
   {
     timestamps: true,

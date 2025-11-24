@@ -15,10 +15,22 @@ const analyticsAPI = {
     return response.data;
   },
 
-  // Get student report for a specific class
-  getStudentReport: async (studentId, classId) => {
+  // Get student report for a specific class or with range filter
+  getStudentReport: async (studentId, rangeOrClassId) => {
+    // If rangeOrClassId is a range parameter (week, month, semester, all)
+    if (
+      ["week", "month", "semester", "all"].includes(rangeOrClassId) ||
+      !rangeOrClassId
+    ) {
+      const range = rangeOrClassId || "all";
+      const response = await api.get(
+        `/analytics/student/${studentId}?range=${range}`
+      );
+      return response.data;
+    }
+    // Otherwise, it's a classId (backward compatibility)
     const response = await api.get(
-      `/analytics/student/${studentId}?classId=${classId}`
+      `/analytics/student/${studentId}?classId=${rangeOrClassId}`
     );
     return response.data;
   },
