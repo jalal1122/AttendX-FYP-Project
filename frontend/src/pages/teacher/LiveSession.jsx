@@ -19,6 +19,7 @@ const LiveSession = () => {
   const [isActive, setIsActive] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [geofenceRadius, setGeofenceRadius] = useState(50);
 
   const qrIntervalRef = useRef(null);
   const countIntervalRef = useRef(null);
@@ -37,9 +38,28 @@ const LiveSession = () => {
     }
   };
 
+  const checkExistingSession = async () => {
+    try {
+      // Check if there's an active session for this class
+      const response = await sessionAPI.getActiveSession(classId);
+      const activeSession = response.data;
+
+      if (activeSession) {
+        // Resume existing session
+        console.log("📋 Resuming existing session:", activeSession._id);
+        setSessionId(activeSession._id);
+        setIsActive(true);
+        continueSessionSetup(activeSession._id);
+      }
+    } catch (err) {
+      console.error("Error checking existing sessions:", err);
+    }
+  };
+
   // Fetch class details on mount
   useEffect(() => {
     fetchClassDetails();
+    checkExistingSession();
     return () => {
       // Cleanup intervals on unmount
       if (qrIntervalRef.current) clearInterval(qrIntervalRef.current);
@@ -64,22 +84,31 @@ const LiveSession = () => {
               longitude,
             });
 
-            // Start the session with location
-            const response = await sessionAPI.startSession(classId, {
-              latitude,
-              longitude,
-            });
-            setSessionId(response.data._id);
-            setIsActive(true);
-            continueSessionSetup(response.data._id);
+            try {
+              // Start the session with location and radius
+              const response = await sessionAPI.startSession(classId, {
+                latitude,
+                longitude,
+                radius: geofenceRadius,
+              });
+              setSessionId(response.data._id);
+              setIsActive(true);
+              continueSessionSetup(response.data._id);
+            } catch (err) {
+              handleSessionError(err);
+            }
           },
           async (error) => {
             console.warn("Location access denied:", error);
-            // Start session without location
-            const response = await sessionAPI.startSession(classId);
-            setSessionId(response.data._id);
-            setIsActive(true);
-            continueSessionSetup(response.data._id);
+            try {
+              // Start session without location
+              const response = await sessionAPI.startSession(classId);
+              setSessionId(response.data._id);
+              setIsActive(true);
+              continueSessionSetup(response.data._id);
+            } catch (err) {
+              handleSessionError(err);
+            }
           }
         );
         return;
@@ -91,10 +120,22 @@ const LiveSession = () => {
         continueSessionSetup(response.data._id);
       }
     } catch (err) {
-      console.error("Failed to start session:", err);
-      setError(err.response?.data?.message || "Failed to start session");
-      setLoading(false);
+      handleSessionError(err);
     }
+  };
+
+  const handleSessionError = (err) => {
+    console.error("Failed to start session:", err);
+
+    if (err.response?.status === 409) {
+      setError(
+        "⚠️ There's already an active session for this class. Please end it first or refresh to resume it."
+      );
+    } else {
+      setError(err.response?.data?.message || "Failed to start session");
+    }
+
+    setLoading(false);
   };
 
   const continueSessionSetup = async (sessionId) => {
@@ -217,7 +258,19 @@ const LiveSession = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {error && (
           <div className="mb-6 p-4 bg-error-50 border border-error-200 text-error-700 rounded-lg">
-            {error}
+            <p className="mb-2">{error}</p>
+            {error.includes("active session") && (
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setError("");
+                  checkExistingSession();
+                }}
+                className="mt-2"
+              >
+                Try Resume Session
+              </Button>
+            )}
           </div>
         )}
 
@@ -227,10 +280,42 @@ const LiveSession = () => {
             <h2 className="text-2xl font-bold text-gray-900 mb-4">
               Ready to Start Attendance Session?
             </h2>
-            <p className="text-gray-600 mb-8">
+            <p className="text-gray-600 mb-4">
               Students will have 20 seconds per QR code to scan and mark their
               attendance.
             </p>
+
+            {/* Geofence Radius Setting */}
+            <div className="max-w-md mx-auto mb-8">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Geofence Radius (meters)
+              </label>
+              <div className="flex items-center justify-center gap-4">
+                <input
+                  type="range"
+                  min="10"
+                  max="500"
+                  step="10"
+                  value={geofenceRadius}
+                  onChange={(e) => setGeofenceRadius(Number(e.target.value))}
+                  className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                />
+                <input
+                  type="number"
+                  min="10"
+                  max="500"
+                  value={geofenceRadius}
+                  onChange={(e) => setGeofenceRadius(Number(e.target.value))}
+                  className="w-20 px-3 py-2 border border-gray-300 rounded-lg text-center focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                />
+                <span className="text-sm text-gray-600">m</span>
+              </div>
+              <p className="text-xs text-gray-500 mt-2">
+                Students must be within {geofenceRadius}m of your location to
+                mark attendance
+              </p>
+            </div>
+
             <Button
               variant="primary"
               onClick={startSession}

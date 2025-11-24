@@ -128,11 +128,11 @@ const Reports = () => {
         [""],
         ["Name", "Roll No", "Attendance %", "Present", "Total Sessions"],
         ...defaulters.map((s) => [
-          s.studentName,
-          s.rollNo || "N/A",
+          s.name,
+          s.info?.rollNo || "N/A",
           s.attendancePercentage.toFixed(1) + "%",
-          s.present,
-          s.totalSessions,
+          s.presentCount,
+          s.totalClasses,
         ]),
       ];
 
@@ -255,10 +255,10 @@ const Reports = () => {
       csvContent += "STUDENTS BELOW 75% ATTENDANCE\n";
       csvContent += "Name,Roll No,Attendance %,Present,Total Sessions\n";
       defaulters.forEach((s) => {
-        csvContent += `${s.studentName},${
-          s.rollNo || "N/A"
-        },${s.attendancePercentage.toFixed(1)}%,${s.present},${
-          s.totalSessions
+        csvContent += `${s.name},${
+          s.info?.rollNo || "N/A"
+        },${s.attendancePercentage.toFixed(1)}%,${s.presentCount},${
+          s.totalClasses
         }\n`;
       });
       csvContent += "\n";
@@ -365,12 +365,27 @@ const Reports = () => {
   const getBarChartData = () => {
     if (!analytics?.trends) return [];
 
-    return analytics.trends.map((trend) => ({
-      name: period === "weekly" ? `Week ${trend._id}` : `Month ${trend._id}`,
-      Present: trend.present,
-      Absent: trend.absent,
-      Late: trend.late,
-    }));
+    return analytics.trends
+      .map((trend, index) => {
+        const identifier = trend._id || trend.weekNumber || trend.month;
+
+        // Skip entries without valid identifier
+        if (identifier === null || identifier === undefined) {
+          console.warn("Trend data missing identifier:", trend);
+          return null;
+        }
+
+        const name =
+          period === "weekly" ? `Week ${identifier}` : `Month ${identifier}`;
+
+        return {
+          name,
+          Present: trend.present || 0,
+          Absent: trend.absent || 0,
+          Late: trend.late || 0,
+        };
+      })
+      .filter((item) => item !== null); // Remove null entries
   };
 
   const calculateAttendanceRate = () => {
@@ -645,10 +660,10 @@ const Reports = () => {
                   {defaulters.map((student) => (
                     <tr key={student.studentId} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {student.studentName}
+                        {student.name}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {student.rollNo || "N/A"}
+                        {student.info?.rollNo || "N/A"}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className="px-2 py-1 text-xs font-medium bg-error-100 text-error-700 rounded">
@@ -656,7 +671,7 @@ const Reports = () => {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {student.present}/{student.totalSessions}
+                        {student.presentCount}/{student.totalClasses}
                       </td>
                     </tr>
                   ))}

@@ -257,6 +257,51 @@ export const createRetroactiveSession = asyncHandler(async (req, res) => {
 });
 
 /**
+ * Get Active Session for a Class
+ * GET /api/v1/session/class/:classId/active
+ */
+export const getActiveSessionByClass = asyncHandler(async (req, res) => {
+  const { classId } = req.params;
+
+  // Check if class exists
+  const classDoc = await Class.findById(classId);
+  if (!classDoc) {
+    throw ApiError.notFound("Class not found");
+  }
+
+  // Verify teacher owns this class
+  if (classDoc.teacher.toString() !== req.user._id.toString()) {
+    throw ApiError.forbidden(
+      "You are not authorized to access this class's sessions"
+    );
+  }
+
+  // Find active session
+  const activeSession = await Session.findOne({
+    classId,
+    active: true,
+  })
+    .populate("classId", "name code department semester")
+    .populate("teacherId", "name email");
+
+  if (!activeSession) {
+    return res
+      .status(200)
+      .json(new ApiResponse(200, null, "No active session found"));
+  }
+
+  res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        activeSession,
+        "Active session retrieved successfully"
+      )
+    );
+});
+
+/**
  * Get All Sessions for a Class
  * GET /api/v1/session/class/:classId
  */

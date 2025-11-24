@@ -235,9 +235,7 @@ const StudentDashboard = () => {
                       <Button
                         variant="outline"
                         className="w-full"
-                        onClick={() => {
-                          /* Navigate to class details */
-                        }}
+                        onClick={() => navigate("/student/attendance")}
                       >
                         View Details
                       </Button>

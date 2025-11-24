@@ -5,16 +5,20 @@ import {
   Navigate,
   useLocation,
 } from "react-router-dom";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
+import { useEffect } from "react";
 import {
   selectIsAuthenticated,
   selectCurrentUser,
+  selectCurrentToken,
+  fetchCurrentUser,
 } from "./features/auth/authSlice";
 import PrivateRoute from "./components/PrivateRoute";
 import Navbar from "./components/layout/Navbar";
 
 // Auth Pages
 import Login from "./pages/auth/Login";
+import ForgotPassword from "./pages/auth/ForgotPassword";
 
 // Admin Pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -31,9 +35,11 @@ import SessionHistory from "./pages/teacher/SessionHistory";
 // Student Pages
 import StudentDashboard from "./pages/student/StudentDashboard";
 import ScanAttendance from "./pages/student/ScanAttendance";
+import MyAttendance from "./pages/student/MyAttendance";
 
 // Common Pages
 import Reports from "./pages/common/Reports";
+import Profile from "./pages/common/Profile";
 
 // Layout wrapper component
 function Layout({ children }) {
@@ -52,8 +58,17 @@ function Layout({ children }) {
 }
 
 function App() {
+  const dispatch = useDispatch();
   const isAuthenticated = useSelector(selectIsAuthenticated);
   const user = useSelector(selectCurrentUser);
+  const token = useSelector(selectCurrentToken);
+
+  // Auto-fetch user if token exists but user is missing
+  useEffect(() => {
+    if (token && !user) {
+      dispatch(fetchCurrentUser());
+    }
+  }, [token, user, dispatch]);
 
   // Redirect authenticated users from root to their dashboard
   const getDefaultRedirect = () => {
@@ -83,6 +98,7 @@ function App() {
 
           {/* Auth Routes */}
           <Route path="/login" element={<Login />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
 
           {/* Admin Routes */}
           <Route
@@ -161,6 +177,14 @@ function App() {
               </PrivateRoute>
             }
           />
+          <Route
+            path="/profile"
+            element={
+              <PrivateRoute allowedRoles={["student", "teacher", "admin"]}>
+                <Profile />
+              </PrivateRoute>
+            }
+          />
 
           {/* Student Routes */}
           <Route
@@ -176,6 +200,14 @@ function App() {
             element={
               <PrivateRoute allowedRoles={["student"]}>
                 <ScanAttendance />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/student/attendance"
+            element={
+              <PrivateRoute allowedRoles={["student"]}>
+                <MyAttendance />
               </PrivateRoute>
             }
           />

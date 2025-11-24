@@ -29,6 +29,21 @@ export const register = createAsyncThunk(
   }
 );
 
+// Async thunk for getting current user
+export const fetchCurrentUser = createAsyncThunk(
+  "auth/fetchCurrentUser",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await api.get("/auth/me");
+      return response.data.data.user;
+    } catch (error) {
+      return rejectWithValue(
+        error.response?.data?.message || "Failed to fetch user"
+      );
+    }
+  }
+);
+
 // Async thunk for logout
 export const logoutUser = createAsyncThunk(
   "auth/logout",
@@ -47,10 +62,21 @@ export const logoutUser = createAsyncThunk(
 const storedUser = localStorage.getItem("user");
 const storedToken = localStorage.getItem("accessToken");
 
+// Safely parse stored user, handling invalid JSON or "undefined" strings
+let parsedUser = null;
+if (storedUser && storedUser !== "undefined" && storedUser !== "null") {
+  try {
+    parsedUser = JSON.parse(storedUser);
+  } catch (error) {
+    console.error("Failed to parse stored user:", error);
+    localStorage.removeItem("user");
+  }
+}
+
 const initialState = {
-  user: storedUser ? JSON.parse(storedUser) : null,
-  token: storedToken || null,
-  isAuthenticated: !!storedToken,
+  user: parsedUser,
+  token: storedToken && storedToken !== "undefined" ? storedToken : null,
+  isAuthenticated: !!(storedToken && storedToken !== "undefined"),
   loading: false,
   error: null,
 };
@@ -151,6 +177,35 @@ const authSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
         state.isAuthenticated = false;
+      });
+
+    // Fetch Current User
+    builder
+      .addCase(fetchCurrentUser.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(fetchCurrentUser.fulfilled, (state, action) => {
+        state.loading = false;
+        state.user = action.payload;
+        state.error = null;
+
+        // Update localStorage
+        localStorage.setItem("user", JSON.stringify(action.payload));
+      })
+      .addCase(fetchCurrentUser.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+        // If fetch fails and token is invalid, clear everything
+        if (
+          action.payload?.includes("unauthorized") ||
+          action.payload?.includes("token")
+        ) {
+          state.user = null;
+          state.token = null;
+          state.isAuthenticated = false;
+          localStorage.removeItem("user");
+          localStorage.removeItem("accessToken");
+        }
       });
 
     // Logout
