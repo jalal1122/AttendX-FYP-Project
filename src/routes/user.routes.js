@@ -6,6 +6,7 @@ import {
   updateUserRole,
   deleteUser,
   createUser,
+  updateUser,
 } from "../controllers/user.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import { hasRole } from "../middlewares/role.middleware.js";
@@ -27,6 +28,9 @@ router.get("/stats", getUserStats);
 
 // Get user details
 router.get("/:id", getUserDetails);
+
+// Update user details (name, mobileNumber, info)
+router.put("/:id", updateUser);
 
 // Update user role
 router.patch("/:id/role", updateUserRole);

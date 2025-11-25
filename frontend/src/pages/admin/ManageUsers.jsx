@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import userAPI from "../../services/userAPI";
 import Card from "../../components/ui/Card";
 import Button from "../../components/ui/Button";
+import Modal from "../../components/ui/Modal";
+import Input from "../../components/ui/Input";
 import CreateUserModal from "../../components/modals/CreateUserModal";
 
 const ManageUsers = () => {
@@ -13,6 +15,13 @@ const ManageUsers = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [message, setMessage] = useState({ type: "", text: "" });
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
+  const [editFormData, setEditFormData] = useState({
+    name: "",
+    mobileNumber: "",
+    info: {},
+  });
 
   useEffect(() => {
     fetchUsers();
@@ -49,6 +58,39 @@ const ManageUsers = () => {
       setMessage({
         type: "error",
         text: error.response?.data?.message || "Failed to delete user",
+      });
+    }
+  };
+
+  const handleEditUser = (user) => {
+    setEditingUser(user);
+    setEditFormData({
+      name: user.name || "",
+      mobileNumber: user.mobileNumber || "",
+      info: {
+        rollNo: user.info?.rollNo || "",
+        semester: user.info?.semester || "",
+        department: user.info?.department || "",
+        ...user.info,
+      },
+    });
+    setShowEditModal(true);
+  };
+
+  const handleUpdateUser = async (e) => {
+    e.preventDefault();
+
+    try {
+      await userAPI.updateUser(editingUser._id, editFormData);
+      setMessage({ type: "success", text: "User updated successfully" });
+      setShowEditModal(false);
+      setEditingUser(null);
+      fetchUsers();
+    } catch (error) {
+      console.error("Error updating user:", error);
+      setMessage({
+        type: "error",
+        text: error.response?.data?.message || "Failed to update user",
       });
     }
   };
@@ -229,12 +271,31 @@ const ManageUsers = () => {
                         ? `Semester ${user.info.semester}`
                         : user.info?.department || "N/A"}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm space-x-2">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm space-x-3">
+                      <button
+                        onClick={() => handleEditUser(user)}
+                        className="text-primary-600 hover:text-primary-800 inline-flex items-center"
+                        title="Edit user"
+                      >
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                          />
+                        </svg>
+                      </button>
                       <button
                         onClick={() => handleRoleChange(user._id, user.role)}
                         className="text-blue-600 hover:text-blue-900"
                       >
-                        Change Role
+                        Role
                       </button>
                       <button
                         onClick={() => handleDeleteUser(user._id, user.name)}
@@ -259,6 +320,121 @@ const ManageUsers = () => {
             fetchUsers();
           }}
         />
+
+        {/* Edit User Modal */}
+        <Modal
+          isOpen={showEditModal}
+          onClose={() => {
+            setShowEditModal(false);
+            setEditingUser(null);
+          }}
+          title="Edit User"
+        >
+          <form onSubmit={handleUpdateUser}>
+            <div className="space-y-4">
+              {/* Email (Read-only) */}
+              <Input
+                label="Email (Cannot be changed)"
+                value={editingUser?.email || ""}
+                disabled
+                className="bg-gray-100 cursor-not-allowed"
+              />
+
+              {/* Name */}
+              <Input
+                label="Name"
+                value={editFormData.name}
+                onChange={(e) =>
+                  setEditFormData({ ...editFormData, name: e.target.value })
+                }
+                required
+              />
+
+              {/* Mobile Number */}
+              <Input
+                label="Mobile Number"
+                value={editFormData.mobileNumber}
+                onChange={(e) =>
+                  setEditFormData({
+                    ...editFormData,
+                    mobileNumber: e.target.value,
+                  })
+                }
+              />
+
+              {/* Role-specific fields */}
+              {editingUser?.role === "student" && (
+                <>
+                  <Input
+                    label="Roll Number"
+                    value={editFormData.info?.rollNo || ""}
+                    onChange={(e) =>
+                      setEditFormData({
+                        ...editFormData,
+                        info: { ...editFormData.info, rollNo: e.target.value },
+                      })
+                    }
+                  />
+                  <Input
+                    label="Semester"
+                    type="number"
+                    min="1"
+                    max="8"
+                    value={editFormData.info?.semester || ""}
+                    onChange={(e) =>
+                      setEditFormData({
+                        ...editFormData,
+                        info: {
+                          ...editFormData.info,
+                          semester: e.target.value,
+                        },
+                      })
+                    }
+                  />
+                </>
+              )}
+
+              {(editingUser?.role === "teacher" ||
+                editingUser?.role === "admin") && (
+                <Input
+                  label="Department"
+                  value={editFormData.info?.department || ""}
+                  onChange={(e) =>
+                    setEditFormData({
+                      ...editFormData,
+                      info: {
+                        ...editFormData.info,
+                        department: e.target.value,
+                      },
+                    })
+                  }
+                />
+              )}
+
+              <p className="text-xs text-gray-500">
+                Note: Email and password cannot be changed here. Users must use
+                the password reset feature to change their password.
+              </p>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  setShowEditModal(false);
+                  setEditingUser(null);
+                }}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button type="submit" variant="primary" className="flex-1">
+                Save Changes
+              </Button>
+            </div>
+          </form>
+        </Modal>
       </div>
     </div>
   );
