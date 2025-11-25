@@ -206,3 +206,185 @@ export const getClassDetails = asyncHandler(async (req, res) => {
       new ApiResponse(200, classDoc, "Class details retrieved successfully")
     );
 });
+
+/**
+ * Unjoin Class (Student Self-Leave)
+ * POST /api/v1/class/unjoin
+ * Removes student from class but preserves attendance records for audit trail
+ */
+export const unjoinClass = asyncHandler(async (req, res) => {
+  const { classId } = req.body;
+
+  if (!classId) {
+    throw ApiError.badRequest("Class ID is required");
+  }
+
+  const classDoc = await Class.findById(classId);
+
+  if (!classDoc) {
+    throw ApiError.notFound("Class not found");
+  }
+
+  // Check if student is actually in this class
+  const isEnrolled = classDoc.students.some(
+    (studentId) => studentId.toString() === req.user._id.toString()
+  );
+
+  if (!isEnrolled) {
+    throw ApiError.badRequest("You are not enrolled in this class");
+  }
+
+  // Remove student from class using $pull
+  await Class.findByIdAndUpdate(classId, {
+    $pull: { students: req.user._id },
+  });
+
+  // NOTE: We do NOT delete attendance records - preserving for audit trail
+
+  res
+    .status(200)
+    .json(new ApiResponse(200, null, "Successfully left the class"));
+});
+
+/**
+ * Remove Student (Teacher Kick)
+ * POST /api/v1/class/remove-student
+ * Teacher removes student from class but preserves attendance records
+ */
+export const removeStudent = asyncHandler(async (req, res) => {
+  const { classId, studentId } = req.body;
+
+  if (!classId || !studentId) {
+    throw ApiError.badRequest("Class ID and Student ID are required");
+  }
+
+  const classDoc = await Class.findById(classId);
+
+  if (!classDoc) {
+    throw ApiError.notFound("Class not found");
+  }
+
+  // Verify teacher ownership
+  const isTeacher = classDoc.teacher.toString() === req.user._id.toString();
+  const isAdmin = req.user.role === "admin";
+
+  if (!isTeacher && !isAdmin) {
+    throw ApiError.forbidden(
+      "Only the class teacher or admin can remove students"
+    );
+  }
+
+  // Check if student is actually in this class
+  const isEnrolled = classDoc.students.some(
+    (id) => id.toString() === studentId
+  );
+
+  if (!isEnrolled) {
+    throw ApiError.badRequest("Student is not enrolled in this class");
+  }
+
+  // Remove student from class using $pull
+  await Class.findByIdAndUpdate(classId, {
+    $pull: { students: studentId },
+  });
+
+  // NOTE: Attendance records are preserved for audit trail (Scenario A)
+
+  res
+    .status(200)
+    .json(new ApiResponse(200, null, "Student removed successfully"));
+});
+
+/**
+ * Update Class Details
+ * PUT /api/v1/class/:id
+ * Teacher/Admin can update class name, room, semester, department
+ */
+export const updateClassDetails = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { name, room, semester, department, batch, academicYear } = req.body;
+
+  const classDoc = await Class.findById(id);
+
+  if (!classDoc) {
+    throw ApiError.notFound("Class not found");
+  }
+
+  // Verify teacher ownership or admin
+  const isTeacher = classDoc.teacher.toString() === req.user._id.toString();
+  const isAdmin = req.user.role === "admin";
+
+  if (!isTeacher && !isAdmin) {
+    throw ApiError.forbidden(
+      "Only the class teacher or admin can update class details"
+    );
+  }
+
+  // Validate semester if provided
+  if (semester && (semester < 1 || semester > 8)) {
+    throw ApiError.badRequest("Semester must be between 1 and 8");
+  }
+
+  // Update fields
+  if (name) classDoc.name = name;
+  if (room) classDoc.room = room;
+  if (semester) classDoc.semester = semester;
+  if (department) classDoc.department = department;
+  if (batch) classDoc.batch = batch;
+  if (academicYear) classDoc.academicYear = academicYear;
+
+  await classDoc.save();
+
+  res
+    .status(200)
+    .json(new ApiResponse(200, classDoc, "Class updated successfully"));
+});
+
+/**
+ * Delete Class (Nuclear Option)
+ * DELETE /api/v1/class/:id
+ * Deletes class and cascade deletes all sessions and attendance records
+ */
+export const deleteClass = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  const classDoc = await Class.findById(id);
+
+  if (!classDoc) {
+    throw ApiError.notFound("Class not found");
+  }
+
+  // Verify teacher ownership or admin
+  const isTeacher = classDoc.teacher.toString() === req.user._id.toString();
+  const isAdmin = req.user.role === "admin";
+
+  if (!isTeacher && !isAdmin) {
+    throw ApiError.forbidden(
+      "Only the class teacher or admin can delete this class"
+    );
+  }
+
+  // Import models for cascade delete
+  const Session = (await import("../models/session.model.js")).default;
+  const Attendance = (await import("../models/attendance.model.js")).default;
+
+  // Cascade delete: Delete all sessions for this class
+  const deletedSessions = await Session.deleteMany({ classId: id });
+
+  // Cascade delete: Delete all attendance records for this class
+  const deletedAttendance = await Attendance.deleteMany({ classId: id });
+
+  // Finally, delete the class itself
+  await Class.findByIdAndDelete(id);
+
+  res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        deletedSessions: deletedSessions.deletedCount,
+        deletedAttendance: deletedAttendance.deletedCount,
+      },
+      "Class and all related data deleted successfully"
+    )
+  );
+});

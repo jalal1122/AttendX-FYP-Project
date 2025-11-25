@@ -218,3 +218,47 @@ export const createUser = asyncHandler(async (req, res) => {
     .status(201)
     .json(new ApiResponse(201, userResponse, "User created successfully"));
 });
+
+/**
+ * Update User (Admin only)
+ * PUT /api/v1/user/:id
+ * Admin can update name, mobileNumber, and info fields
+ * Email and password CANNOT be changed via this endpoint
+ */
+export const updateUser = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { name, mobileNumber, info, email, password } = req.body;
+
+  // Security: Prevent email/password changes
+  if (email || password) {
+    throw ApiError.badRequest(
+      "Email and password cannot be changed through this endpoint. Use dedicated password reset/change endpoints."
+    );
+  }
+
+  const user = await User.findById(id);
+
+  if (!user) {
+    throw ApiError.notFound("User not found");
+  }
+
+  // Update allowed fields
+  if (name) user.name = name;
+  if (mobileNumber !== undefined) user.mobileNumber = mobileNumber;
+  if (info) {
+    // Merge with existing info
+    user.info = { ...user.info, ...info };
+  }
+
+  await user.save();
+
+  // Remove sensitive data
+  const userResponse = user.toObject();
+  delete userResponse.password;
+  delete userResponse.refreshToken;
+  delete userResponse.twoFactorSecret;
+
+  res
+    .status(200)
+    .json(new ApiResponse(200, userResponse, "User updated successfully"));
+});

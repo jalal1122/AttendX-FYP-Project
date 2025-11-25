@@ -24,6 +24,12 @@ export const userAPI = {
     return response.data;
   },
 
+  // Update user details (name, mobileNumber, info)
+  updateUser: async (userId, userData) => {
+    const response = await api.put(`/user/${userId}`, userData);
+    return response.data;
+  },
+
   // Update user role
   updateUserRole: async (userId, role) => {
     const response = await api.patch(`/user/${userId}/role`, { role });
