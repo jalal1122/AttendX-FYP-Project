@@ -43,3 +43,17 @@
     "year": "2025"
   }
 }
+
+{
+  "name": "anas",
+  "email": "anas@gmail.com",
+  "password": "password123",
+  "role": "student",
+  "info": {
+    "rollNo": "35",
+    "semester": 7,
+    "department": "IT",
+    "batch": "2022-2026",
+    "year": "2025"
+  }
+}
