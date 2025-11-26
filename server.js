@@ -26,7 +26,7 @@ app.use(helmet());
 // CORS configuration - Allow credentials
 app.use(
   cors({
-    origin: [process.env.CLIENT_URL || "http://localhost:5173","http://192.168.18.13:5173"],
+    origin: [process.env.CLIENT_URL || "http://localhost:5173","http://10.213.94.254:5173"],
     credentials: true,
   })
 );
