@@ -1,7 +1,9 @@
- "name": "Admin User",
+{
+  "name": "Admin User",
   "email": "admin@attendx.com",
   "password": "password123",
   "role": "admin"
+}
 
 {
   "name": "John Teacher",
