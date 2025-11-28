@@ -26,7 +26,10 @@ app.use(helmet());
 // CORS configuration - Allow credentials
 app.use(
   cors({
-    origin: [process.env.CLIENT_URL || "http://localhost:5173","http://10.213.94.254:5173"],
+    origin: [
+      process.env.CLIENT_URL || "http://localhost:5173",
+      "http://10.213.94.254:5173",
+    ],
     credentials: true,
   })
 );
@@ -74,9 +77,16 @@ app.use((req, res) => {
   });
 });
 
-// Start server
+// Start server (only if not in serverless environment)
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📍 Environment: ${process.env.NODE_ENV || "development"}`);
-});
+
+// For Vercel serverless deployment
+export default app;
+
+// For local development
+if (process.env.NODE_ENV !== "production" || !process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`📍 Environment: ${process.env.NODE_ENV || "development"}`);
+  });
+}
