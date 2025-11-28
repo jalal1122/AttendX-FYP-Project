@@ -1,11 +1,17 @@
 import multer from "multer";
 import path from "path";
-import fs from "fs";
+import os from "os";
 
-// Ensure uploads directory exists
-const uploadDir = "./uploads";
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
+// Use OS temp directory for serverless (Vercel compatible)
+const uploadDir = process.env.VERCEL ? os.tmpdir() : "./uploads";
+
+// Only create directory if not in serverless environment
+if (!process.env.VERCEL) {
+  import('fs').then(fs => {
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+  });
 }
 
 // Configure storage

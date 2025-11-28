@@ -181,8 +181,13 @@ export const createUser = asyncHandler(async (req, res) => {
   if (req.file) {
     try {
       avatarUrl = await uploadToCloudinary(req.file.path);
-      // Delete local file after upload
-      fs.unlinkSync(req.file.path);
+      // Delete local file after upload (safe for serverless)
+      try {
+        fs.unlinkSync(req.file.path);
+      } catch (unlinkError) {
+        // Ignore unlink errors in serverless environments
+        console.log("Temp file cleanup skipped (serverless environment)");
+      }
     } catch (error) {
       console.error("Avatar upload error:", error);
       // Continue without avatar if upload fails
