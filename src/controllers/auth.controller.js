@@ -625,3 +625,62 @@ export const resetPassword = asyncHandler(async (req, res) => {
       )
     );
 });
+
+/**
+ * Create Admin (Bootstrap Solution)
+ * POST /api/v1/auth/create-admin
+ * Public Route - No JWT Required
+ */
+export const createAdmin = asyncHandler(async (req, res) => {
+  const { name, email, password, adminSecret } = req.body;
+
+  // Validate required fields
+  if (!name || !email || !password || !adminSecret) {
+    throw ApiError.badRequest(
+      "All fields are required: name, email, password, adminSecret"
+    );
+  }
+
+  // Verify admin secret key
+  const envAdminSecret = process.env.ADMIN_SECRET;
+
+  if (!envAdminSecret) {
+    throw ApiError.internal(
+      "Admin secret not configured on server. Contact system administrator."
+    );
+  }
+
+  if (adminSecret !== envAdminSecret) {
+    throw ApiError.forbidden("Invalid admin secret key. Access denied.");
+  }
+
+  // Check if admin already exists
+  const existingUser = await User.findOne({ email });
+  if (existingUser) {
+    throw ApiError.conflict("User with this email already exists");
+  }
+
+  // Create admin user
+  const admin = await User.create({
+    name,
+    email,
+    password,
+    role: "admin",
+    info: {},
+  });
+
+  // Remove password from response
+  const createdAdmin = await User.findById(admin._id).select(
+    "-password -refreshToken"
+  );
+
+  res
+    .status(201)
+    .json(
+      new ApiResponse(
+        201,
+        { user: createdAdmin },
+        "Admin account created successfully. Please login to continue."
+      )
+    );
+});

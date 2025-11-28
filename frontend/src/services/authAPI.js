@@ -24,6 +24,17 @@ const authAPI = {
     const response = await api.post("/auth/2fa/validate", { tempToken, otp });
     return response.data;
   },
+
+  // Create Admin (Bootstrap)
+  createAdmin: async (name, email, password, adminSecret) => {
+    const response = await api.post("/auth/create-admin", {
+      name,
+      email,
+      password,
+      adminSecret,
+    });
+    return response.data;
+  },
 };
 
 export default authAPI;

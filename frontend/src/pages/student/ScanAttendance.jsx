@@ -13,9 +13,42 @@ const ScanAttendance = () => {
   const [devMode, setDevMode] = useState(false);
   const [devToken, setDevToken] = useState("");
   const [processing, setProcessing] = useState(false);
+  const [deviceId, setDeviceId] = useState(null);
 
   const html5QrCodeRef = useRef(null);
   const scannerRef = useRef(null);
+
+  // Device fingerprinting on mount
+  useEffect(() => {
+    const initDeviceId = () => {
+      try {
+        let uuid = localStorage.getItem("device_uuid");
+
+        if (!uuid) {
+          // Generate new UUID for this device
+          uuid = crypto.randomUUID();
+          localStorage.setItem("device_uuid", uuid);
+          console.log("🔐 Generated new device UUID:", uuid);
+        } else {
+          console.log("🔐 Retrieved existing device UUID:", uuid);
+        }
+
+        setDeviceId(uuid);
+      } catch (error) {
+        console.error("Device fingerprinting error:", error);
+        // Fallback: generate simple UUID
+        const fallbackId =
+          "device_" +
+          Date.now() +
+          "_" +
+          Math.random().toString(36).substr(2, 9);
+        setDeviceId(fallbackId);
+        localStorage.setItem("device_uuid", fallbackId);
+      }
+    };
+
+    initDeviceId();
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -141,16 +174,30 @@ const ScanAttendance = () => {
             const response = await attendanceAPI.markAttendance(
               token,
               latitude,
-              longitude
+              longitude,
+              deviceId
             );
 
-            // Success!
-            setMessage({
-              type: "success",
-              text: `✓ Attendance marked successfully! Welcome, ${
-                response.data.studentId?.name || "Student"
-              }!`,
-            });
+            // Check if manual approval is required
+            const attendance = response.data.attendance || response.data;
+            const requiresApproval =
+              response.data.requiresApproval || attendance.status === "Pending";
+
+            if (requiresApproval) {
+              // Pending status - awaiting teacher approval
+              setMessage({
+                type: "warning",
+                text: `⏳ Attendance marked! Waiting for teacher approval...`,
+              });
+            } else {
+              // Success!
+              setMessage({
+                type: "success",
+                text: `✓ Attendance marked successfully! Welcome, ${
+                  response.data.studentId?.name || "Student"
+                }!`,
+              });
+            }
 
             // Stop scanner
             await stopScanning();
@@ -188,15 +235,33 @@ const ScanAttendance = () => {
     } else {
       // Browser doesn't support geolocation - try without location
       try {
-        const response = await attendanceAPI.markAttendance(token);
+        const response = await attendanceAPI.markAttendance(
+          token,
+          null,
+          null,
+          deviceId
+        );
 
-        // Success!
-        setMessage({
-          type: "success",
-          text: `✓ Attendance marked successfully! Welcome, ${
-            response.data.studentId?.name || "Student"
-          }!`,
-        });
+        // Check if manual approval is required
+        const attendance = response.data.attendance || response.data;
+        const requiresApproval =
+          response.data.requiresApproval || attendance.status === "Pending";
+
+        if (requiresApproval) {
+          // Pending status - awaiting teacher approval
+          setMessage({
+            type: "warning",
+            text: `⏳ Attendance marked! Waiting for teacher approval...`,
+          });
+        } else {
+          // Success!
+          setMessage({
+            type: "success",
+            text: `✓ Attendance marked successfully! Welcome, ${
+              response.data.studentId?.name || "Student"
+            }!`,
+          });
+        }
 
         // Stop scanner
         await stopScanning();
@@ -220,20 +285,29 @@ const ScanAttendance = () => {
       error.response?.data?.message ||
       "Failed to mark attendance. Invalid or expired token.";
 
+    // Check for device lock violation
+    const isDeviceLockViolation =
+      errorMessage.includes("Security Alert") ||
+      errorMessage.includes("device has already") ||
+      errorMessage.includes("device lock");
+
     setMessage({
       type: "error",
-      text: `✗ ${errorMessage}`,
+      text: isDeviceLockViolation ? `🔒 ${errorMessage}` : `✗ ${errorMessage}`,
     });
 
     setProcessing(false);
 
-    // Resume scanning after 2 seconds
-    setTimeout(() => {
-      if (html5QrCodeRef.current && isScanning) {
-        html5QrCodeRef.current.resume();
-        setMessage({ type: "info", text: "Scanner active. Try again." });
-      }
-    }, 2000);
+    // Resume scanning after 3 seconds (longer for security alerts)
+    setTimeout(
+      () => {
+        if (html5QrCodeRef.current && isScanning) {
+          html5QrCodeRef.current.resume();
+          setMessage({ type: "info", text: "Scanner active. Try again." });
+        }
+      },
+      isDeviceLockViolation ? 3000 : 2000
+    );
   };
 
   const handleDevSubmit = async (e) => {

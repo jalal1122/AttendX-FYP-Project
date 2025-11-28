@@ -19,6 +19,7 @@ import Navbar from "./components/layout/Navbar";
 // Auth Pages
 import Login from "./pages/auth/Login";
 import ForgotPassword from "./pages/auth/ForgotPassword";
+import RegisterAdmin from "./pages/auth/RegisterAdmin";
 
 // Admin Pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -99,6 +100,9 @@ function App() {
           {/* Auth Routes */}
           <Route path="/login" element={<Login />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
+
+          {/* Secret Admin Bootstrap Route (NOT in navbar/sidebar) */}
+          <Route path="/create-admin" element={<RegisterAdmin />} />
 
           {/* Admin Routes */}
           <Route

@@ -22,13 +22,17 @@ const attendanceSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["Present", "Absent", "Late", "Leave"],
+      enum: ["Present", "Absent", "Late", "Leave", "Pending"],
       default: "Present",
     },
     verificationMethod: {
       type: String,
       enum: ["QR", "Manual"],
       required: [true, "Verification method is required"],
+    },
+    deviceId: {
+      type: String,
+      index: true,
     },
     date: {
       type: Date,

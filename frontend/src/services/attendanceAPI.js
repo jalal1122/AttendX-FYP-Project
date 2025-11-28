@@ -2,11 +2,17 @@ import api from "./api";
 
 const attendanceAPI = {
   // Mark attendance using QR token
-  markAttendance: async (token, latitude = null, longitude = null) => {
+  markAttendance: async (
+    token,
+    latitude = null,
+    longitude = null,
+    deviceId = null
+  ) => {
     const response = await api.post("/attendance/scan", {
       token,
       latitude,
       longitude,
+      deviceId,
     });
     return response.data;
   },
@@ -23,6 +29,15 @@ const attendanceAPI = {
       sessionId,
       studentId,
       status,
+    });
+    return response.data;
+  },
+
+  // Approve pending attendance (teacher/admin only)
+  approveAttendance: async (sessionId, studentIds) => {
+    const response = await api.post("/attendance/approve", {
+      sessionId,
+      studentIds,
     });
     return response.data;
   },
