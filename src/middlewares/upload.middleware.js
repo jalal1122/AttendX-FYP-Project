@@ -7,7 +7,7 @@ const uploadDir = process.env.VERCEL ? os.tmpdir() : "./uploads";
 
 // Only create directory if not in serverless environment
 if (!process.env.VERCEL) {
-  import('fs').then(fs => {
+  import("fs").then((fs) => {
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
