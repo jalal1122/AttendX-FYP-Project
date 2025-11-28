@@ -3,8 +3,10 @@ import { useParams, useNavigate } from "react-router-dom";
 import QRCode from "react-qr-code";
 import classAPI from "../../services/classAPI";
 import sessionAPI from "../../services/sessionAPI";
+import attendanceAPI from "../../services/attendanceAPI";
 import Button from "../../components/ui/Button";
 import Card from "../../components/ui/Card";
+import StartSessionModal from "../../components/modals/StartSessionModal";
 
 const LiveSession = () => {
   const { classId } = useParams();
@@ -19,7 +21,9 @@ const LiveSession = () => {
   const [isActive, setIsActive] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
-  const [geofenceRadius, setGeofenceRadius] = useState(50);
+  const [showStartModal, setShowStartModal] = useState(false);
+  const [sessionConfig, setSessionConfig] = useState(null);
+  const [pendingAttendance, setPendingAttendance] = useState([]);
 
   const qrIntervalRef = useRef(null);
   const countIntervalRef = useRef(null);
@@ -69,7 +73,12 @@ const LiveSession = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [classId]);
 
-  const startSession = async () => {
+  const handleModalSubmit = async (config) => {
+    setSessionConfig(config);
+    await startSession(config);
+  };
+
+  const startSession = async (config) => {
     try {
       setError("");
       setLoading(true);
@@ -85,15 +94,20 @@ const LiveSession = () => {
             });
 
             try {
-              // Start the session with location and radius
+              // Start the session with location and security config
               const response = await sessionAPI.startSession(classId, {
                 latitude,
                 longitude,
-                radius: geofenceRadius,
+                type: config.type,
+                securityConfig: config.securityConfig,
               });
               setSessionId(response.data._id);
+              setSessionConfig(response.data.securityConfig);
               setIsActive(true);
-              continueSessionSetup(response.data._id);
+              continueSessionSetup(
+                response.data._id,
+                response.data.securityConfig
+              );
             } catch (err) {
               handleSessionError(err);
             }
@@ -138,25 +152,32 @@ const LiveSession = () => {
     setLoading(false);
   };
 
-  const continueSessionSetup = async (sessionId) => {
+  const continueSessionSetup = async (sessionId, config) => {
     try {
+      // Use config or fetch session to get security settings
+      const qrRefreshRate = config?.qrRefreshRate || 20;
+      const manualApproval = config?.manualApproval || false;
+
       // Get first QR token immediately
       await fetchNewQRToken(sessionId);
 
-      // Start QR rotation (every 20 seconds)
+      // Start QR rotation (dynamic refresh rate)
       qrIntervalRef.current = setInterval(() => {
         fetchNewQRToken(sessionId);
-      }, 20000);
+      }, qrRefreshRate * 1000);
 
       // Start attendance count updates (every 5 seconds)
       countIntervalRef.current = setInterval(() => {
         fetchAttendanceCount(sessionId);
+        if (manualApproval) {
+          fetchPendingAttendance(sessionId);
+        }
       }, 5000);
 
       // Start countdown timer (every second)
       timerIntervalRef.current = setInterval(() => {
         setTimeRemaining((prev) => {
-          if (prev <= 1) return 20; // Reset to 20
+          if (prev <= 1) return qrRefreshRate; // Reset to dynamic rate
           return prev - 1;
         });
       }, 1000);
@@ -199,6 +220,35 @@ const LiveSession = () => {
     } catch (error) {
       console.error("Failed to fetch attendance count:", error);
     }
+  };
+
+  const fetchPendingAttendance = async (sId) => {
+    try {
+      const response = await sessionAPI.getSessionAttendance(sId || sessionId);
+      const pending =
+        response.data.attendance?.filter((att) => att.status === "Pending") ||
+        [];
+      setPendingAttendance(pending);
+    } catch (error) {
+      console.error("Failed to fetch pending attendance:", error);
+    }
+  };
+
+  const handleApproveAttendance = async (studentIds) => {
+    try {
+      await attendanceAPI.approveAttendance(sessionId, studentIds);
+      // Refresh attendance lists
+      fetchAttendanceCount(sessionId);
+      fetchPendingAttendance(sessionId);
+    } catch (error) {
+      console.error("Failed to approve attendance:", error);
+      setError(error.response?.data?.message || "Failed to approve attendance");
+    }
+  };
+
+  const handleApproveAll = async () => {
+    const allPendingIds = pendingAttendance.map((att) => att.studentId._id);
+    await handleApproveAttendance(allPendingIds);
   };
 
   const endSession = async () => {
@@ -280,45 +330,13 @@ const LiveSession = () => {
             <h2 className="text-2xl font-bold text-gray-900 mb-4">
               Ready to Start Attendance Session?
             </h2>
-            <p className="text-gray-600 mb-4">
-              Students will have 20 seconds per QR code to scan and mark their
-              attendance.
+            <p className="text-gray-600 mb-6">
+              Configure security settings and start the session.
             </p>
-
-            {/* Geofence Radius Setting */}
-            <div className="max-w-md mx-auto mb-8">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Geofence Radius (meters)
-              </label>
-              <div className="flex items-center justify-center gap-4">
-                <input
-                  type="range"
-                  min="10"
-                  max="500"
-                  step="10"
-                  value={geofenceRadius}
-                  onChange={(e) => setGeofenceRadius(Number(e.target.value))}
-                  className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                />
-                <input
-                  type="number"
-                  min="10"
-                  max="500"
-                  value={geofenceRadius}
-                  onChange={(e) => setGeofenceRadius(Number(e.target.value))}
-                  className="w-20 px-3 py-2 border border-gray-300 rounded-lg text-center focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                />
-                <span className="text-sm text-gray-600">m</span>
-              </div>
-              <p className="text-xs text-gray-500 mt-2">
-                Students must be within {geofenceRadius}m of your location to
-                mark attendance
-              </p>
-            </div>
 
             <Button
               variant="primary"
-              onClick={startSession}
+              onClick={() => setShowStartModal(true)}
               disabled={loading}
               className="px-8 py-3"
             >
@@ -446,12 +464,66 @@ const LiveSession = () => {
                 </h3>
                 <p className="text-sm text-yellow-700">
                   Keep this window open during the session. QR codes rotate
-                  every 20 seconds for security.
+                  every {sessionConfig?.qrRefreshRate || 20} seconds for
+                  security.
                 </p>
               </Card>
+
+              {/* Pending Approvals */}
+              {sessionConfig?.manualApproval &&
+                pendingAttendance.length > 0 && (
+                  <Card className="bg-orange-50 border-orange-200">
+                    <div className="flex justify-between items-center mb-3">
+                      <h3 className="text-orange-800 font-semibold">
+                        🕒 Pending Approvals ({pendingAttendance.length})
+                      </h3>
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={handleApproveAll}
+                      >
+                        Approve All
+                      </Button>
+                    </div>
+                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                      {pendingAttendance.map((att) => (
+                        <div
+                          key={att._id}
+                          className="flex justify-between items-center p-2 bg-white rounded border border-orange-200"
+                        >
+                          <div className="text-sm">
+                            <p className="font-medium text-gray-900">
+                              {att.studentId?.name}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              {att.studentId?.info?.rollNo || "N/A"}
+                            </p>
+                          </div>
+                          <Button
+                            variant="success"
+                            size="sm"
+                            onClick={() =>
+                              handleApproveAttendance([att.studentId._id])
+                            }
+                          >
+                            Approve
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </Card>
+                )}
             </div>
           </div>
         )}
+
+        {/* Start Session Modal */}
+        <StartSessionModal
+          isOpen={showStartModal}
+          onClose={() => setShowStartModal(false)}
+          onSubmit={handleModalSubmit}
+          className={classData?.name}
+        />
       </div>
     </div>
   );

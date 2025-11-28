@@ -11,6 +11,7 @@ import {
   validate2FALogin,
   forgotPassword,
   resetPassword,
+  createAdmin,
 } from "../controllers/auth.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import upload from "../middlewares/upload.middleware.js";
@@ -21,6 +22,9 @@ const router = express.Router();
 router.post("/register", upload.single("avatar"), registerUser);
 router.post("/login", loginUser);
 router.post("/refresh", refreshAccessToken);
+
+// Bootstrap admin creation (Secret route - no JWT required)
+router.post("/create-admin", createAdmin);
 
 // Password reset routes (Public)
 router.post("/forgot-password", forgotPassword);

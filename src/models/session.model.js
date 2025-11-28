@@ -49,9 +49,27 @@ const sessionSchema = new mongoose.Schema(
       longitude: {
         type: Number,
       },
+    },
+    securityConfig: {
       radius: {
         type: Number,
-        default: 50, // Default 50 meters radius
+        default: 5, // meters
+      },
+      ipMatchEnabled: {
+        type: Boolean,
+        default: true,
+      },
+      deviceLockEnabled: {
+        type: Boolean,
+        default: false, // One ID per device (anti-buddy punching)
+      },
+      qrRefreshRate: {
+        type: Number,
+        default: 20, // seconds
+      },
+      manualApproval: {
+        type: Boolean,
+        default: false, // Teacher must approve
       },
     },
   },

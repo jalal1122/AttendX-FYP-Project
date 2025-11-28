@@ -25,7 +25,7 @@ const getClientIP = (req) => {
  * POST /api/v1/attendance/scan
  */
 export const markAttendance = asyncHandler(async (req, res) => {
-  const { token, latitude, longitude } = req.body;
+  const { token, latitude, longitude, deviceId } = req.body;
 
   // Validate token
   if (!token) {
@@ -55,7 +55,7 @@ export const markAttendance = asyncHandler(async (req, res) => {
 
   const { sessionId, classId } = decodedToken;
 
-  // Find session
+  // Find session with security config
   const session = await Session.findById(sessionId);
   if (!session) {
     throw ApiError.notFound("Session not found");
@@ -66,7 +66,16 @@ export const markAttendance = asyncHandler(async (req, res) => {
     throw ApiError.badRequest("Session is no longer active");
   }
 
-  // Geofencing validation - check if student is within allowed radius
+  // Get security config (with defaults if not set)
+  const securityConfig = session.securityConfig || {
+    radius: 50,
+    ipMatchEnabled: true,
+    deviceLockEnabled: false,
+    qrRefreshRate: 20,
+    manualApproval: false,
+  };
+
+  // 1. GEOFENCING CHECK - Use dynamic radius from securityConfig
   if (
     session.location &&
     session.location.latitude &&
@@ -80,7 +89,7 @@ export const markAttendance = asyncHandler(async (req, res) => {
     const studentLon = parseFloat(longitude);
     const sessionLat = session.location.latitude;
     const sessionLon = session.location.longitude;
-    const allowedRadius = session.location.radius || 50;
+    const allowedRadius = securityConfig.radius || 50;
 
     const distance = calculateDistance(
       sessionLat,
@@ -123,17 +132,43 @@ export const markAttendance = asyncHandler(async (req, res) => {
     throw ApiError.forbidden("You are not enrolled in this class");
   }
 
-  // IP Validation (Log mismatch but don't block in development)
+  // 2. IP CHECK - Only validate if ipMatchEnabled
   const studentIP = getClientIP(req);
   const teacherIP = session.teacherIP;
+  let ipMatch = true;
 
-  if (studentIP !== teacherIP) {
-    console.log("⚠️  IP Mismatch Warning:");
-    console.log(`   Teacher IP: ${teacherIP}`);
-    console.log(`   Student IP: ${studentIP}`);
-    console.log(
-      "   (This is normal on localhost. In production, this would be flagged.)"
-    );
+  if (securityConfig.ipMatchEnabled) {
+    if (studentIP !== teacherIP) {
+      console.log("⚠️  IP Mismatch Warning:");
+      console.log(`   Teacher IP: ${teacherIP}`);
+      console.log(`   Student IP: ${studentIP}`);
+      console.log(
+        "   IP matching is enabled but IPs don't match. (Normal on localhost)"
+      );
+      ipMatch = false;
+    }
+  }
+
+  // 3. DEVICE LOCK CHECK - Anti-buddy punching
+  if (securityConfig.deviceLockEnabled) {
+    if (!deviceId) {
+      throw ApiError.badRequest("Device ID is required for this session");
+    }
+
+    // Check if this device has already been used for this session by a DIFFERENT student
+    const deviceUsage = await Attendance.findOne({
+      sessionId,
+      deviceId,
+    });
+
+    if (
+      deviceUsage &&
+      deviceUsage.studentId.toString() !== req.user._id.toString()
+    ) {
+      throw ApiError.forbidden(
+        "Security Alert: This device has already marked attendance for this session."
+      );
+    }
   }
 
   // Check if attendance already marked
@@ -148,13 +183,19 @@ export const markAttendance = asyncHandler(async (req, res) => {
     );
   }
 
+  // 4. MANUAL APPROVAL - Determine status
+  const attendanceStatus = securityConfig.manualApproval
+    ? "Pending"
+    : "Present";
+
   // Create attendance record
   const attendance = await Attendance.create({
     sessionId,
     studentId: req.user._id,
     classId,
-    status: "Present",
+    status: attendanceStatus,
     verificationMethod: "QR",
+    deviceId: deviceId || null,
     date: new Date(),
   });
 
@@ -164,16 +205,19 @@ export const markAttendance = asyncHandler(async (req, res) => {
     .populate("sessionId", "startTime type")
     .populate("classId", "name code");
 
+  const message = securityConfig.manualApproval
+    ? "Attendance marked as pending. Waiting for teacher approval."
+    : "Attendance marked successfully";
+
   res.status(201).json(
     new ApiResponse(
       201,
       {
         attendance: populatedAttendance,
-        ipMatch: studentIP === teacherIP,
-        studentIP,
-        teacherIP,
+        ipMatch,
+        requiresApproval: securityConfig.manualApproval,
       },
-      "Attendance marked successfully"
+      message
     )
   );
 });
@@ -491,6 +535,65 @@ export const getDetailedClassAttendance = asyncHandler(async (req, res) => {
         attendance: report,
       },
       "Detailed attendance retrieved successfully"
+    )
+  );
+});
+
+/**
+ * Approve Pending Attendance (Teacher only)
+ * POST /api/v1/attendance/approve
+ */
+export const approveAttendance = asyncHandler(async (req, res) => {
+  const { sessionId, studentIds } = req.body;
+
+  if (!sessionId || !studentIds || !Array.isArray(studentIds)) {
+    throw ApiError.badRequest("Session ID and student IDs array are required");
+  }
+
+  // Find session and verify teacher ownership
+  const session = await Session.findById(sessionId);
+  if (!session) {
+    throw ApiError.notFound("Session not found");
+  }
+
+  const isTeacher = session.teacherId.toString() === req.user._id.toString();
+  const isAdmin = req.user.role === "admin";
+
+  if (!isTeacher && !isAdmin) {
+    throw ApiError.forbidden(
+      "Only the session teacher or admin can approve attendance"
+    );
+  }
+
+  // Update all pending attendance records for these students
+  const result = await Attendance.updateMany(
+    {
+      sessionId,
+      studentId: { $in: studentIds },
+      status: "Pending",
+    },
+    {
+      $set: { status: "Present" },
+    }
+  );
+
+  // Get updated attendance records
+  const updatedAttendance = await Attendance.find({
+    sessionId,
+    studentId: { $in: studentIds },
+  })
+    .populate("studentId", "name email info")
+    .populate("sessionId", "startTime type")
+    .populate("classId", "name code");
+
+  res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        approvedCount: result.modifiedCount,
+        attendance: updatedAttendance,
+      },
+      `${result.modifiedCount} attendance record(s) approved successfully`
     )
   );
 });
