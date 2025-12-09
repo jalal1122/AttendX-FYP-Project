@@ -55,7 +55,7 @@ const Navbar = () => {
               onClick={() => navigate(getDashboardLink())}
               className="text-2xl font-bold text-primary-600 hover:text-primary-700 transition-colors"
             >
-              AttendX
+              Attend<span className="text-black">X</span>
             </button>
 
             {/* Navigation Links */}
