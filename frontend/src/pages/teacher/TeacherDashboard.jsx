@@ -41,6 +41,12 @@ const TeacherDashboard = () => {
     }
   };
 
+  const getTotalStudents = () => {
+    const allStudents = classes.flatMap((cls) => cls.students || []);
+    const uniqueStudentIds = new Set(allStudents.map((stu) => stu._id));
+    return uniqueStudentIds.size;
+  };
+
   const handleInputChange = (e) => {
     setFormData({
       ...formData,
@@ -124,10 +130,11 @@ const TeacherDashboard = () => {
               Total Students
             </h3>
             <p className="text-3xl font-bold text-gray-900 mt-2">
-              {classes.reduce(
+              {/* {classes.reduce(
                 (sum, cls) => sum + (cls.students?.length || 0),
                 0
-              )}
+              )} */}
+              {getTotalStudents()}
             </p>
           </Card>
           <Card>
