@@ -8,7 +8,7 @@ const StartSessionModal = ({ isOpen, onClose, onSubmit, className }) => {
     radius: 50,
     qrRefreshRate: 20,
     ipMatchEnabled: true,
-    deviceLockEnabled: false,
+    deviceLockEnabled: true, // always enabled
     manualApproval: false,
   });
 
@@ -25,7 +25,7 @@ const StartSessionModal = ({ isOpen, onClose, onSubmit, className }) => {
       radius: 50,
       qrRefreshRate: 20,
       ipMatchEnabled: true,
-      deviceLockEnabled: false,
+      deviceLockEnabled: true,
       manualApproval: false,
     });
     setType("Lecture");
@@ -132,28 +132,19 @@ const StartSessionModal = ({ isOpen, onClose, onSubmit, className }) => {
               </div>
             </label>
 
-            {/* Device Lock */}
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={securityConfig.deviceLockEnabled}
-                onChange={(e) =>
-                  setSecurityConfig({
-                    ...securityConfig,
-                    deviceLockEnabled: e.target.checked,
-                  })
-                }
-                className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
-              />
+            {/* Device Lock is always enforced backend-side, so we just show info */}
+            <div className="flex items-start gap-3">
+              <div className="mt-1 w-4 h-4 rounded-full bg-primary-600" />
               <div>
                 <span className="text-sm font-medium text-gray-900">
-                  Device Lock (1 Student per Phone)
+                  Device Lock Always On
                 </span>
                 <p className="text-xs text-gray-500">
-                  Prevents buddy punching - one device, one attendance
+                  Each device can only be used for one student per session. Admin can reset a
+                  student&apos;s device from the dashboard if they lose their phone.
                 </p>
               </div>
-            </label>
+            </div>
 
             {/* Manual Approval */}
             <label className="flex items-center gap-3 cursor-pointer">
@@ -192,7 +183,7 @@ const StartSessionModal = ({ isOpen, onClose, onSubmit, className }) => {
                     radius: 100,
                     qrRefreshRate: 30,
                     ipMatchEnabled: false,
-                    deviceLockEnabled: false,
+                    deviceLockEnabled: true,
                     manualApproval: false,
                   });
                 }}

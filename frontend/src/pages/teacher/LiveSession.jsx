@@ -228,10 +228,18 @@ const LiveSession = () => {
   const fetchAttendanceCount = async (sId) => {
     try {
       const response = await sessionAPI.getSessionAttendance(sId || sessionId);
-      const attendanceCount = response.data.attendance?.filter(
-        (att) => att.status === "Present"
-      )?.length;
-      setAttendanceCount(attendanceCount || 0);
+      const all = response.data.attendance || [];
+
+      // When manual approval is enabled, count both Present and Pending
+      const countPresent = all.filter((att) => att.status === "Present").length;
+      const countPending = all.filter((att) => att.status === "Pending").length;
+
+      const effectiveCount =
+        sessionConfig?.manualApproval === true
+          ? countPresent + countPending
+          : countPresent;
+
+      setAttendanceCount(effectiveCount || 0);
     } catch (error) {
       console.error("Failed to fetch attendance count:", error);
     }
@@ -262,7 +270,7 @@ const LiveSession = () => {
   };
 
   const handleApproveAll = async () => {
-    const allPendingIds = pendingAttendance.map((att) => att.studentId._id);
+    const allPendingIds = pendingAttendance.map((att) => att.student._id);
     await handleApproveAttendance(allPendingIds);
   };
 
@@ -528,22 +536,22 @@ const LiveSession = () => {
                     <div className="space-y-2 max-h-48 sm:max-h-64 overflow-y-auto">
                       {pendingAttendance.map((att) => (
                         <div
-                          key={att._id}
+                          key={att.attendanceId || att.student._id}
                           className="flex justify-between items-center p-2 bg-white rounded border border-orange-200 gap-2"
                         >
                           <div className="text-xs sm:text-sm flex-1 min-w-0">
                             <p className="font-medium text-gray-900 truncate">
-                              {att.studentId?.name}
+                              {att.student?.name}
                             </p>
                             <p className="text-xs text-gray-500">
-                              {att.studentId?.info?.rollNo || "N/A"}
+                              {att.student?.info?.rollNo || "N/A"}
                             </p>
                           </div>
                           <Button
                             variant="success"
                             size="sm"
                             onClick={() =>
-                              handleApproveAttendance([att.studentId._id])
+                              handleApproveAttendance([att.student._id])
                             }
                             className="flex-shrink-0"
                           >

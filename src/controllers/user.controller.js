@@ -267,3 +267,32 @@ export const updateUser = asyncHandler(async (req, res) => {
     .status(200)
     .json(new ApiResponse(200, userResponse, "User updated successfully"));
 });
+
+/**
+ * Reset User Device Binding (Admin only)
+ * POST /api/v1/user/:id/reset-device
+ */
+export const resetUserDevice = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  const user = await User.findById(id);
+
+  if (!user) {
+    throw ApiError.notFound("User not found");
+  }
+
+  // Only makes sense for students, but allow for any role to keep it simple
+  user.deviceId = null;
+  await user.save({ validateBeforeSave: false });
+
+  res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        _id: user._id,
+        deviceId: user.deviceId,
+      },
+      "User device binding reset successfully. The user can now bind a new device on next attendance."
+    )
+  );
+});

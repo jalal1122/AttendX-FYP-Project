@@ -12,7 +12,7 @@ This file tracks **non‑urgent improvements**: refactors, UX polish, performanc
     - Validation and clamping in `startSession` (e.g. radius 10–500m, qrRefreshRate 5–60s).
   - Return `securityConfig` from `startSession` and `getQRToken` responses consistently so the frontend never has to guess.
 
-- **[ ] Add Dedicated “My Attendance” Endpoint**
+- **[x] Add Dedicated “My Attendance” Endpoint**
   - Implement `GET /api/v1/attendance/my-attendance/:classId`:
     - Requires `verifyJWT` and student role.
     - Uses `req.user._id` and given `classId` to return:
@@ -44,7 +44,7 @@ This file tracks **non‑urgent improvements**: refactors, UX polish, performanc
 
 ## 2️⃣ Frontend Improvements
 
-- **[ ] Unify API Base URL Environment Variable**
+- **[x] Unify API Base URL Environment Variable**
   - Decide on a single canonical env key (`VITE_API_URL` or `VITE_API_BASE_URL`), and:
     - Update `api.js` and docs so they match.
     - Optionally accept both for backward compatibility, but document the preferred one clearly.

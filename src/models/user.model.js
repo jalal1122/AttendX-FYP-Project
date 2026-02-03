@@ -53,6 +53,12 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    // Persisted device binding for anti-buddy punching
+    deviceId: {
+      type: String,
+      default: null,
+      index: true,
+    },
   },
   {
     timestamps: true,

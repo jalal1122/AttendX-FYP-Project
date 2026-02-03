@@ -62,6 +62,32 @@ const ManageUsers = () => {
     }
   };
 
+  const handleResetDevice = async (userId, userName) => {
+    if (
+      !window.confirm(
+        `Reset device binding for ${userName}? They will be able to bind a new device on next attendance.`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      await userAPI.resetUserDevice(userId);
+      setMessage({
+        type: "success",
+        text: "Device binding reset successfully",
+      });
+    } catch (error) {
+      console.error("Error resetting user device:", error);
+      setMessage({
+        type: "error",
+        text:
+          error.response?.data?.message ||
+          "Failed to reset user device binding",
+      });
+    }
+  };
+
   const handleEditUser = (user) => {
     setEditingUser(user);
     setEditFormData({
@@ -296,6 +322,13 @@ const ManageUsers = () => {
                         className="text-blue-600 hover:text-blue-900"
                       >
                         Role
+                      </button>
+                      <button
+                        onClick={() => handleResetDevice(user._id, user.name)}
+                        className="text-indigo-600 hover:text-indigo-900"
+                        title="Reset device binding"
+                      >
+                        Reset Device
                       </button>
                       <button
                         onClick={() => handleDeleteUser(user._id, user.name)}

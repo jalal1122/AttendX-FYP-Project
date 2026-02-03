@@ -4,6 +4,7 @@ import ApiResponse from "../../utils/ApiResponse.js";
 import Attendance from "../models/attendance.model.js";
 import Session from "../models/session.model.js";
 import Class from "../models/class.model.js";
+import User from "../models/user.model.js";
 import jwt from "jsonwebtoken";
 import { calculateDistance, isWithinRadius } from "../utils/geolocation.js";
 
@@ -149,26 +150,41 @@ export const markAttendance = asyncHandler(async (req, res) => {
     }
   }
 
-  // 3. DEVICE LOCK CHECK - Anti-buddy punching
-  if (securityConfig.deviceLockEnabled) {
-    if (!deviceId) {
-      throw ApiError.badRequest("Device ID is required for this session");
-    }
+  // 3. DEVICE LOCK CHECK - Anti-buddy punching (always enforced)
+  if (!deviceId) {
+    throw ApiError.badRequest("Device ID is required for this session");
+  }
 
-    // Check if this device has already been used for this session by a DIFFERENT student
-    const deviceUsage = await Attendance.findOne({
-      sessionId,
-      deviceId,
-    });
+  // Bind device to student account globally (one device per student until reset)
+  const student = await User.findById(req.user._id);
+  if (!student) {
+    throw ApiError.notFound("Student not found");
+  }
 
-    if (
-      deviceUsage &&
-      deviceUsage.studentId.toString() !== req.user._id.toString()
-    ) {
-      throw ApiError.forbidden(
-        "Security Alert: This device has already marked attendance for this session."
-      );
-    }
+  if (!student.deviceId) {
+    // First time: bind this device to the student
+    student.deviceId = deviceId;
+    await student.save({ validateBeforeSave: false });
+  } else if (student.deviceId !== deviceId) {
+    // Different device than the one registered for this student
+    throw ApiError.forbidden(
+      "This account is already bound to a different device. Please contact admin to reset your device."
+    );
+  }
+
+  // Per-session: prevent same device being used for multiple students
+  const deviceUsage = await Attendance.findOne({
+    sessionId,
+    deviceId,
+  });
+
+  if (
+    deviceUsage &&
+    deviceUsage.studentId.toString() !== req.user._id.toString()
+  ) {
+    throw ApiError.forbidden(
+      "Security Alert: This device has already marked attendance for this session."
+    );
   }
 
   // Check if attendance already marked

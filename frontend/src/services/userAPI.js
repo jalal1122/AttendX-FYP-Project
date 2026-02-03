@@ -42,6 +42,12 @@ export const userAPI = {
     return response.data;
   },
 
+  // Reset user device binding
+  resetUserDevice: async (userId) => {
+    const response = await api.post(`/user/${userId}/reset-device`);
+    return response.data;
+  },
+
   // Create user (with FormData for file upload)
   createUser: async (formData) => {
     const response = await api.post("/user/create", formData, {

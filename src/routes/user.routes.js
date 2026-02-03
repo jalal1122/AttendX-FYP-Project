@@ -7,6 +7,7 @@ import {
   deleteUser,
   createUser,
   updateUser,
+  resetUserDevice,
 } from "../controllers/user.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import { hasRole } from "../middlewares/role.middleware.js";
@@ -34,6 +35,9 @@ router.put("/:id", updateUser);
 
 // Update user role
 router.patch("/:id/role", updateUserRole);
+
+// Reset user device binding
+router.post("/:id/reset-device", resetUserDevice);
 
 // Delete user
 router.delete("/:id", deleteUser);
