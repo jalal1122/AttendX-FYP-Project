@@ -5,7 +5,7 @@ As we discover new bugs, append them here with a short, actionable description.
 
 ---
 
-### 1. Inconsistent Attendance Endpoint Names (Docs vs Backend vs Frontend)
+### 1. Inconsistent Attendance Endpoint Names (Docs vs Backend vs Frontend) ✅ Fixed
 
 - **Where**
   - Docs (`COMPLETE_PROJECT_CONTEXT.md`) list: `POST /api/v1/attendance/mark`.
@@ -20,7 +20,7 @@ As we discover new bugs, append them here with a short, actionable description.
 
 ---
 
-### 2. Hard‑Coded QR Token Expiry vs Per‑Session `qrRefreshRate`
+### 2. Hard‑Coded QR Token Expiry vs Per‑Session `qrRefreshRate` ✅ Fixed
 
 - **Where**
   - Backend `getQRToken` (`src/controllers/session.controller.js`) signs tokens with a **fixed** `expiresIn: "20s"`.
@@ -36,7 +36,7 @@ As we discover new bugs, append them here with a short, actionable description.
 
 ---
 
-### 3. Geofence Default Radius Mismatch (Docs vs Code)
+### 3. Geofence Default Radius Mismatch (Docs vs Code) ✅ Fixed
 
 - **Where**
   - `COMPLETE_PROJECT_CONTEXT.md` and security description emphasise a default radius around **50m**.
@@ -64,7 +64,7 @@ As we discover new bugs, append them here with a short, actionable description.
 
 ---
 
-### 5. Potential Student‑Facing Message Bug in `ScanAttendance` Success Handling
+### 5. Potential Student‑Facing Message Bug in `ScanAttendance` Success Handling ✅ Fixed
 
 - **Where**
   - `frontend/src/pages/student/ScanAttendance.jsx` – inside `markAttendance` success branch:
@@ -98,7 +98,7 @@ As we discover new bugs, append them here with a short, actionable description.
 
 ---
 
-### 7. Environment Variable Name Divergence for Frontend API
+### 7. Environment Variable Name Divergence for Frontend API ✅ Fixed
 
 - **Where**
   - `COMPLETE_PROJECT_CONTEXT.md` suggests frontend `.env` uses `VITE_API_BASE_URL`.
@@ -113,7 +113,7 @@ As we discover new bugs, append them here with a short, actionable description.
 
 ---
 
-### 8. Minor: Analytics “Comprehensive” JSDoc Comment Not Matching Real Signature
+### 8. Minor: Analytics “Comprehensive” JSDoc Comment Not Matching Real Signature ✅ Fixed
 
 - **Where**
   - JSDoc above `getComprehensiveReport` says:  
@@ -126,7 +126,7 @@ As we discover new bugs, append them here with a short, actionable description.
 
 ---
 
-### 9. Possible “My Attendance” Endpoint Missing (Frontend vs Backend)
+### 9. Possible “My Attendance” Endpoint Missing (Frontend vs Backend) ✅ Fixed
 
 - **Where**
   - Frontend `attendanceAPI.getMyAttendance` calls `GET /attendance/my-attendance/:classId`.

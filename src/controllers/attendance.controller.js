@@ -435,6 +435,52 @@ export const getStudentAttendance = asyncHandler(async (req, res) => {
 });
 
 /**
+ * Get Current Student's Attendance for a Class
+ * GET /api/v1/attendance/my-attendance/:classId
+ */
+export const getMyAttendanceForClass = asyncHandler(async (req, res) => {
+  const { classId } = req.params;
+
+  if (!classId) {
+    throw ApiError.badRequest("Class ID is required");
+  }
+
+  const studentId = req.user._id;
+
+  // Build query
+  const query = { studentId, classId };
+
+  // Get attendance records
+  const attendanceRecords = await Attendance.find(query)
+    .populate("classId", "name code semester")
+    .populate("sessionId", "startTime type")
+    .sort({ date: 1 });
+
+  // Compute simple summary for this class
+  const total = attendanceRecords.length;
+  const present = attendanceRecords.filter((r) => r.status === "Present").length;
+
+  const percentage = total > 0 ? (present / total) * 100 : 0;
+
+  res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        classId,
+        studentId,
+        summary: {
+          totalSessions: total,
+          present,
+          attendancePercentage: Number(percentage.toFixed(2)),
+        },
+        attendance: attendanceRecords,
+      },
+      "Class attendance for current student retrieved successfully"
+    )
+  );
+});
+
+/**
  * Get Detailed Attendance Records for Class (for exports)
  * GET /api/v1/attendance/class/:classId/detailed
  */

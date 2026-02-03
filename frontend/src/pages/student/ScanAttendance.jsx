@@ -179,9 +179,9 @@ const ScanAttendance = () => {
             );
 
             // Check if manual approval is required
-            const attendance = response.data.attendance || response.data;
+            const attendance = response.attendance || response.data || response;
             const requiresApproval =
-              response.data.requiresApproval || attendance.status === "Pending";
+              response.requiresApproval || attendance.status === "Pending";
 
             if (requiresApproval) {
               // Pending status - awaiting teacher approval
@@ -191,11 +191,11 @@ const ScanAttendance = () => {
               });
             } else {
               // Success!
+              const studentName =
+                attendance.studentId?.name || "Student";
               setMessage({
                 type: "success",
-                text: `✓ Attendance marked successfully! Welcome, ${
-                  response.data.studentId?.name || "Student"
-                }!`,
+                text: `✓ Attendance marked successfully! Welcome, ${studentName}!`,
               });
             }
 
@@ -243,9 +243,9 @@ const ScanAttendance = () => {
         );
 
         // Check if manual approval is required
-        const attendance = response.data.attendance || response.data;
+        const attendance = response.attendance || response.data || response;
         const requiresApproval =
-          response.data.requiresApproval || attendance.status === "Pending";
+          response.requiresApproval || attendance.status === "Pending";
 
         if (requiresApproval) {
           // Pending status - awaiting teacher approval
@@ -255,11 +255,11 @@ const ScanAttendance = () => {
           });
         } else {
           // Success!
+          const studentName =
+            attendance.studentId?.name || "Student";
           setMessage({
             type: "success",
-            text: `✓ Attendance marked successfully! Welcome, ${
-              response.data.studentId?.name || "Student"
-            }!`,
+            text: `✓ Attendance marked successfully! Welcome, ${studentName}!`,
           });
         }
 

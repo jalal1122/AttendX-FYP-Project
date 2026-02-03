@@ -53,7 +53,7 @@ const sessionSchema = new mongoose.Schema(
     securityConfig: {
       radius: {
         type: Number,
-        default: 5, // meters
+        default: 50, // meters (matches documented default)
       },
       ipMatchEnabled: {
         type: Boolean,

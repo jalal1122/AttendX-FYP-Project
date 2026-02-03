@@ -6,6 +6,7 @@ import {
   getStudentAttendance,
   getDetailedClassAttendance,
   approveAttendance,
+  getMyAttendanceForClass,
 } from "../controllers/attendance.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import { hasRole } from "../middlewares/role.middleware.js";
@@ -18,6 +19,9 @@ router.use(verifyJWT);
 // Mark attendance via QR scan (Student only)
 router.post("/scan", hasRole("student"), markAttendance);
 
+// Backward-compatible alias for docs: /mark → same controller as /scan
+router.post("/mark", hasRole("student"), markAttendance);
+
 // Approve pending attendance (Teacher/Admin only)
 router.post("/approve", hasRole("teacher", "admin"), approveAttendance);
 
@@ -29,6 +33,9 @@ router.get("/session/:sessionId", getAttendanceBySession);
 
 // Get student's attendance history
 router.get("/student/:studentId", getStudentAttendance);
+
+// Get current student's attendance for a specific class
+router.get("/my-attendance/:classId", getMyAttendanceForClass);
 
 // Get detailed class attendance for export (Teacher/Admin only)
 router.get(

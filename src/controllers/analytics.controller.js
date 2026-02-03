@@ -748,7 +748,7 @@ export const getTeacherStats = asyncHandler(async (req, res) => {
 
 /**
  * Get Comprehensive Class Report (for semester/department analysis)
- * GET /api/v1/analytics/comprehensive
+ * GET /api/v1/analytics/comprehensive?semester=...&department=...
  */
 export const getComprehensiveReport = asyncHandler(async (req, res) => {
   const { semester, department } = req.query;

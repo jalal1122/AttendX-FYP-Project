@@ -132,7 +132,13 @@ export const getQRToken = asyncHandler(async (req, res) => {
     throw ApiError.forbidden("You are not authorized to access this session");
   }
 
-  // Generate signed JWT with 20 seconds expiry
+  // Determine QR token lifetime from session security config (fallback to 20s)
+  const refreshRate =
+    session.securityConfig?.qrRefreshRate && session.securityConfig.qrRefreshRate > 0
+      ? session.securityConfig.qrRefreshRate
+      : 20;
+
+  // Generate signed JWT with expiry matching refreshRate
   const token = jwt.sign(
     {
       sessionId: session._id.toString(),
@@ -142,7 +148,7 @@ export const getQRToken = asyncHandler(async (req, res) => {
     },
     process.env.QR_SECRET || process.env.JWT_ACCESS_SECRET,
     {
-      expiresIn: "20s",
+      expiresIn: `${refreshRate}s`,
     }
   );
 
@@ -151,7 +157,7 @@ export const getQRToken = asyncHandler(async (req, res) => {
       200,
       {
         token,
-        expiresIn: 20,
+        expiresIn: refreshRate,
         sessionId: session._id,
       },
       "QR token generated successfully"
