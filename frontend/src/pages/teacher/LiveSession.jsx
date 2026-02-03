@@ -101,9 +101,12 @@ const LiveSession = () => {
                 type: config.type,
                 securityConfig: config.securityConfig,
               });
+              console.log(response.data);
+              
               setSessionId(response.data._id);
               setSessionConfig(response.data.securityConfig);
               setIsActive(true);
+              setTimeRemaining(response.data.securityConfig.qrRefreshRate || 20);
               continueSessionSetup(
                 response.data._id,
                 response.data.securityConfig
@@ -158,12 +161,15 @@ const LiveSession = () => {
       const qrRefreshRate = config?.qrRefreshRate || 20;
       const manualApproval = config?.manualApproval || false;
 
+      // Set initial timer
+      setTimeRemaining(qrRefreshRate);
+
       // Get first QR token immediately
-      await fetchNewQRToken(sessionId);
+      await fetchNewQRToken(sessionId, qrRefreshRate);
 
       // Start QR rotation (dynamic refresh rate)
       qrIntervalRef.current = setInterval(() => {
-        fetchNewQRToken(sessionId);
+        fetchNewQRToken(sessionId, qrRefreshRate);
       }, qrRefreshRate * 1000);
 
       // Start attendance count updates (every 5 seconds)
@@ -181,6 +187,12 @@ const LiveSession = () => {
           return prev - 1;
         });
       }, 1000);
+
+      // Fetch initial counts
+      fetchAttendanceCount(sessionId);
+      if (manualApproval) {
+        fetchPendingAttendance(sessionId);
+      }
 
       setLoading(false);
     } catch (error) {
@@ -200,11 +212,11 @@ const LiveSession = () => {
     }
   };
 
-  const fetchNewQRToken = async (sId) => {
+  const fetchNewQRToken = async (sId, refreshRate) => {
     try {
       const response = await sessionAPI.getQRToken(sId || sessionId);
       setQrToken(response.data.token);
-      setTimeRemaining(20); // Reset timer
+      setTimeRemaining(refreshRate || 20); // Reset timer
 
       // Log token for dev testing
       console.log("🔑 NEW QR TOKEN:", response.data.token);
@@ -216,7 +228,10 @@ const LiveSession = () => {
   const fetchAttendanceCount = async (sId) => {
     try {
       const response = await sessionAPI.getSessionAttendance(sId || sessionId);
-      setAttendanceCount(response.data.attendance?.length || 0);
+      const attendanceCount = response.data.attendance?.filter(
+        (att) => att.status === "Present"
+      )?.length;
+      setAttendanceCount(attendanceCount || 0);
     } catch (error) {
       console.error("Failed to fetch attendance count:", error);
     }
@@ -282,21 +297,25 @@ const LiveSession = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-blue-50">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-blue-50 pb-6">
       {/* Header */}
-      <div className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">
+      <div className="bg-white shadow sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 truncate">
                 {classData?.name || "Live Session"}
               </h1>
-              <p className="text-sm text-gray-600 mt-1">
+              <p className="text-xs sm:text-sm text-gray-600 mt-1">
                 {classData?.code} • {classData?.department}
               </p>
             </div>
             {isActive && (
-              <Button variant="error" onClick={endSession}>
+              <Button
+                variant="error"
+                onClick={endSession}
+                className="w-full sm:w-auto"
+              >
                 End Session
               </Button>
             )}
@@ -305,9 +324,9 @@ const LiveSession = () => {
       </div>
 
       {/* Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
         {error && (
-          <div className="mb-6 p-4 bg-error-50 border border-error-200 text-error-700 rounded-lg">
+          <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-error-50 border border-error-200 text-error-700 rounded-lg text-sm sm:text-base">
             <p className="mb-2">{error}</p>
             {error.includes("active session") && (
               <Button
@@ -316,7 +335,8 @@ const LiveSession = () => {
                   setError("");
                   checkExistingSession();
                 }}
-                className="mt-2"
+                className="mt-2 w-full sm:w-auto"
+                size="sm"
               >
                 Try Resume Session
               </Button>
@@ -326,11 +346,11 @@ const LiveSession = () => {
 
         {!isActive ? (
           // Pre-session state
-          <Card className="text-center py-12">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+          <Card className="text-center py-8 sm:py-12">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-3 sm:mb-4 px-4">
               Ready to Start Attendance Session?
             </h2>
-            <p className="text-gray-600 mb-6">
+            <p className="text-sm sm:text-base text-gray-600 mb-4 sm:mb-6 px-4">
               Configure security settings and start the session.
             </p>
 
@@ -338,44 +358,60 @@ const LiveSession = () => {
               variant="primary"
               onClick={() => setShowStartModal(true)}
               disabled={loading}
-              className="px-8 py-3"
+              className="px-6 sm:px-8 py-2 sm:py-3 mx-4"
             >
               {loading ? "Starting..." : "Start Session"}
             </Button>
           </Card>
         ) : (
           // Active session
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8">
             {/* QR Code Display */}
             <div className="lg:col-span-2">
               <Card className="text-center bg-white">
-                <div className="mb-6">
-                  <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                <div className="mb-4 sm:mb-6 px-2 sm:px-4">
+                  <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 mb-2">
                     Scan QR Code to Mark Attendance
                   </h2>
-                  <p className="text-gray-600">
-                    New code generates every 20 seconds
+                  <p className="text-sm sm:text-base text-gray-600">
+                    New code generates every{" "}
+                    {sessionConfig?.qrRefreshRate || 20} seconds
                   </p>
                 </div>
 
                 {/* QR Code */}
-                <div className="flex justify-center mb-6">
+                <div className="flex justify-center mb-4 sm:mb-6 px-2">
                   {qrToken ? (
-                    <div className="p-6 bg-white rounded-lg shadow-lg border-4 border-primary-500">
-                      <QRCode value={qrToken} size={300} level="H" />
+                    <div className="p-3 sm:p-4 lg:p-6 bg-white rounded-lg shadow-lg border-2 sm:border-4 border-primary-500 w-fit">
+                      <QRCode
+                        value={qrToken}
+                        size={
+                          window.innerWidth < 640
+                            ? 200
+                            : window.innerWidth < 1024
+                            ? 250
+                            : 300
+                        }
+                        level="H"
+                      />
                     </div>
                   ) : (
-                    <div className="w-[300px] h-[300px] bg-gray-100 rounded-lg flex items-center justify-center">
-                      <p className="text-gray-500">Generating QR...</p>
+                    <div className="w-[200px] h-[200px] sm:w-[250px] sm:h-[250px] lg:w-[300px] lg:h-[300px] bg-gray-100 rounded-lg flex items-center justify-center">
+                      <div className="text-center">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600 mx-auto mb-2"></div>
+                        <p className="text-gray-500 text-sm">
+                          Generating QR...
+                        </p>
+                      </div>
                     </div>
                   )}
                 </div>
 
                 {/* Timer */}
-                <div className="mb-4">
-                  <div className="inline-flex items-center px-4 py-2 bg-primary-100 text-primary-700 rounded-full">
+                <div className="mb-4 px-2">
+                  <div className="inline-flex items-center px-3 sm:px-4 py-2 bg-primary-100 text-primary-700 rounded-full">
                     <svg
-                      className="w-5 h-5 mr-2"
+                      className="w-4 h-4 sm:w-5 sm:h-5 mr-2"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -387,39 +423,39 @@ const LiveSession = () => {
                         d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
                       />
                     </svg>
-                    <span className="text-lg font-bold">
-                      Next refresh in: {timeRemaining}s
+                    <span className="text-base sm:text-lg font-bold">
+                      Refresh in: {timeRemaining}s
                     </span>
                   </div>
                 </div>
 
                 {/* Dev Token Display */}
-                <details className="mt-4 text-left">
-                  <summary className="cursor-pointer text-sm text-gray-500 hover:text-gray-700">
+                <details className="mt-4 text-left px-2 sm:px-4">
+                  <summary className="cursor-pointer text-xs sm:text-sm text-gray-500 hover:text-gray-700">
                     🔧 Developer Info (Click to expand)
                   </summary>
-                  <div className="mt-2 p-3 bg-gray-50 rounded text-xs font-mono break-all">
+                  <div className="mt-2 p-2 sm:p-3 bg-gray-50 rounded text-xs font-mono break-all">
                     <p className="text-gray-600 mb-1">
                       Token (copy for testing):
                     </p>
-                    <p className="text-gray-900">{qrToken}</p>
+                    <code className="text-gray-800">{qrToken}</code>
                   </div>
                 </details>
               </Card>
             </div>
 
             {/* Live Stats */}
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               <Card className="bg-gradient-to-br from-success-500 to-success-600 text-white">
-                <h3 className="text-success-100 text-sm font-medium mb-2">
+                <h3 className="text-success-100 text-xs sm:text-sm font-medium mb-2">
                   Students Present
                 </h3>
-                <p className="text-5xl font-bold">
+                <p className="text-3xl sm:text-4xl lg:text-5xl font-bold">
                   {attendanceCount}/{totalStudents}
                 </p>
-                <div className="mt-4 w-full bg-success-400 rounded-full h-2">
+                <div className="mt-3 sm:mt-4 w-full bg-success-400 rounded-full h-2">
                   <div
-                    className="bg-white h-2 rounded-full transition-all"
+                    className="bg-white h-2 rounded-full transition-all duration-500"
                     style={{
                       width: `${
                         totalStudents > 0
@@ -432,21 +468,24 @@ const LiveSession = () => {
               </Card>
 
               <Card>
-                <h3 className="text-gray-700 font-semibold mb-3">
+                <h3 className="text-gray-700 text-sm sm:text-base font-semibold mb-2 sm:mb-3">
                   Session Info
                 </h3>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
+                <div className="space-y-2 text-xs sm:text-sm">
+                  <div className="flex justify-between items-center">
                     <span className="text-gray-600">Status:</span>
-                    <span className="font-medium text-success-600">● Live</span>
+                    <span className="font-medium text-success-600 flex items-center">
+                      <span className="inline-block w-2 h-2 rounded-full bg-success-600 mr-1 animate-pulse"></span>
+                      Live
+                    </span>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex justify-between items-center">
                     <span className="text-gray-600">Total Students:</span>
                     <span className="font-medium text-gray-900">
                       {totalStudents}
                     </span>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex justify-between items-center">
                     <span className="text-gray-600">Attendance Rate:</span>
                     <span className="font-medium text-gray-900">
                       {totalStudents > 0
@@ -459,10 +498,10 @@ const LiveSession = () => {
               </Card>
 
               <Card className="bg-yellow-50 border-yellow-200">
-                <h3 className="text-yellow-800 font-semibold mb-2">
+                <h3 className="text-yellow-800 text-sm sm:text-base font-semibold mb-2">
                   ⚠️ Important
                 </h3>
-                <p className="text-sm text-yellow-700">
+                <p className="text-xs sm:text-sm text-yellow-700">
                   Keep this window open during the session. QR codes rotate
                   every {sessionConfig?.qrRefreshRate || 20} seconds for
                   security.
@@ -473,26 +512,27 @@ const LiveSession = () => {
               {sessionConfig?.manualApproval &&
                 pendingAttendance.length > 0 && (
                   <Card className="bg-orange-50 border-orange-200">
-                    <div className="flex justify-between items-center mb-3">
-                      <h3 className="text-orange-800 font-semibold">
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-3">
+                      <h3 className="text-orange-800 text-sm sm:text-base font-semibold">
                         🕒 Pending Approvals ({pendingAttendance.length})
                       </h3>
                       <Button
                         variant="primary"
                         size="sm"
                         onClick={handleApproveAll}
+                        className="w-full sm:w-auto"
                       >
                         Approve All
                       </Button>
                     </div>
-                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                    <div className="space-y-2 max-h-48 sm:max-h-64 overflow-y-auto">
                       {pendingAttendance.map((att) => (
                         <div
                           key={att._id}
-                          className="flex justify-between items-center p-2 bg-white rounded border border-orange-200"
+                          className="flex justify-between items-center p-2 bg-white rounded border border-orange-200 gap-2"
                         >
-                          <div className="text-sm">
-                            <p className="font-medium text-gray-900">
+                          <div className="text-xs sm:text-sm flex-1 min-w-0">
+                            <p className="font-medium text-gray-900 truncate">
                               {att.studentId?.name}
                             </p>
                             <p className="text-xs text-gray-500">
@@ -505,8 +545,9 @@ const LiveSession = () => {
                             onClick={() =>
                               handleApproveAttendance([att.studentId._id])
                             }
+                            className="flex-shrink-0"
                           >
-                            Approve
+                            ✓
                           </Button>
                         </div>
                       ))}

@@ -73,7 +73,7 @@ export const startSession = asyncHandler(async (req, res) => {
 
   // Prepare security config with defaults
   const finalSecurityConfig = {
-    radius: securityConfig?.radius || 50,
+    radius: securityConfig?.radius || 5,
     ipMatchEnabled:
       securityConfig?.ipMatchEnabled !== undefined
         ? securityConfig.ipMatchEnabled
@@ -309,6 +309,35 @@ export const getActiveSessionByClass = asyncHandler(async (req, res) => {
         200,
         activeSession,
         "Active session retrieved successfully"
+      )
+    );
+});
+
+/**
+ * Get All Active Sessions
+ * GET /api/v1/session/all/active
+ */
+export const getAllActiveSessions = asyncHandler(async (req, res) => {
+  // Find active session
+  const allActiveSessions = await Session.find({
+    active: true,
+  })
+    .populate("classId", "name code department semester")
+    .populate("teacherId", "name email");
+
+  if (!allActiveSessions || allActiveSessions.length === 0) {
+    return res
+      .status(200)
+      .json(new ApiResponse(200, null, "No active session found"));
+  }
+
+  res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        { allActiveSessions, count: allActiveSessions.length },
+        "Active sessions retrieved successfully"
       )
     );
 });

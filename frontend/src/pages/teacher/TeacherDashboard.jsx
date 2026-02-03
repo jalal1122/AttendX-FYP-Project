@@ -7,6 +7,7 @@ import Button from "../../components/ui/Button";
 import Card from "../../components/ui/Card";
 import Modal from "../../components/ui/Modal";
 import Input from "../../components/ui/Input";
+import sessionAPI from "../../services/sessionAPI";
 
 const TeacherDashboard = () => {
   const navigate = useNavigate();
@@ -14,6 +15,7 @@ const TeacherDashboard = () => {
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [activeSessionCount, setActiveSessionCount] = useState(0);
   const [formData, setFormData] = useState({
     name: "",
     department: "",
@@ -26,6 +28,7 @@ const TeacherDashboard = () => {
 
   useEffect(() => {
     fetchClasses();
+    getAllActiveSessions();
   }, []);
 
   const fetchClasses = async () => {
@@ -38,6 +41,16 @@ const TeacherDashboard = () => {
       setError("Failed to load classes");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const getAllActiveSessions = async () => {
+    try {
+      const response = await sessionAPI.getAllActiveSessions();
+      setActiveSessionCount(response.data.count);
+    } catch (error) {
+      console.error("Error fetching active sessions:", error);
+      return 0;
     }
   };
 
@@ -141,7 +154,7 @@ const TeacherDashboard = () => {
             <h3 className="text-gray-500 text-sm font-medium">
               Active Sessions
             </h3>
-            <p className="text-3xl font-bold text-gray-900 mt-2">0</p>
+            <p className="text-3xl font-bold text-gray-900 mt-2">{activeSessionCount}</p>
           </Card>
         </div>
 

@@ -7,6 +7,7 @@ import {
   getSessionsByClass,
   getActiveSessionByClass,
   getSessionDetails,
+  getAllActiveSessions,
 } from "../controllers/session.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import { hasRole } from "../middlewares/role.middleware.js";
@@ -38,6 +39,9 @@ router.get(
   hasRole("teacher", "admin"),
   getActiveSessionByClass
 );
+
+// Get All Active Sessions (Teacher/Admin only)
+router.get("/all/active", hasRole("teacher", "admin"), getAllActiveSessions);
 
 // Get all sessions for a class
 router.get("/class/:classId", getSessionsByClass);

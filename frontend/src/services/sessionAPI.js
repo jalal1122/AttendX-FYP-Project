@@ -40,6 +40,12 @@ const sessionAPI = {
     return response.data;
   },
 
+  // Get all active sessions
+  getAllActiveSessions: async () => {
+    const response = await api.get("/session/all/active");
+    return response.data;
+  },
+
   // Create retroactive session for manual attendance entry
   createRetroactiveSession: async (sessionData) => {
     const response = await api.post("/session/create-retroactive", sessionData);
