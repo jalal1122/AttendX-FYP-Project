@@ -2,6 +2,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { logoutUser, selectCurrentUser } from "../../features/auth/authSlice";
 import Button from "../ui/Button";
+import NotificationCenter from "./NotificationCenter";
 
 const Navbar = () => {
   const dispatch = useDispatch();
@@ -46,16 +47,16 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="bg-white shadow-sm border-b border-gray-200">
+    <nav className="bg-white shadow-sm border-b-2 border-sky-500">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo/Brand */}
           <div className="flex items-center gap-8">
             <button
               onClick={() => navigate(getDashboardLink())}
-              className="text-2xl font-bold text-primary-600 hover:text-primary-700 transition-colors"
+              className="text-2xl font-bold text-sky-500 hover:text-sky-600 transition-colors"
             >
-              Attend<span className="text-black">X</span>
+              Attend<span className="text-slate-900">X</span>
             </button>
 
             {/* Navigation Links */}
@@ -84,6 +85,9 @@ const Navbar = () => {
           <div className="flex items-center gap-4">
             {user && (
               <>
+                {/* Notification Bell */}
+                <NotificationCenter />
+
                 <div className="hidden sm:flex items-center gap-3">
                   <div className="text-right">
                     <p className="text-sm font-medium text-gray-900">

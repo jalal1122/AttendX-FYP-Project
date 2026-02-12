@@ -3,6 +3,7 @@ import ApiError from "../../utils/ApiError.js";
 import ApiResponse from "../../utils/ApiResponse.js";
 import User from "../models/user.model.js";
 import { uploadToCloudinary } from "../../config/cloudinary.js";
+import EmailService from "../services/email.service.js";
 import fs from "fs";
 
 /**
@@ -218,6 +219,14 @@ export const createUser = asyncHandler(async (req, res) => {
   const userResponse = user.toObject();
   delete userResponse.password;
   delete userResponse.refreshToken;
+
+  // Send welcome email
+  try {
+    await EmailService.sendWelcomeEmail(user, password);
+  } catch (emailError) {
+    console.error("Failed to send welcome email:", emailError);
+    // Don't fail user creation if email fails
+  }
 
   res
     .status(201)

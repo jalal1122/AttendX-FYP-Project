@@ -13,7 +13,7 @@ const ExportModal = ({ isOpen, onClose, defaultType = null, defaultTargetId = nu
   // Form state
   const [reportType, setReportType] = useState(defaultType || "class_matrix");
   const [range, setRange] = useState("semester");
-  const [format, setFormat] = useState("xlsx");
+  const format = "xlsx"; // Always Excel
   const [targetId, setTargetId] = useState(defaultTargetId || "");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
@@ -46,11 +46,6 @@ const ExportModal = ({ isOpen, onClose, defaultType = null, defaultTargetId = nu
     { value: "custom", label: "Custom Date Range" },
   ];
 
-  const formats = [
-    { value: "xlsx", label: "Excel (.xlsx)", description: "Beautifully styled with colors" },
-    { value: "csv", label: "CSV (.csv)", description: "Plain text for importing elsewhere" },
-  ];
-
   const selectedReportType = reportTypes.find((r) => r.value === reportType);
 
   const handleNext = () => {
@@ -61,13 +56,12 @@ const ExportModal = ({ isOpen, onClose, defaultType = null, defaultTargetId = nu
         setError(`Please enter ${selectedReportType.needsTarget === "classId" ? "Class ID" : "Student ID"}`);
         return;
       }
-      setStep(2);
-    } else if (step === 2) {
       if (range === "custom" && (!startDate || !endDate)) {
         setError("Please select both start and end dates");
         return;
       }
-      setStep(3);
+      // Skip step 3 (format selection) since we only have Excel
+      handleGenerate();
     }
   };
 
@@ -143,7 +137,6 @@ const ExportModal = ({ isOpen, onClose, defaultType = null, defaultTargetId = nu
       setStep(1);
       setReportType(defaultType || "class_matrix");
       setRange("semester");
-      setFormat("xlsx");
       setTargetId(defaultTargetId || "");
       setStartDate("");
       setEndDate("");
@@ -269,73 +262,40 @@ const ExportModal = ({ isOpen, onClose, defaultType = null, defaultTargetId = nu
           </div>
         </div>
       )}
+
+      {/* Summary */}
+      {renderStep2Summary()}
     </div>
   );
 
-  const renderStep3 = () => (
-    <div className="space-y-4">
-      <h3 className="text-lg font-semibold text-gray-900 mb-4">
-        Step 3: Select Format
-      </h3>
-
-      <div className="space-y-3">
-        {formats.map((f) => (
-          <div
-            key={f.value}
-            onClick={() => setFormat(f.value)}
-            className={`p-4 border-2 rounded-lg cursor-pointer transition-all ${
-              format === f.value
-                ? "border-primary-500 bg-primary-50"
-                : "border-gray-200 hover:border-gray-300"
-            }`}
-          >
-            <div className="flex items-start">
-              <input
-                type="radio"
-                checked={format === f.value}
-                onChange={() => setFormat(f.value)}
-                className="mt-1 h-4 w-4 text-primary-600 focus:ring-primary-500"
-              />
-              <div className="ml-3 flex-1">
-                <label className="block text-sm font-medium text-gray-900 cursor-pointer">
-                  {f.label}
-                </label>
-                <p className="text-sm text-gray-500 mt-1">{f.description}</p>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Summary */}
-      <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-        <h4 className="text-sm font-semibold text-blue-900 mb-2">📋 Report Summary</h4>
-        <ul className="text-sm text-blue-800 space-y-1">
+  const renderStep2Summary = () => (
+    <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+      <h4 className="text-sm font-semibold text-blue-900 mb-2">📋 Report Summary</h4>
+      <ul className="text-sm text-blue-800 space-y-1">
+        <li>
+          <strong>Type:</strong> {selectedReportType?.label}
+        </li>
+        <li>
+          <strong>Range:</strong> {ranges.find((r) => r.value === range)?.label}
+        </li>
+        <li>
+          <strong>Format:</strong> Excel (.xlsx) with beautiful styling
+        </li>
+        {selectedReportType?.needsTarget && targetId && (
           <li>
-            <strong>Type:</strong> {selectedReportType?.label}
+            <strong>Target ID:</strong> {targetId}
           </li>
-          <li>
-            <strong>Range:</strong> {ranges.find((r) => r.value === range)?.label}
-          </li>
-          <li>
-            <strong>Format:</strong> {formats.find((f) => f.value === format)?.label}
-          </li>
-          {selectedReportType?.needsTarget && targetId && (
-            <li>
-              <strong>Target ID:</strong> {targetId}
-            </li>
-          )}
-        </ul>
-      </div>
+        )}
+      </ul>
     </div>
   );
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Export Report">
+    <Modal isOpen={isOpen} onClose={onClose} title="Export Excel Report">
       <div className="min-h-[400px]">
         {/* Progress Indicator */}
         <div className="flex items-center justify-between mb-6">
-          {[1, 2, 3].map((s) => (
+          {[1, 2].map((s) => (
             <div key={s} className="flex items-center flex-1">
               <div
                 className={`flex items-center justify-center w-10 h-10 rounded-full border-2 font-semibold ${
@@ -346,7 +306,7 @@ const ExportModal = ({ isOpen, onClose, defaultType = null, defaultTargetId = nu
               >
                 {s}
               </div>
-              {s < 3 && (
+              {s < 2 && (
                 <div
                   className={`flex-1 h-1 mx-2 ${
                     step > s ? "bg-primary-600" : "bg-gray-300"
@@ -368,7 +328,6 @@ const ExportModal = ({ isOpen, onClose, defaultType = null, defaultTargetId = nu
         <div className="mb-6">
           {step === 1 && renderStep1()}
           {step === 2 && renderStep2()}
-          {step === 3 && renderStep3()}
         </div>
 
         {/* Navigation Buttons */}
@@ -381,15 +340,9 @@ const ExportModal = ({ isOpen, onClose, defaultType = null, defaultTargetId = nu
             {step === 1 ? "Cancel" : "Back"}
           </Button>
 
-          {step < 3 ? (
-            <Button variant="primary" onClick={handleNext}>
-              Next
-            </Button>
-          ) : (
-            <Button variant="primary" onClick={handleGenerate} disabled={loading}>
-              {loading ? "Generating..." : "Generate Report"}
-            </Button>
-          )}
+          <Button variant="primary" onClick={handleNext} disabled={loading}>
+            {loading ? "Generating Excel..." : step === 1 ? "Next" : "Generate Excel Report"}
+          </Button>
         </div>
       </div>
     </Modal>

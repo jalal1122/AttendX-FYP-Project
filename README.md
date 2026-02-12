@@ -15,8 +15,8 @@
   <p>
     <img src="https://img.shields.io/badge/Status-Production_Ready-success?style=for-the-badge" alt="Status" />
     <img src="https://img.shields.io/badge/Stack-MERN-blue?style=for-the-badge" alt="Stack" />
+    <img src="https://img.shields.io/badge/UI-Sky_Blue_Minimalist-0ea5e9?style=for-the-badge" alt="UI" />
     <img src="https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge" alt="License" />
-    <img src="https://img.shields.io/badge/PRs-Welcome-orange?style=for-the-badge" alt="PRs" />
   </p>
 
   <p>
@@ -52,17 +52,20 @@ Unlike simple QR scanners, AttendX implements a **Triple-Layer Security Protocol
 * **Live Dashboard:** Watch student count rise in real-time.
 * **Security Presets:** One-click switch between "Casual Lecture" and "Strict Exam" modes.
 * **Retroactive Sessions:** Create sessions for past dates to digitize manual records.
-* **Export Data:** Download formatted **Excel** or **CSV** reports.
+* **Enterprise Reports:** Download beautifully styled **Excel** reports with conditional formatting.
+* **Defaulter Alerts:** Send email warnings to students with low attendance.
 
 ### 🎒 For Students
-* **Fast Scanning:** 1-click camera scan.
+* **Fast Scanning:** 1-click camera scan with real-time feedback.
 * **Self-Analytics:** Track your own attendance (Week/Month/Semester).
-* **Privacy:** Secure password recovery via Email OTP.
+* **Email Notifications:** Receive alerts for low attendance and device changes.
+* **Download Transcript:** Export your attendance history as a professional Excel report.
 
 ### ⚡ For Admins
-* **User Management:** Create/Edit/Delete Teachers and Students.
-* **System Health:** View platform-wide statistics.
-* **Secret Bootstrap:** Hidden portal to create the first Super Admin.
+* **User Management:** Create/Edit/Delete Teachers and Students with welcome emails.
+* **System Health Dashboard:** Real-time monitoring of service status, database, and email delivery.
+* **Notification Center:** Bell icon with real-time alerts and updates.
+* **Comprehensive Reports:** Generate system-wide analytics and department summaries.
 
 ---
 
@@ -70,11 +73,11 @@ Unlike simple QR scanners, AttendX implements a **Triple-Layer Security Protocol
 
 <div align="center">
 
-| Frontend | Backend | Database | Tools |
+| Frontend | Backend | Database | Services |
 | :---: | :---: | :---: | :---: |
-| ![React](https://img.shields.io/badge/react-%2320232a.svg?style=flat&logo=react&logoColor=%2361DAFB) | ![NodeJS](https://img.shields.io/badge/node.js-6DA55F?style=flat&logo=node.js&logoColor=white) | ![MongoDB](https://img.shields.io/badge/MongoDB-%234ea94b.svg?style=flat&logo=mongodb&logoColor=white) | ![Vite](https://img.shields.io/badge/vite-%23646CFF.svg?style=flat&logo=vite&logoColor=white) |
-| ![Redux](https://img.shields.io/badge/redux-%23593d88.svg?style=flat&logo=redux&logoColor=white) | ![Express.js](https://img.shields.io/badge/express.js-%23404d59.svg?style=flat&logo=express&logoColor=%2361DAFB) | ![Mongoose](https://img.shields.io/badge/Mongoose-880000?style=flat&logo=mongoose&logoColor=white) | ![Git](https://img.shields.io/badge/git-%23F05033.svg?style=flat&logo=git&logoColor=white) |
-| ![TailwindCSS](https://img.shields.io/badge/tailwindcss-%2338B2AC.svg?style=flat&logo=tailwind-css&logoColor=white) | ![JWT](https://img.shields.io/badge/JWT-black?style=flat&logo=JSON%20web%20tokens) | ![Cloudinary](https://img.shields.io/badge/Cloudinary-3448C5?style=flat&logo=Cloudinary&logoColor=white) | ![Postman](https://img.shields.io/badge/Postman-FF6C37?style=flat&logo=postman&logoColor=white) |
+| ![React](https://img.shields.io/badge/react-%2320232a.svg?style=flat&logo=react&logoColor=%2361DAFB) | ![NodeJS](https://img.shields.io/badge/node.js-6DA55F?style=flat&logo=node.js&logoColor=white) | ![MongoDB](https://img.shields.io/badge/MongoDB-%234ea94b.svg?style=flat&logo=mongodb&logoColor=white) | ![Nodemailer](https://img.shields.io/badge/Nodemailer-0F9DCE?style=flat&logo=nodemailer&logoColor=white) |
+| ![Redux](https://img.shields.io/badge/redux-%23593d88.svg?style=flat&logo=redux&logoColor=white) | ![Express.js](https://img.shields.io/badge/express.js-%23404d59.svg?style=flat&logo=express&logoColor=%2361DAFB) | ![Mongoose](https://img.shields.io/badge/Mongoose-880000?style=flat&logo=mongoose&logoColor=white) | ![ExcelJS](https://img.shields.io/badge/ExcelJS-217346?style=flat&logo=microsoft-excel&logoColor=white) |
+| ![TailwindCSS](https://img.shields.io/badge/tailwindcss-%2338B2AC.svg?style=flat&logo=tailwind-css&logoColor=white) | ![JWT](https://img.shields.io/badge/JWT-black?style=flat&logo=JSON%20web%20tokens) | ![Cloudinary](https://img.shields.io/badge/Cloudinary-3448C5?style=flat&logo=Cloudinary&logoColor=white) | ![Lucide](https://img.shields.io/badge/Lucide-F56565?style=flat&logo=lucide&logoColor=white) |
 
 </div>
 
@@ -178,6 +181,42 @@ CLOUDINARY_API_SECRET=xxx
 EMAIL_USER=your_email@gmail.com
 EMAIL_PASS=your_app_password
 ```
+
+-----
+
+## 🎨 What's New in Phase 14
+
+### Sky Blue Minimalist UI
+- **Modern Design:** Complete UI overhaul with Sky Blue (#0EA5E9) as the primary color
+- **Consistent Theme:** All components follow the same design language
+- **Smooth Animations:** Hover effects, transitions, and focus states
+- **Responsive:** Mobile-first design that works on all devices
+
+### 📧 Smart Email System
+- **Welcome Emails:** Automatically sent when admins create new users
+- **Low Attendance Alerts:** Email warnings for students below 75%
+- **Device Security Notifications:** Alerts when devices are bound or reset
+- **Beautiful Templates:** Professional HTML emails with Sky Blue branding
+
+### 🔔 Notification Center
+- **Real-time Alerts:** Bell icon in navbar with unread count
+- **Color-coded:** Success (green), Warning (amber), Error (red), Info (blue)
+- **Interactive:** Mark as read, dismiss, or clear all
+- **Persistent:** Stored in localStorage for continuity
+
+### 🏥 System Health Dashboard
+- **Live Monitoring:** Real-time service and database status
+- **Email Statistics:** Track total emails sent
+- **System Metrics:** Uptime, load status, network stability
+- **Admin-only:** Exclusive to administrators
+
+### 📊 Enhanced Reports
+- **Excel Export:** Beautifully styled reports with conditional formatting
+- **Multiple Types:** Class matrix, student transcripts, department summaries
+- **Professional Styling:** Sky Blue headers, color-coded attendance status
+- **Auto-width Columns:** Optimized for readability
+
+See `PHASE_14_FINAL_POLISH.md` for complete details.
 
 -----
 

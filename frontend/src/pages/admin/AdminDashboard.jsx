@@ -6,6 +6,7 @@ import classAPI from "../../services/classAPI";
 import userAPI from "../../services/userAPI";
 import Card from "../../components/ui/Card";
 import Button from "../../components/ui/Button";
+import SystemHealthWidget from "../../components/admin/SystemHealthWidget";
 
 const AdminDashboard = () => {
   const user = useSelector(selectCurrentUser);
@@ -52,12 +53,12 @@ const AdminDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-slate-50">
       {/* Header */}
-      <div className="bg-white shadow">
+      <div className="bg-white shadow-sm border-b border-slate-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-          <p className="mt-1 text-sm text-gray-600">
+          <h1 className="heading-1">Admin Dashboard</h1>
+          <p className="mt-1 text-sm text-muted">
             System overview and management
           </p>
         </div>
@@ -73,35 +74,40 @@ const AdminDashboard = () => {
           <>
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white">
-                <h3 className="text-blue-100 text-sm font-medium">
+              <Card className="bg-gradient-to-br from-sky-500 to-sky-600 text-white">
+                <h3 className="text-sky-100 text-sm font-medium">
                   Total Classes
                 </h3>
                 <p className="text-4xl font-bold mt-2">{stats.totalClasses}</p>
               </Card>
 
-              <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white">
-                <h3 className="text-green-100 text-sm font-medium">
+              <Card className="bg-gradient-to-br from-emerald-500 to-emerald-600 text-white">
+                <h3 className="text-emerald-100 text-sm font-medium">
                   Total Students
                 </h3>
                 <p className="text-4xl font-bold mt-2">{stats.totalStudents}</p>
               </Card>
 
-              <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white">
-                <h3 className="text-purple-100 text-sm font-medium">
+              <Card className="bg-gradient-to-br from-violet-500 to-violet-600 text-white">
+                <h3 className="text-violet-100 text-sm font-medium">
                   Total Teachers
                 </h3>
                 <p className="text-4xl font-bold mt-2">{stats.totalTeachers}</p>
               </Card>
 
-              <Card className="bg-gradient-to-br from-orange-500 to-orange-600 text-white">
-                <h3 className="text-orange-100 text-sm font-medium">
+              <Card className="bg-gradient-to-br from-amber-500 to-amber-600 text-white">
+                <h3 className="text-amber-100 text-sm font-medium">
                   Active Sessions
                 </h3>
                 <p className="text-4xl font-bold mt-2">
                   {stats.activeSessions}
                 </p>
               </Card>
+            </div>
+
+            {/* System Health Widget */}
+            <div className="mb-8">
+              <SystemHealthWidget />
             </div>
 
             {/* Quick Actions */}

@@ -5,6 +5,7 @@ import Attendance from "../models/attendance.model.js";
 import Session from "../models/session.model.js";
 import Class from "../models/class.model.js";
 import User from "../models/user.model.js";
+import EmailService from "../services/email.service.js";
 import jwt from "jsonwebtoken";
 import { calculateDistance, isWithinRadius } from "../utils/geolocation.js";
 
@@ -191,6 +192,13 @@ export const markAttendance = asyncHandler(async (req, res) => {
     // First time: bind this device to the student
     student.deviceId = deviceId;
     await student.save({ validateBeforeSave: false });
+    
+    // Send device binding email
+    try {
+      await EmailService.sendDeviceAlert(student, "bind", deviceId);
+    } catch (emailError) {
+      console.error("Failed to send device alert email:", emailError);
+    }
   } else if (student.deviceId !== deviceId) {
     // Different device than the one registered for this student
     throw ApiError.securityError(

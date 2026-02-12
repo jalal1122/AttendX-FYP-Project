@@ -7,6 +7,7 @@ import Class from "../models/class.model.js";
 import User from "../models/user.model.js";
 import mongoose from "mongoose";
 import ExportService from "../services/export.service.js";
+import EmailService from "../services/email.service.js";
 import moment from "moment";
 
 /**
@@ -1126,4 +1127,80 @@ export const exportReport = asyncHandler(async (req, res) => {
 
   // Send buffer
   res.send(buffer);
+});
+
+/**
+ * Check and Send Low Attendance Warnings
+ * POST /api/v1/analytics/check-defaulters
+ * Admin/Teacher only - Sends email warnings to students below 75%
+ */
+export const checkAndNotifyDefaulters = asyncHandler(async (req, res) => {
+  const { classId } = req.body;
+
+  if (!classId) {
+    throw ApiError.badRequest("Class ID is required");
+  }
+
+  // Get class details
+  const classDoc = await Class.findById(classId).populate("students");
+  if (!classDoc) {
+    throw ApiError.notFound("Class not found");
+  }
+
+  // Get all sessions for this class
+  const sessions = await Session.find({ classId });
+  const totalSessions = sessions.length;
+
+  if (totalSessions === 0) {
+    return res.status(200).json(
+      new ApiResponse(200, { notified: 0 }, "No sessions found for this class")
+    );
+  }
+
+  const defaulters = [];
+
+  // Check each student's attendance
+  for (const student of classDoc.students) {
+    const attendanceRecords = await Attendance.find({
+      studentId: student._id,
+      classId,
+      status: { $in: ["present", "late"] },
+    });
+
+    const attendedSessions = attendanceRecords.length;
+    const attendancePercentage = (attendedSessions / totalSessions) * 100;
+
+    if (attendancePercentage < 75) {
+      defaulters.push({
+        student,
+        percentage: attendancePercentage,
+      });
+
+      // Send warning email
+      try {
+        await EmailService.sendLowAttendanceWarning(
+          student,
+          classDoc,
+          attendancePercentage
+        );
+      } catch (emailError) {
+        console.error(`Failed to send email to ${student.email}:`, emailError);
+      }
+    }
+  }
+
+  res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        notified: defaulters.length,
+        defaulters: defaulters.map((d) => ({
+          name: d.student.name,
+          email: d.student.email,
+          percentage: d.percentage.toFixed(2),
+        })),
+      },
+      `Notified ${defaulters.length} student(s) with low attendance`
+    )
+  );
 });

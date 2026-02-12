@@ -6,6 +6,7 @@ import {
   getTeacherStats,
   getComprehensiveReport,
   exportReport,
+  checkAndNotifyDefaulters,
 } from "../controllers/analytics.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import { hasRole } from "../middlewares/role.middleware.js";
@@ -32,5 +33,8 @@ router.get("/comprehensive", hasRole("admin"), getComprehensiveReport);
 
 // Export report (Excel/CSV) - All authenticated users based on type
 router.get("/export", exportReport);
+
+// Check and notify defaulters (Teacher/Admin only)
+router.post("/check-defaulters", hasRole("teacher", "admin"), checkAndNotifyDefaulters);
 
 export default router;
