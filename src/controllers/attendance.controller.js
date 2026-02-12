@@ -93,12 +93,30 @@ export const markAttendance = asyncHandler(async (req, res) => {
     const sessionLon = session.location.longitude;
     const allowedRadius = securityConfig.radius || 50;
 
+    // Log coordinates for debugging
+    console.log("📍 Geofence Check:");
+    console.log(`   Teacher Location: (${sessionLat}, ${sessionLon})`);
+    console.log(`   Student Location: (${studentLat}, ${studentLon})`);
+    console.log(`   Allowed Radius: ${allowedRadius}m`);
+
     const distance = calculateDistance(
       sessionLat,
       sessionLon,
       studentLat,
       studentLon
     );
+
+    console.log(`   Calculated Distance: ${Math.round(distance)}m`);
+
+    // Check for GPS accuracy issues (large distances often indicate GPS problems)
+    if (distance > 500 && allowedRadius < 100) {
+      console.warn(
+        `⚠️ Large distance detected (${Math.round(distance)}m) with small radius (${allowedRadius}m). This may indicate GPS accuracy issues.`
+      );
+      console.warn(
+        "💡 Consider: 1) Using a mobile device instead of laptop, 2) Enabling high-accuracy GPS, 3) Increasing radius to 100m+"
+      );
+    }
 
     if (
       !isWithinRadius(
@@ -109,10 +127,16 @@ export const markAttendance = asyncHandler(async (req, res) => {
         allowedRadius
       )
     ) {
-      throw ApiError.securityError(
-        `You are too far from the class location (${Math.round(distance)}m away, ${allowedRadius}m allowed). Please move closer to mark attendance.`,
-        ApiError.GEOFENCE_OUTSIDE
-      );
+      // Enhanced error message for GPS accuracy issues
+      let errorMsg = `You are too far from the class location (${Math.round(distance)}m away, ${allowedRadius}m allowed).`;
+      
+      if (distance > 1000) {
+        errorMsg += ` ⚠️ Large distance detected - this is likely a GPS accuracy issue. Try: 1) Using your phone instead of laptop, 2) Enabling high-accuracy location, 3) Moving outdoors for better GPS signal, or 4) Ask teacher to increase the radius.`;
+      } else {
+        errorMsg += ` Please move closer to the classroom.`;
+      }
+
+      throw ApiError.securityError(errorMsg, ApiError.GEOFENCE_OUTSIDE);
     }
 
     console.log(
