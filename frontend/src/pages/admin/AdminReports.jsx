@@ -17,6 +17,7 @@ import classAPI from "../../services/classAPI";
 import userAPI from "../../services/userAPI";
 import Card from "../../components/ui/Card";
 import Button from "../../components/ui/Button";
+import ExportModal from "../../components/modals/ExportModal";
 
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
 
@@ -32,6 +33,7 @@ const AdminReports = () => {
   const [departmentData, setDepartmentData] = useState([]);
   const [semesterData, setSemesterData] = useState([]);
   const [roleData, setRoleData] = useState([]);
+  const [showExportModal, setShowExportModal] = useState(false);
 
   useEffect(() => {
     fetchReportData();
@@ -141,8 +143,11 @@ const AdminReports = () => {
               </p>
             </div>
             <div className="flex gap-3">
-              <Button variant="success" onClick={exportReport}>
-                Export Report
+              <Button variant="success" onClick={() => setShowExportModal(true)}>
+                📊 Generate System Report
+              </Button>
+              <Button variant="secondary" onClick={exportReport}>
+                Export JSON
               </Button>
               <Button
                 variant="outline"
@@ -347,6 +352,13 @@ const AdminReports = () => {
           </>
         )}
       </div>
+
+      {/* Export Modal */}
+      <ExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        defaultType="dept_summary"
+      />
     </div>
   );
 };

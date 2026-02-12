@@ -5,6 +5,7 @@ import {
   getDefaulters,
   getTeacherStats,
   getComprehensiveReport,
+  exportReport,
 } from "../controllers/analytics.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import { hasRole } from "../middlewares/role.middleware.js";
@@ -28,5 +29,8 @@ router.get("/teacher/stats", hasRole("teacher", "admin"), getTeacherStats);
 
 // Comprehensive report (Admin only)
 router.get("/comprehensive", hasRole("admin"), getComprehensiveReport);
+
+// Export report (Excel/CSV) - All authenticated users based on type
+router.get("/export", exportReport);
 
 export default router;

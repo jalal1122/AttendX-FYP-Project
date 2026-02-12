@@ -6,6 +6,7 @@ import Button from "../../components/ui/Button";
 import Card from "../../components/ui/Card";
 import Modal from "../../components/ui/Modal";
 import Input from "../../components/ui/Input";
+import ExportModal from "../../components/modals/ExportModal";
 
 const ClassDetails = () => {
   const { classId } = useParams();
@@ -35,6 +36,7 @@ const ClassDetails = () => {
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [removingStudent, setRemovingStudent] = useState(null);
+  const [showExportModal, setShowExportModal] = useState(false);
 
   const fetchClassData = useCallback(async () => {
     try {
@@ -207,6 +209,12 @@ const ClassDetails = () => {
                 onClick={() => navigate("/teacher/dashboard")}
               >
                 Back to Dashboard
+              </Button>
+              <Button
+                variant="success"
+                onClick={() => setShowExportModal(true)}
+              >
+                📊 Export Register
               </Button>
               <Button
                 variant="primary"
@@ -752,6 +760,14 @@ const ClassDetails = () => {
           </div>
         </form>
       </Modal>
+
+      {/* Export Modal */}
+      <ExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        defaultType="class_matrix"
+        defaultTargetId={classId}
+      />
     </div>
   );
 };

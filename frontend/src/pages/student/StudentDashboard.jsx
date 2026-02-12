@@ -6,6 +6,7 @@ import classAPI from "../../services/classAPI";
 import Button from "../../components/ui/Button";
 import Card from "../../components/ui/Card";
 import Input from "../../components/ui/Input";
+import ExportModal from "../../components/modals/ExportModal";
 
 const StudentDashboard = () => {
   const navigate = useNavigate();
@@ -16,6 +17,7 @@ const StudentDashboard = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [joiningClass, setJoiningClass] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
 
   useEffect(() => {
     fetchClasses();
@@ -81,9 +83,14 @@ const StudentDashboard = () => {
                 Welcome, {user?.name}!
               </p>
             </div>
-            <Button variant="success" onClick={() => navigate("/student/scan")}>
-              📱 Scan Attendance
-            </Button>
+            <div className="flex gap-3">
+              <Button variant="secondary" onClick={() => setShowExportModal(true)}>
+                📄 Download Transcript
+              </Button>
+              <Button variant="success" onClick={() => navigate("/student/scan")}>
+                📱 Scan Attendance
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -247,6 +254,14 @@ const StudentDashboard = () => {
           )}
         </div>
       </div>
+
+      {/* Export Modal */}
+      <ExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        defaultType="student_transcript"
+        defaultTargetId={user?._id}
+      />
     </div>
   );
 };
