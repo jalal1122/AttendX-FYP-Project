@@ -3,11 +3,12 @@
  * Used for standardized error handling across all endpoints
  */
 class ApiError extends Error {
-  constructor(statusCode, message, errors = [], stack = "") {
+  constructor(statusCode, message, errors = [], stack = "", errorCode = null) {
     super(message);
     this.statusCode = statusCode;
     this.success = false;
     this.errors = errors;
+    this.errorCode = errorCode; // Machine-readable error code for frontend
 
     if (stack) {
       this.stack = stack;
@@ -71,6 +72,20 @@ class ApiError extends Error {
   static serviceUnavailable(message = "Service temporarily unavailable") {
     return new ApiError(503, message);
   }
+
+  /**
+   * Security-related errors with error codes
+   */
+  static securityError(message, errorCode) {
+    return new ApiError(403, message, [], "", errorCode);
+  }
+
+  // Security error codes
+  static GEOFENCE_OUTSIDE = "GEOFENCE_OUTSIDE";
+  static DEVICE_LOCK_VIOLATION = "DEVICE_LOCK_VIOLATION";
+  static IP_MISMATCH = "IP_MISMATCH";
+  static QR_EXPIRED = "QR_EXPIRED";
+  static QR_INVALID = "QR_INVALID";
 }
 
 export default ApiError;

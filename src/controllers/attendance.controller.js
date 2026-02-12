@@ -47,11 +47,12 @@ export const markAttendance = asyncHandler(async (req, res) => {
     );
   } catch (error) {
     if (error.name === "TokenExpiredError") {
-      throw ApiError.badRequest(
-        "QR code has expired. Please refresh and try again."
+      throw ApiError.securityError(
+        "QR code has expired. Please refresh and try again.",
+        ApiError.QR_EXPIRED
       );
     }
-    throw ApiError.badRequest("Invalid QR token");
+    throw ApiError.securityError("Invalid QR token", ApiError.QR_INVALID);
   }
 
   const { sessionId, classId } = decodedToken;
@@ -108,8 +109,9 @@ export const markAttendance = asyncHandler(async (req, res) => {
         allowedRadius
       )
     ) {
-      throw ApiError.badRequest(
-        `You are too far from the class location (${distance}m away, ${allowedRadius}m allowed). Please move closer to mark attendance.`
+      throw ApiError.securityError(
+        `You are too far from the class location (${Math.round(distance)}m away, ${allowedRadius}m allowed). Please move closer to mark attendance.`,
+        ApiError.GEOFENCE_OUTSIDE
       );
     }
 
@@ -167,8 +169,9 @@ export const markAttendance = asyncHandler(async (req, res) => {
     await student.save({ validateBeforeSave: false });
   } else if (student.deviceId !== deviceId) {
     // Different device than the one registered for this student
-    throw ApiError.forbidden(
-      "This account is already bound to a different device. Please contact admin to reset your device."
+    throw ApiError.securityError(
+      "This account is already bound to a different device. Please contact admin to reset your device.",
+      ApiError.DEVICE_LOCK_VIOLATION
     );
   }
 

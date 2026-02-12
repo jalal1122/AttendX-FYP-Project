@@ -71,17 +71,34 @@ export const startSession = asyncHandler(async (req, res) => {
     location.longitude = parseFloat(longitude);
   }
 
-  // Prepare security config with defaults
+  // Prepare security config with defaults and validation
+  const rawRadius = securityConfig?.radius || 50;
+  const rawQrRefresh = securityConfig?.qrRefreshRate || 20;
+  
+  // Clamp radius to sensible range (10m - 500m)
+  const clampedRadius = Math.max(10, Math.min(500, rawRadius));
+  
+  // Clamp QR refresh rate to sensible range (5s - 60s)
+  const clampedQrRefresh = Math.max(5, Math.min(60, rawQrRefresh));
+  
   const finalSecurityConfig = {
-    radius: securityConfig?.radius || 5,
+    radius: clampedRadius,
     ipMatchEnabled:
       securityConfig?.ipMatchEnabled !== undefined
         ? securityConfig.ipMatchEnabled
         : true,
-    deviceLockEnabled: securityConfig?.deviceLockEnabled || false,
-    qrRefreshRate: securityConfig?.qrRefreshRate || 20,
+    deviceLockEnabled: true, // Always enabled as per requirements
+    qrRefreshRate: clampedQrRefresh,
     manualApproval: securityConfig?.manualApproval || false,
   };
+  
+  // Log validation warnings if values were clamped
+  if (clampedRadius !== rawRadius) {
+    console.warn(`⚠️ Radius clamped from ${rawRadius}m to ${clampedRadius}m (allowed: 10-500m)`);
+  }
+  if (clampedQrRefresh !== rawQrRefresh) {
+    console.warn(`⚠️ QR refresh rate clamped from ${rawQrRefresh}s to ${clampedQrRefresh}s (allowed: 5-60s)`);
+  }
 
   // Create session
   const session = await Session.create({
@@ -159,6 +176,7 @@ export const getQRToken = asyncHandler(async (req, res) => {
         token,
         expiresIn: refreshRate,
         sessionId: session._id,
+        securityConfig: session.securityConfig, // Include security config for frontend sync
       },
       "QR token generated successfully"
     )

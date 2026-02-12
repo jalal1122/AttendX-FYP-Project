@@ -160,6 +160,35 @@ As we discover new bugs, append them here with a short, actionable description.
 
 ---
 
+---
+
+## 📋 Recent Bug Fixes (Feb 2026)
+
+### ✅ All Critical Bugs Fixed
+
+All bugs listed above have been addressed:
+
+1. **Endpoint naming** - Added `/mark` alias for `/scan`
+2. **QR token expiry** - Now uses session's `qrRefreshRate` dynamically
+3. **Geofence radius** - Default changed from 5m to 50m
+4. **My attendance endpoint** - Implemented and wired
+5. **Student-facing messages** - Fixed to use correct response structure
+6. **Environment variables** - Unified to use `VITE_API_URL`
+7. **Analytics JSDoc** - Updated to match actual implementation
+8. **Manual approval UI** - Fixed to show names and work correctly
+9. **Device lock** - Now always enforced with admin reset capability
+10. **Security error codes** - Implemented for better frontend error handling
+
+### 🔍 Additional Improvements Made
+
+- Security config validation with clamping (radius 10-500m, QR 5-60s)
+- Enhanced error messages with icons and actionable guidance
+- Live session security dashboard showing active settings
+- Public landing page for demos and presentations
+- Live attendance counter includes pending when manual approval is on
+
+---
+
 ## ✅ Next Steps When Fixes Are Applied
 
 - After implementing a fix:

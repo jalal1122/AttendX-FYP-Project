@@ -284,21 +284,70 @@ const ScanAttendance = () => {
     const errorMessage =
       error.response?.data?.message ||
       "Failed to mark attendance. Invalid or expired token.";
+    
+    const errorCode = error.response?.data?.errorCode;
 
-    // Check for device lock violation
-    const isDeviceLockViolation =
-      errorMessage.includes("Security Alert") ||
-      errorMessage.includes("device has already") ||
-      errorMessage.includes("device lock");
+    // Enhanced error handling with icons and specific guidance
+    let icon = "✗";
+    let guidance = "";
+    let resumeDelay = 2000;
+
+    switch (errorCode) {
+      case "GEOFENCE_OUTSIDE":
+        icon = "📍";
+        guidance = " Move closer to the classroom and try again.";
+        resumeDelay = 3000;
+        break;
+      case "DEVICE_LOCK_VIOLATION":
+        icon = "🔒";
+        guidance = " Contact admin to reset your device binding.";
+        resumeDelay = 5000;
+        break;
+      case "IP_MISMATCH":
+        icon = "🌐";
+        guidance = " Ensure you're on the same network as your teacher.";
+        resumeDelay = 3000;
+        break;
+      case "QR_EXPIRED":
+        icon = "⏱️";
+        guidance = " Ask teacher to refresh the QR code.";
+        resumeDelay = 2000;
+        break;
+      case "QR_INVALID":
+        icon = "❌";
+        guidance = " Scan a valid QR code from your teacher.";
+        resumeDelay = 2000;
+        break;
+      default:
+        // Check legacy string-based detection
+        if (
+          errorMessage.includes("Security Alert") ||
+          errorMessage.includes("device has already") ||
+          errorMessage.includes("device lock") ||
+          errorMessage.includes("bound to a different device")
+        ) {
+          icon = "🔒";
+          guidance = " Contact admin to reset your device.";
+          resumeDelay = 5000;
+        } else if (errorMessage.includes("too far")) {
+          icon = "📍";
+          guidance = " Move closer to the classroom.";
+          resumeDelay = 3000;
+        } else if (errorMessage.includes("expired")) {
+          icon = "⏱️";
+          guidance = " Ask teacher to refresh QR code.";
+          resumeDelay = 2000;
+        }
+    }
 
     setMessage({
       type: "error",
-      text: isDeviceLockViolation ? `🔒 ${errorMessage}` : `✗ ${errorMessage}`,
+      text: `${icon} ${errorMessage}${guidance}`,
     });
 
     setProcessing(false);
 
-    // Resume scanning after 3 seconds (longer for security alerts)
+    // Resume scanning after appropriate delay
     setTimeout(
       () => {
         if (html5QrCodeRef.current && isScanning) {
@@ -306,7 +355,7 @@ const ScanAttendance = () => {
           setMessage({ type: "info", text: "Scanner active. Try again." });
         }
       },
-      isDeviceLockViolation ? 3000 : 2000
+      resumeDelay
     );
   };
 

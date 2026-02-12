@@ -437,6 +437,33 @@ const LiveSession = () => {
                   </div>
                 </div>
 
+                {/* Security Config Summary */}
+                {sessionConfig && (
+                  <div className="mt-4 px-4 py-3 bg-blue-50 border border-blue-200 rounded-lg text-left">
+                    <h3 className="text-sm font-semibold text-blue-900 mb-2">
+                      🔒 Active Security Settings
+                    </h3>
+                    <div className="grid grid-cols-2 gap-2 text-xs text-blue-800">
+                      <div className="flex items-center">
+                        <span className="mr-1">📍</span>
+                        <span>Geofence: {sessionConfig.radius}m</span>
+                      </div>
+                      <div className="flex items-center">
+                        <span className="mr-1">🔒</span>
+                        <span>Device Lock: Always On</span>
+                      </div>
+                      <div className="flex items-center">
+                        <span className="mr-1">🌐</span>
+                        <span>IP Match: {sessionConfig.ipMatchEnabled ? "On" : "Off"}</span>
+                      </div>
+                      <div className="flex items-center">
+                        <span className="mr-1">✋</span>
+                        <span>Manual Approval: {sessionConfig.manualApproval ? "On" : "Off"}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* Dev Token Display */}
                 <details className="mt-4 text-left px-2 sm:px-4">
                   <summary className="cursor-pointer text-xs sm:text-sm text-gray-500 hover:text-gray-700">

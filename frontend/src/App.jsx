@@ -16,6 +16,9 @@ import {
 import PrivateRoute from "./components/PrivateRoute";
 import Navbar from "./components/layout/Navbar";
 
+// Public Pages
+import LandingPage from "./pages/LandingPage";
+
 // Auth Pages
 import Login from "./pages/auth/Login";
 import ForgotPassword from "./pages/auth/ForgotPassword";
@@ -47,8 +50,9 @@ function Layout({ children }) {
   const location = useLocation();
   const isAuthenticated = useSelector(selectIsAuthenticated);
 
-  // Don't show navbar on login page
-  const showNavbar = isAuthenticated && location.pathname !== "/login";
+  // Don't show navbar on public pages (landing, login, forgot-password)
+  const publicPaths = ["/", "/login", "/forgot-password", "/create-admin"];
+  const showNavbar = isAuthenticated && !publicPaths.includes(location.pathname);
 
   return (
     <>
@@ -73,7 +77,7 @@ function App() {
 
   // Redirect authenticated users from root to their dashboard
   const getDefaultRedirect = () => {
-    if (!isAuthenticated) return "/login";
+    if (!isAuthenticated) return "/";
 
     switch (user?.role) {
       case "admin":
@@ -83,7 +87,7 @@ function App() {
       case "student":
         return "/student/dashboard";
       default:
-        return "/login";
+        return "/";
     }
   };
 
@@ -91,11 +95,8 @@ function App() {
     <Router>
       <Layout>
         <Routes>
-          {/* Root redirect */}
-          <Route
-            path="/"
-            element={<Navigate to={getDefaultRedirect()} replace />}
-          />
+          {/* Landing Page (public) */}
+          <Route path="/" element={<LandingPage />} />
 
           {/* Auth Routes */}
           <Route path="/login" element={<Login />} />

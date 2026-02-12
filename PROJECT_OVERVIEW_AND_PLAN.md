@@ -11,11 +11,12 @@ It summarizes how the project works today and provides structured sections where
   - **Roles:** Admin, Teacher, Student
   - **Core flow:** Teacher starts a secured session → dynamic QR is shown → students scan from their own device and location → attendance is stored with security checks → teachers/admins get analytics and exports.
 - **Security pillars (already implemented):**
-  - **Device lock:** per‑browser UUID in `localStorage`, enforced in attendance marking.
-  - **Geofencing:** Haversine distance from teacher’s location against per‑session radius.
+  - **Device lock:** per‑browser UUID in `localStorage`, **always enforced** in attendance marking. Admins can reset device bindings.
+  - **Geofencing:** Haversine distance from teacher's location against per‑session radius (default 50m, clamped 10-500m).
   - **IP match:** optional, compares student IP to teacher IP.
   - **Manual approval:** optional pending queue the teacher can approve.
   - **2FA:** optional per user, via OTP secret.
+  - **Error codes:** Machine-readable codes (GEOFENCE_OUTSIDE, DEVICE_LOCK_VIOLATION, etc.) for better error handling.
 
 ---
 
@@ -87,7 +88,7 @@ It summarizes how the project works today and provides structured sections where
   - `ADMIN_SECRET`, `CLIENT_URL`, Cloudinary + email credentials
   - `COOKIE_SECURE`, `COOKIE_SAME_SITE`
 - **Frontend `.env`:**
-  - `VITE_API_BASE_URL=http://localhost:5000/api/v1` (or production URL).
+  - `VITE_API_URL=http://localhost:5000/api/v1` (or production URL).
 - **Deployment:**
   - Backend is Express, ready for Vercel/Render (exports `app`, conditional `listen`).
   - Frontend meant for Vercel/Netlify; simple static deployment from `npm run build`.
@@ -98,8 +99,21 @@ It summarizes how the project works today and provides structured sections where
 
 Use this section to track issues as they appear. Keep entries **short and specific**.
 
-- **[ ]** (TODO) …
-- **[ ]** (TODO) …
+### ✅ Recently Fixed (Feb 2026)
+
+All critical bugs have been resolved. See `BUGS_AND_FIXES.md` and `CHANGELOG.md` for details:
+- ✅ Endpoint naming inconsistencies
+- ✅ QR token expiry sync issues
+- ✅ Geofence default radius mismatch
+- ✅ Missing "my attendance" endpoint
+- ✅ Student success message bugs
+- ✅ Environment variable inconsistencies
+- ✅ Manual approval UI issues
+- ✅ Device lock enforcement
+
+### 📋 Active Issues
+
+- **[ ]** None currently tracked
 
 > When you report a bug, please add: **context (where it happens), exact error message, steps to reproduce, expected vs actual behaviour.**
 
@@ -109,12 +123,26 @@ Use this section to track issues as they appear. Keep entries **short and specif
 
 These extend what is already described in `COMPLETE_PROJECT_CONTEXT.md` and `MASTER_PLAN.md`.
 
-- **Planned / Nice‑to‑have**
-  - **[ ]** Face recognition integration (tie to existing device/location checks).
-  - **[ ]** Real‑time notifications (e.g. when a student is rejected by device lock).
-  - **[ ]** Detailed audit logs for all security events.
-  - **[ ]** Mobile‑optimized PWA version (offline‑friendly).
-  - **[ ]** More customizable security presets (per‑class defaults, per‑teacher defaults).
+### ✅ Recently Completed (Feb 2026)
+
+- ✅ **Security config validation & standardization** - Radius and QR refresh rate clamping
+- ✅ **Error code system** - Machine-readable codes for better frontend error handling
+- ✅ **Enhanced scan error UX** - Icon-based messages with actionable guidance
+- ✅ **Live session security dashboard** - Real-time display of active security settings
+- ✅ **Public landing page** - Marketing/demo page for unauthenticated users
+- ✅ **Manual approval improvements** - Fixed UI, shows names, correct live counts
+- ✅ **Admin device reset** - Admins can unbind student devices
+
+### 📋 Planned / Nice‑to‑have
+
+- **[ ]** Face recognition integration (tie to existing device/location checks).
+- **[ ]** Real‑time notifications (e.g. when a student is rejected by device lock).
+- **[ ]** Detailed audit logs for all security events.
+- **[ ]** Mobile‑optimized PWA version (offline‑friendly).
+- **[ ]** More customizable security presets (per‑class defaults, per‑teacher defaults).
+- **[ ]** IP matching robustness improvements (logging masks, dev mode toggle).
+- **[ ]** Better test coverage for analytics aggregation pipelines.
+- **[ ]** Stronger API response typing with JSDoc.
 
 Add any new idea below with a short description and a priority tag like `[HIGH] / [MED] / [LOW]`.
 
@@ -122,8 +150,14 @@ Add any new idea below with a short description and a priority tag like `[HIGH] 
 
 ## 🧹 Refactor & Code‑Quality Tasks
 
+### ✅ Recently Completed
+
+- ✅ **Standardized error messages** - Implemented error code system with categorized feedback
+- ✅ **Security config centralization** - Validation and defaults now in one place
+
+### 📋 Remaining Tasks
+
 - **[ ]** Centralize date/time handling (attendance/session) to avoid drift and duplicated logic.
-- **[ ]** Standardize error messages for security failures (geo, IP, device) so the UI can show clearer, categorized feedback.
 - **[ ]** Review and prune unused fields/endpoints from early phases versus final implementation.
 - **[ ]** Add more unit/integration tests around:
   - Device lock enforcement
@@ -150,6 +184,9 @@ Add any new idea below with a short description and a priority tag like `[HIGH] 
 - **`MASTER_PLAN.md`** – original phased blueprint and strict requirements.
 - **`QUICK_START_GUIDE.md`** – 5‑minute setup & demo script.
 - **`frontend/FRONTEND_SETUP.md`** – how the React/Tailwind/Redux skeleton is wired.
+- **`BUGS_AND_FIXES.md`** – list of bugs found and their fixes (all critical bugs resolved).
+- **`IMPROVEMENTS_PLAN.md`** – non-urgent improvements, refactors, and future features.
+- **`CHANGELOG.md`** – comprehensive log of all changes and updates.
 - Other phase‑specific docs referenced in `COMPLETE_PROJECT_CONTEXT.md` (testing, admin setup, etc.).
 
 ---
