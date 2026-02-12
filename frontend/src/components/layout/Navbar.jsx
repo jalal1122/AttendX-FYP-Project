@@ -1,6 +1,8 @@
+import { useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { logoutUser, selectCurrentUser } from "../../features/auth/authSlice";
+import { Menu, X, Home, FileText, User as UserIcon, LogOut } from "lucide-react";
 import Button from "../ui/Button";
 import NotificationCenter from "./NotificationCenter";
 
@@ -8,6 +10,7 @@ const Navbar = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const user = useSelector(selectCurrentUser);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleLogout = async () => {
     try {
@@ -51,44 +54,44 @@ const Navbar = () => {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo/Brand */}
-          <div className="flex items-center gap-8">
+          <div className="flex items-center gap-4">
             <button
               onClick={() => navigate(getDashboardLink())}
-              className="text-2xl font-bold text-sky-500 hover:text-sky-600 transition-colors"
+              className="text-xl sm:text-2xl font-bold text-sky-500 hover:text-sky-600 transition-colors"
             >
               Attend<span className="text-slate-900">X</span>
             </button>
-
-            {/* Navigation Links */}
-            {user && (
-              <div className="hidden md:flex items-center gap-4">
-                <button
-                  onClick={() => navigate(getDashboardLink())}
-                  className="text-sm font-medium text-gray-700 hover:text-primary-600 transition-colors"
-                >
-                  Dashboard
-                </button>
-
-                {user.role === "student" && (
-                  <button
-                    onClick={() => navigate("/student/attendance")}
-                    className="text-sm font-medium text-gray-700 hover:text-primary-600 transition-colors"
-                  >
-                    My Attendance
-                  </button>
-                )}
-              </div>
-            )}
           </div>
 
-          {/* User Info & Logout */}
-          <div className="flex items-center gap-4">
+          {/* Desktop Navigation */}
+          {user && (
+            <div className="hidden md:flex items-center gap-4">
+              <button
+                onClick={() => navigate(getDashboardLink())}
+                className="text-sm font-medium text-gray-700 hover:text-sky-600 transition-colors"
+              >
+                Dashboard
+              </button>
+
+              {user.role === "student" && (
+                <button
+                  onClick={() => navigate("/student/attendance")}
+                  className="text-sm font-medium text-gray-700 hover:text-sky-600 transition-colors"
+                >
+                  My Attendance
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Desktop User Info & Actions */}
+          <div className="hidden md:flex items-center gap-3">
             {user && (
               <>
                 {/* Notification Bell */}
                 <NotificationCenter />
 
-                <div className="hidden sm:flex items-center gap-3">
+                <div className="flex items-center gap-3">
                   <div className="text-right">
                     <p className="text-sm font-medium text-gray-900">
                       {user.name}
@@ -104,39 +107,12 @@ const Navbar = () => {
                   </span>
                 </div>
 
-                {/* Mobile view - just show name and role */}
-                <div className="flex sm:hidden items-center gap-2">
-                  <span className="text-sm font-medium text-gray-900">
-                    {user.name}
-                  </span>
-                  <span
-                    className={`px-2 py-0.5 text-xs font-medium rounded-full ${getRoleBadgeColor(
-                      user.role
-                    )}`}
-                  >
-                    {user.role}
-                  </span>
-                </div>
-
-                {/* Profile Button */}
                 <Button
                   variant="secondary"
                   onClick={() => navigate("/profile")}
                   className="text-sm"
                 >
-                  <svg
-                    className="w-4 h-4 inline-block mr-1"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                    />
-                  </svg>
+                  <UserIcon className="w-4 h-4 inline-block mr-1" />
                   Profile
                 </Button>
 
@@ -150,8 +126,97 @@ const Navbar = () => {
               </>
             )}
           </div>
+
+          {/* Mobile Menu Button & Notification */}
+          {user && (
+            <div className="flex md:hidden items-center gap-2">
+              <NotificationCenter />
+              <button
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="p-2 rounded-lg text-gray-700 hover:bg-sky-50 hover:text-sky-600 transition-colors"
+                aria-label="Toggle menu"
+              >
+                {isMobileMenuOpen ? (
+                  <X className="w-6 h-6" />
+                ) : (
+                  <Menu className="w-6 h-6" />
+                )}
+              </button>
+            </div>
+          )}
         </div>
       </div>
+
+      {/* Mobile Menu */}
+      {user && isMobileMenuOpen && (
+        <div className="md:hidden border-t border-slate-100 bg-white">
+          <div className="px-4 py-3 space-y-3">
+            {/* User Info */}
+            <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
+              <div className="flex-1">
+                <p className="text-sm font-semibold text-gray-900">
+                  {user.name}
+                </p>
+                <p className="text-xs text-gray-500">{user.email}</p>
+              </div>
+              <span
+                className={`px-2.5 py-1 text-xs font-medium rounded-full ${getRoleBadgeColor(
+                  user.role
+                )}`}
+              >
+                {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+              </span>
+            </div>
+
+            {/* Navigation Links */}
+            <button
+              onClick={() => {
+                navigate(getDashboardLink());
+                setIsMobileMenuOpen(false);
+              }}
+              className="flex items-center gap-3 w-full px-3 py-2.5 text-left text-gray-700 hover:bg-sky-50 hover:text-sky-600 rounded-lg transition-colors"
+            >
+              <Home className="w-5 h-5" />
+              <span className="font-medium">Dashboard</span>
+            </button>
+
+            {user.role === "student" && (
+              <button
+                onClick={() => {
+                  navigate("/student/attendance");
+                  setIsMobileMenuOpen(false);
+                }}
+                className="flex items-center gap-3 w-full px-3 py-2.5 text-left text-gray-700 hover:bg-sky-50 hover:text-sky-600 rounded-lg transition-colors"
+              >
+                <FileText className="w-5 h-5" />
+                <span className="font-medium">My Attendance</span>
+              </button>
+            )}
+
+            <button
+              onClick={() => {
+                navigate("/profile");
+                setIsMobileMenuOpen(false);
+              }}
+              className="flex items-center gap-3 w-full px-3 py-2.5 text-left text-gray-700 hover:bg-sky-50 hover:text-sky-600 rounded-lg transition-colors"
+            >
+              <UserIcon className="w-5 h-5" />
+              <span className="font-medium">Profile</span>
+            </button>
+
+            <button
+              onClick={() => {
+                handleLogout();
+                setIsMobileMenuOpen(false);
+              }}
+              className="flex items-center gap-3 w-full px-3 py-2.5 text-left text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+            >
+              <LogOut className="w-5 h-5" />
+              <span className="font-medium">Logout</span>
+            </button>
+          </div>
+        </div>
+      )}
     </nav>
   );
 };

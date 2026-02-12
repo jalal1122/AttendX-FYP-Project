@@ -77,9 +77,13 @@ const ScanAttendance = () => {
       const html5QrCode = new Html5Qrcode("qr-reader");
       html5QrCodeRef.current = html5QrCode;
 
+      // Responsive QR box size
+      const screenWidth = window.innerWidth;
+      const qrBoxSize = screenWidth < 640 ? Math.min(250, screenWidth - 80) : 250;
+
       const config = {
         fps: 10,
-        qrbox: { width: 250, height: 250 },
+        qrbox: { width: qrBoxSize, height: qrBoxSize },
         aspectRatio: 1.0,
       };
 
@@ -367,13 +371,13 @@ const ScanAttendance = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-slate-50 pb-20 md:pb-8">
       {/* Header */}
-      <div className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex justify-between items-center">
+      <div className="bg-white shadow-sm border-b border-slate-100 sticky top-0 z-30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
                 Scan Attendance
               </h1>
               <p className="text-sm text-gray-600 mt-1">
@@ -383,6 +387,7 @@ const ScanAttendance = () => {
             <Button
               variant="secondary"
               onClick={() => navigate("/student/dashboard")}
+              className="w-full sm:w-auto mobile-btn"
             >
               Back to Dashboard
             </Button>
@@ -391,11 +396,11 @@ const ScanAttendance = () => {
       </div>
 
       {/* Content */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-4xl mx-auto mobile-container">
         {/* Message Banner */}
         {message.text && (
           <div
-            className={`mb-6 p-4 rounded-lg border ${
+            className={`mb-4 sm:mb-6 p-3 sm:p-4 rounded-lg border text-sm sm:text-base ${
               message.type === "success"
                 ? "bg-success-50 border-success-200 text-success-700"
                 : message.type === "error"
@@ -408,13 +413,13 @@ const ScanAttendance = () => {
         )}
 
         {/* QR Scanner */}
-        <Card className="mb-6">
+        <div className="mobile-card mb-4 sm:mb-6">
           <div className="text-center">
             {!isScanning ? (
-              <div className="py-12">
-                <div className="mx-auto w-20 h-20 bg-primary-100 rounded-full flex items-center justify-center mb-4">
+              <div className="py-8 sm:py-12">
+                <div className="mx-auto w-16 h-16 sm:w-20 sm:h-20 bg-sky-100 rounded-full flex items-center justify-center mb-4">
                   <svg
-                    className="w-10 h-10 text-primary-600"
+                    className="w-8 h-8 sm:w-10 sm:h-10 text-sky-600"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -427,56 +432,60 @@ const ScanAttendance = () => {
                     />
                   </svg>
                 </div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2">
                   Ready to Scan
                 </h2>
-                <p className="text-gray-600 mb-6">
+                <p className="text-sm sm:text-base text-gray-600 mb-6 px-4">
                   Click the button below to activate your camera
                 </p>
                 <Button
                   variant="primary"
                   onClick={startScanning}
-                  className="px-8 py-3"
+                  className="w-full sm:w-auto px-8 py-3 text-base mobile-btn"
                 >
-                  Start Camera
+                  📷 Start Camera
                 </Button>
               </div>
             ) : (
               <div>
-                <h2 className="text-xl font-bold text-gray-900 mb-4">
+                <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-4 px-2">
                   Point your camera at the QR code
                 </h2>
 
                 {/* QR Reader Container */}
                 <div
                   id="qr-reader"
-                  className="mx-auto max-w-md rounded-lg overflow-hidden shadow-lg"
+                  className="mx-auto w-full max-w-md rounded-lg overflow-hidden shadow-lg"
                   ref={scannerRef}
                 ></div>
 
-                <div className="mt-6">
+                <div className="mt-6 px-4">
                   <Button
-                    variant="error"
+                    variant="danger"
                     onClick={stopScanning}
                     disabled={processing}
+                    className="w-full sm:w-auto mobile-btn"
                   >
-                    Stop Scanner
+                    ⏹️ Stop Scanner
                   </Button>
+                  {processing && (
+                    <p className="text-sm text-gray-500 mt-2">Processing...</p>
+                  )}
                 </div>
               </div>
             )}
           </div>
-        </Card>
+        </div>
 
         {/* Developer Mode */}
-        <Card className="bg-gray-50 border-gray-300">
+        <div className="mobile-card bg-gray-50 border-gray-300">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900">
               🔧 Developer Testing Mode
             </h3>
             <button
               onClick={() => setDevMode(!devMode)}
-              className="text-sm text-primary-600 hover:text-primary-700 font-medium"
+              className="text-sm text-sky-600 hover:text-sky-700 font-medium mobile-btn"
             >
               {devMode ? "Hide" : "Show"}
             </button>
@@ -484,33 +493,34 @@ const ScanAttendance = () => {
 
           {devMode && (
             <div>
-              <p className="text-sm text-gray-600 mb-4">
+              <p className="text-xs sm:text-sm text-gray-600 mb-4">
                 For testing: Copy the token from the teacher's screen console
                 and paste it here.
               </p>
-              <form onSubmit={handleDevSubmit} className="flex gap-3">
+              <form onSubmit={handleDevSubmit} className="flex flex-col sm:flex-row gap-3">
                 <Input
                   placeholder="Paste QR token here..."
                   value={devToken}
                   onChange={(e) => setDevToken(e.target.value)}
-                  className="flex-1"
+                  className="flex-1 mobile-input"
                 />
                 <Button
                   type="submit"
                   variant="success"
                   disabled={processing || !devToken.trim()}
+                  className="w-full sm:w-auto mobile-btn"
                 >
                   Submit Token
                 </Button>
               </form>
             </div>
           )}
-        </Card>
+        </div>
 
         {/* Instructions */}
-        <Card className="mt-6 bg-blue-50 border-blue-200">
-          <h3 className="text-blue-900 font-semibold mb-3">📱 Scanning Tips</h3>
-          <ul className="space-y-2 text-sm text-blue-800">
+        <div className="mobile-card mt-4 sm:mt-6 bg-blue-50 border-blue-200">
+          <h3 className="text-blue-900 font-semibold mb-3 text-base sm:text-lg">📱 Scanning Tips</h3>
+          <ul className="space-y-2 text-xs sm:text-sm text-blue-800">
             <li>• Make sure you have good lighting</li>
             <li>• Hold your device steady and keep the QR code centered</li>
             <li>• The QR code refreshes every 20 seconds - be quick!</li>
@@ -518,8 +528,9 @@ const ScanAttendance = () => {
               • If scanning fails, check your camera permissions in browser
               settings
             </li>
+            <li>• For best results, use your phone's back camera</li>
           </ul>
-        </Card>
+        </div>
       </div>
     </div>
   );

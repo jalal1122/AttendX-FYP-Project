@@ -53,11 +53,11 @@ const AdminDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 pb-20 md:pb-8">
       {/* Header */}
-      <div className="bg-white shadow-sm border-b border-slate-100">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <h1 className="heading-1">Admin Dashboard</h1>
+      <div className="bg-white shadow-sm border-b border-slate-100 sticky top-0 z-30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Admin Dashboard</h1>
           <p className="mt-1 text-sm text-muted">
             System overview and management
           </p>
@@ -65,7 +65,7 @@ const AdminDashboard = () => {
       </div>
 
       {/* Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="mobile-container">
         {loading ? (
           <div className="text-center py-12">
             <p className="text-gray-500">Loading dashboard...</p>
@@ -73,69 +73,72 @@ const AdminDashboard = () => {
         ) : (
           <>
             {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              <Card className="bg-gradient-to-br from-sky-500 to-sky-600 text-white">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
+              <div className="mobile-card bg-gradient-to-br from-sky-500 to-sky-600 text-white">
                 <h3 className="text-sky-100 text-sm font-medium">
                   Total Classes
                 </h3>
-                <p className="text-4xl font-bold mt-2">{stats.totalClasses}</p>
-              </Card>
+                <p className="text-3xl sm:text-4xl font-bold mt-2">{stats.totalClasses}</p>
+              </div>
 
-              <Card className="bg-gradient-to-br from-emerald-500 to-emerald-600 text-white">
+              <div className="mobile-card bg-gradient-to-br from-emerald-500 to-emerald-600 text-white">
                 <h3 className="text-emerald-100 text-sm font-medium">
                   Total Students
                 </h3>
-                <p className="text-4xl font-bold mt-2">{stats.totalStudents}</p>
-              </Card>
+                <p className="text-3xl sm:text-4xl font-bold mt-2">{stats.totalStudents}</p>
+              </div>
 
-              <Card className="bg-gradient-to-br from-violet-500 to-violet-600 text-white">
+              <div className="mobile-card bg-gradient-to-br from-violet-500 to-violet-600 text-white">
                 <h3 className="text-violet-100 text-sm font-medium">
                   Total Teachers
                 </h3>
-                <p className="text-4xl font-bold mt-2">{stats.totalTeachers}</p>
-              </Card>
+                <p className="text-3xl sm:text-4xl font-bold mt-2">{stats.totalTeachers}</p>
+              </div>
 
-              <Card className="bg-gradient-to-br from-amber-500 to-amber-600 text-white">
+              <div className="mobile-card bg-gradient-to-br from-amber-500 to-amber-600 text-white">
                 <h3 className="text-amber-100 text-sm font-medium">
                   Active Sessions
                 </h3>
-                <p className="text-4xl font-bold mt-2">
+                <p className="text-3xl sm:text-4xl font-bold mt-2">
                   {stats.activeSessions}
                 </p>
-              </Card>
+              </div>
             </div>
 
             {/* System Health Widget */}
-            <div className="mb-8">
+            <div className="mb-6 sm:mb-8">
               <SystemHealthWidget />
             </div>
 
             {/* Quick Actions */}
-            <Card className="mb-8">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">
+            <div className="mobile-card mb-6 sm:mb-8">
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4">
                 Quick Actions
               </h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <Button
                   variant="primary"
                   onClick={() => navigate("/admin/users")}
+                  className="mobile-btn w-full sm:w-auto flex-1"
                 >
                   View All Users
                 </Button>
                 <Button
                   variant="success"
                   onClick={() => navigate("/admin/classes")}
+                  className="mobile-btn w-full sm:w-auto flex-1"
                 >
                   View All Classes
                 </Button>
                 <Button
                   variant="secondary"
                   onClick={() => navigate("/admin/reports")}
+                  className="mobile-btn w-full sm:w-auto flex-1"
                 >
                   Generate Reports
                 </Button>
               </div>
-            </Card>
+            </div>
 
             {/* Recent Classes */}
             <div>
