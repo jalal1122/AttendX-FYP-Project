@@ -8,6 +8,7 @@ import User from "../models/user.model.js";
 import EmailService from "../services/email.service.js";
 import jwt from "jsonwebtoken";
 import { calculateDistance, isWithinRadius } from "../utils/geolocation.js";
+import { emitToSession } from "../socket/socket.js";
 
 /**
  * Get client IP address (handles proxies and localhost)
@@ -59,7 +60,9 @@ export const markAttendance = asyncHandler(async (req, res) => {
   const { sessionId, classId } = decodedToken;
 
   // Find session with security config
-  const session = await Session.findById(sessionId);
+  const session = await Session.findById(sessionId).select(
+    "_id active location securityConfig teacherIP"
+  );
   if (!session) {
     throw ApiError.notFound("Session not found");
   }
@@ -146,16 +149,11 @@ export const markAttendance = asyncHandler(async (req, res) => {
   }
 
   // Find class
-  const classDoc = await Class.findById(classId);
-  if (!classDoc) {
+  const classExists = await Class.exists({ _id: classId });
+  if (!classExists) {
     throw ApiError.notFound("Class not found");
   }
-
-  // Check if student is enrolled in this class
-  const isEnrolled = classDoc.students.some(
-    (student) => student.toString() === req.user._id.toString()
-  );
-
+  const isEnrolled = await Class.exists({ _id: classId, students: req.user._id });
   if (!isEnrolled) {
     throw ApiError.forbidden("You are not enrolled in this class");
   }
@@ -208,25 +206,22 @@ export const markAttendance = asyncHandler(async (req, res) => {
   }
 
   // Per-session: prevent same device being used for multiple students
-  const deviceUsage = await Attendance.findOne({
-    sessionId,
-    deviceId,
-  });
+  const [deviceUsage, existingAttendance] = await Promise.all([
+    Attendance.findOne({
+      sessionId,
+      deviceId,
+    }).select("studentId"),
+    Attendance.findOne({
+      sessionId,
+      studentId: req.user._id,
+    }).select("status"),
+  ]);
 
-  if (
-    deviceUsage &&
-    deviceUsage.studentId.toString() !== req.user._id.toString()
-  ) {
+  if (deviceUsage && deviceUsage.studentId.toString() !== req.user._id.toString()) {
     throw ApiError.forbidden(
       "Security Alert: This device has already marked attendance for this session."
     );
   }
-
-  // Check if attendance already marked
-  const existingAttendance = await Attendance.findOne({
-    sessionId,
-    studentId: req.user._id,
-  });
 
   if (existingAttendance) {
     throw ApiError.conflict(
@@ -259,6 +254,16 @@ export const markAttendance = asyncHandler(async (req, res) => {
   const message = securityConfig.manualApproval
     ? "Attendance marked as pending. Waiting for teacher approval."
     : "Attendance marked successfully";
+
+  emitToSession(sessionId, "attendance:updated", {
+    sessionId,
+    classId,
+    attendanceId: populatedAttendance._id?.toString?.(),
+    studentId: req.user._id.toString(),
+    status: attendanceStatus,
+    requiresApproval: securityConfig.manualApproval,
+    markedAt: populatedAttendance.createdAt || new Date(),
+  });
 
   res.status(201).json(
     new ApiResponse(
@@ -296,7 +301,7 @@ export const manualUpdate = asyncHandler(async (req, res) => {
   }
 
   // Find session
-  const session = await Session.findById(sessionId);
+  const session = await Session.findById(sessionId).select("teacherId classId active type startTime endTime");
   if (!session) {
     throw ApiError.notFound("Session not found");
   }
@@ -347,6 +352,16 @@ export const manualUpdate = asyncHandler(async (req, res) => {
     .populate("sessionId", "startTime type")
     .populate("classId", "name code");
 
+  emitToSession(sessionId, "attendance:updated", {
+    sessionId,
+    classId: session.classId.toString(),
+    attendanceId: attendance._id?.toString?.(),
+    studentId: studentId.toString(),
+    status,
+    requiresApproval: false,
+    markedAt: attendance.updatedAt || new Date(),
+  });
+
   res
     .status(200)
     .json(new ApiResponse(200, attendance, "Attendance updated successfully"));
@@ -366,10 +381,13 @@ export const getAttendanceBySession = asyncHandler(async (req, res) => {
   }
 
   // Find class
-  const classDoc = await Class.findById(session.classId).populate(
+  const classDoc = await Class.findById(session.classId)
+    .select("students")
+    .populate(
     "students",
     "name email info"
-  );
+  )
+    .lean();
   if (!classDoc) {
     throw ApiError.notFound("Class not found");
   }
@@ -388,16 +406,17 @@ export const getAttendanceBySession = asyncHandler(async (req, res) => {
   // Get attendance records
   const attendanceRecords = await Attendance.find({ sessionId })
     .populate("studentId", "name email info")
-    .sort({ createdAt: 1 });
+    .sort({ createdAt: 1 })
+    .lean();
 
   // Get list of all enrolled students
   const allStudents = classDoc.students;
 
   // Create a map of attendance
   const attendanceMap = new Map();
-  attendanceRecords.forEach((record) => {
+  for (const record of attendanceRecords) {
     attendanceMap.set(record.studentId._id.toString(), record);
-  });
+  }
 
   // Build complete list with attendance status
   const completeAttendanceList = allStudents.map((student) => {
@@ -417,14 +436,13 @@ export const getAttendanceBySession = asyncHandler(async (req, res) => {
   });
 
   // Calculate statistics
-  const stats = {
-    total: allStudents.length,
-    present: completeAttendanceList.filter((a) => a.status === "Present")
-      .length,
-    absent: completeAttendanceList.filter((a) => a.status === "Absent").length,
-    late: completeAttendanceList.filter((a) => a.status === "Late").length,
-    leave: completeAttendanceList.filter((a) => a.status === "Leave").length,
-  };
+  const stats = { total: allStudents.length, present: 0, absent: 0, late: 0, leave: 0 };
+  for (const item of completeAttendanceList) {
+    if (item.status === "Present") stats.present += 1;
+    else if (item.status === "Absent") stats.absent += 1;
+    else if (item.status === "Late") stats.late += 1;
+    else if (item.status === "Leave") stats.leave += 1;
+  }
 
   res.status(200).json(
     new ApiResponse(
@@ -471,7 +489,8 @@ export const getStudentAttendance = asyncHandler(async (req, res) => {
   const attendanceRecords = await Attendance.find(query)
     .populate("classId", "name code semester")
     .populate("sessionId", "startTime type")
-    .sort({ date: -1 });
+    .sort({ date: -1 })
+    .lean();
 
   res.status(200).json(
     new ApiResponse(
@@ -505,11 +524,15 @@ export const getMyAttendanceForClass = asyncHandler(async (req, res) => {
   const attendanceRecords = await Attendance.find(query)
     .populate("classId", "name code semester")
     .populate("sessionId", "startTime type")
-    .sort({ date: 1 });
+    .sort({ date: 1 })
+    .lean();
 
   // Compute simple summary for this class
   const total = attendanceRecords.length;
-  const present = attendanceRecords.filter((r) => r.status === "Present").length;
+  let present = 0;
+  for (const record of attendanceRecords) {
+    if (record.status === "Present") present += 1;
+  }
 
   const percentage = total > 0 ? (present / total) * 100 : 0;
 
@@ -542,7 +565,8 @@ export const getDetailedClassAttendance = asyncHandler(async (req, res) => {
   // Validate class exists
   const classDoc = await Class.findById(classId)
     .populate("students", "name email info")
-    .populate("teacher", "name");
+    .populate("teacher", "name")
+    .lean();
   if (!classDoc) {
     throw ApiError.notFound("Class not found");
   }
@@ -579,15 +603,24 @@ export const getDetailedClassAttendance = asyncHandler(async (req, res) => {
     }
   }
 
-  const sessions = await Session.find(sessionFilter).sort({ startTime: 1 });
+  const sessions = await Session.find(sessionFilter).sort({ startTime: 1 }).lean();
 
   // Get all attendance records for these sessions
   const sessionIds = sessions.map((s) => s._id);
   const attendanceRecords = await Attendance.find({
     sessionId: { $in: sessionIds },
-  }).populate("studentId", "name email info");
+  })
+    .populate("studentId", "name email info")
+    .lean();
 
   // Build detailed report structure
+  const attendanceMap = new Map();
+  for (const record of attendanceRecords) {
+    attendanceMap.set(
+      `${record.sessionId.toString()}:${record.studentId._id.toString()}`,
+      record
+    );
+  }
   const report = classDoc.students.map((student) => {
     const studentAttendance = {
       studentId: student._id,
@@ -598,10 +631,8 @@ export const getDetailedClassAttendance = asyncHandler(async (req, res) => {
     };
 
     sessions.forEach((session) => {
-      const attendance = attendanceRecords.find(
-        (a) =>
-          a.sessionId.toString() === session._id.toString() &&
-          a.studentId._id.toString() === student._id.toString()
+      const attendance = attendanceMap.get(
+        `${session._id.toString()}:${student._id.toString()}`
       );
 
       studentAttendance.sessions.push({
@@ -682,6 +713,13 @@ export const approveAttendance = asyncHandler(async (req, res) => {
     .populate("studentId", "name email info")
     .populate("sessionId", "startTime type")
     .populate("classId", "name code");
+
+  emitToSession(sessionId, "attendance:approved", {
+    sessionId,
+    approvedCount: result.modifiedCount,
+    studentIds,
+    approvedAt: new Date(),
+  });
 
   res.status(200).json(
     new ApiResponse(

@@ -30,7 +30,8 @@ export const getAllUsers = asyncHandler(async (req, res) => {
 
   const users = await User.find(query)
     .select("-password -refreshToken")
-    .sort({ createdAt: -1 });
+    .sort({ createdAt: -1 })
+    .lean();
 
   res.status(200).json(
     new ApiResponse(
@@ -49,17 +50,24 @@ export const getAllUsers = asyncHandler(async (req, res) => {
  * GET /api/v1/user/stats
  */
 export const getUserStats = asyncHandler(async (req, res) => {
-  const totalUsers = await User.countDocuments();
-  const totalStudents = await User.countDocuments({ role: "student" });
-  const totalTeachers = await User.countDocuments({ role: "teacher" });
-  const totalAdmins = await User.countDocuments({ role: "admin" });
-
   // Get users created in the last 30 days
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-  const recentUsers = await User.countDocuments({
-    createdAt: { $gte: thirtyDaysAgo },
-  });
+  const [
+    totalUsers,
+    totalStudents,
+    totalTeachers,
+    totalAdmins,
+    recentUsers,
+  ] = await Promise.all([
+    User.countDocuments(),
+    User.countDocuments({ role: "student" }),
+    User.countDocuments({ role: "teacher" }),
+    User.countDocuments({ role: "admin" }),
+    User.countDocuments({
+      createdAt: { $gte: thirtyDaysAgo },
+    }),
+  ]);
 
   res.status(200).json(
     new ApiResponse(
@@ -83,7 +91,7 @@ export const getUserStats = asyncHandler(async (req, res) => {
 export const getUserDetails = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
-  const user = await User.findById(id).select("-password -refreshToken");
+  const user = await User.findById(id).select("-password -refreshToken").lean();
 
   if (!user) {
     throw ApiError.notFound("User not found");
@@ -108,19 +116,22 @@ export const updateUserRole = asyncHandler(async (req, res) => {
     );
   }
 
-  const user = await User.findById(id).select("-password -refreshToken");
+  // Prevent changing own role
+  if (id === req.user._id.toString()) {
+    throw ApiError.badRequest("Cannot change your own role");
+  }
+
+  const user = await User.findByIdAndUpdate(
+    id,
+    { $set: { role } },
+    { new: true, runValidators: true }
+  )
+    .select("-password -refreshToken")
+    .lean();
 
   if (!user) {
     throw ApiError.notFound("User not found");
   }
-
-  // Prevent changing own role
-  if (user._id.toString() === req.user._id.toString()) {
-    throw ApiError.badRequest("Cannot change your own role");
-  }
-
-  user.role = role;
-  await user.save({ validateBeforeSave: false });
 
   res
     .status(200)
@@ -134,18 +145,15 @@ export const updateUserRole = asyncHandler(async (req, res) => {
 export const deleteUser = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
-  const user = await User.findById(id);
-
-  if (!user) {
-    throw ApiError.notFound("User not found");
-  }
-
   // Prevent deleting own account
-  if (user._id.toString() === req.user._id.toString()) {
+  if (id === req.user._id.toString()) {
     throw ApiError.badRequest("Cannot delete your own account");
   }
 
-  await User.findByIdAndDelete(id);
+  const deletedUser = await User.findByIdAndDelete(id).select("_id").lean();
+  if (!deletedUser) {
+    throw ApiError.notFound("User not found");
+  }
 
   res.status(200).json(new ApiResponse(200, null, "User deleted successfully"));
 });
@@ -284,15 +292,16 @@ export const updateUser = asyncHandler(async (req, res) => {
 export const resetUserDevice = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
-  const user = await User.findById(id);
-
+  const user = await User.findByIdAndUpdate(
+    id,
+    { $set: { deviceId: null } },
+    { new: true }
+  )
+    .select("_id deviceId")
+    .lean();
   if (!user) {
     throw ApiError.notFound("User not found");
   }
-
-  // Only makes sense for students, but allow for any role to keep it simple
-  user.deviceId = null;
-  await user.save({ validateBeforeSave: false });
 
   res.status(200).json(
     new ApiResponse(

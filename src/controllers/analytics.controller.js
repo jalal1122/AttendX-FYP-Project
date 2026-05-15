@@ -19,7 +19,9 @@ export const getStudentReport = asyncHandler(async (req, res) => {
   const { range = "all" } = req.query; // week, month, semester, all
 
   // Validate student exists
-  const student = await User.findById(studentId);
+  const student = await User.findById(studentId)
+    .select("_id name email info")
+    .lean();
   if (!student) {
     throw ApiError.notFound("Student not found");
   }
@@ -57,11 +59,13 @@ export const getStudentReport = asyncHandler(async (req, res) => {
       break;
   }
 
+  const studentObjectId = new mongoose.Types.ObjectId(studentId);
+
   // Aggregation pipeline for subject-wise attendance
   const subjectWiseReport = await Attendance.aggregate([
     {
       $match: {
-        studentId: new mongoose.Types.ObjectId(studentId),
+        studentId: studentObjectId,
         ...dateFilter,
       },
     },
@@ -155,7 +159,7 @@ export const getStudentReport = asyncHandler(async (req, res) => {
 
   // Get recent sessions/attendance records
   const recentSessions = await Attendance.find({
-    studentId: new mongoose.Types.ObjectId(studentId),
+    studentId: studentObjectId,
     ...dateFilter,
   })
     .populate("classId", "name code")
@@ -168,7 +172,7 @@ export const getStudentReport = asyncHandler(async (req, res) => {
   const chartData = await Attendance.aggregate([
     {
       $match: {
-        studentId: new mongoose.Types.ObjectId(studentId),
+        studentId: studentObjectId,
         ...dateFilter,
       },
     },
@@ -242,10 +246,10 @@ export const getClassAnalytics = asyncHandler(async (req, res) => {
   const { startDate, endDate } = req.query;
 
   // Validate class exists
-  const classDoc = await Class.findById(classId).populate(
-    "teacher",
-    "name email"
-  );
+  const classDoc = await Class.findById(classId)
+    .populate("teacher", "name email")
+    .select("name code department semester teacher")
+    .lean();
   if (!classDoc) {
     throw ApiError.notFound("Class not found");
   }
@@ -271,10 +275,11 @@ export const getClassAnalytics = asyncHandler(async (req, res) => {
   }
 
   // Overall Statistics
-  const overallStats = await Attendance.aggregate([
+  const classObjectId = new mongoose.Types.ObjectId(classId);
+  const overallStatsPromise = Attendance.aggregate([
     {
       $match: {
-        classId: new mongoose.Types.ObjectId(classId),
+        classId: classObjectId,
         ...dateFilter,
       },
     },
@@ -326,10 +331,10 @@ export const getClassAnalytics = asyncHandler(async (req, res) => {
   ]);
 
   // Weekly Trends
-  const weeklyTrendsRaw = await Attendance.aggregate([
+  const weeklyTrendsPromise = Attendance.aggregate([
     {
       $match: {
-        classId: new mongoose.Types.ObjectId(classId),
+        classId: classObjectId,
         ...dateFilter,
       },
     },
@@ -379,13 +384,11 @@ export const getClassAnalytics = asyncHandler(async (req, res) => {
     },
   ]);
 
-  const weeklyTrends = weeklyTrendsRaw;
-
   // Monthly Trends
-  const monthlyTrendsRaw = await Attendance.aggregate([
+  const monthlyTrendsPromise = Attendance.aggregate([
     {
       $match: {
-        classId: new mongoose.Types.ObjectId(classId),
+        classId: classObjectId,
         ...dateFilter,
       },
     },
@@ -435,10 +438,12 @@ export const getClassAnalytics = asyncHandler(async (req, res) => {
     },
   ]);
 
-  const monthlyTrends = monthlyTrendsRaw;
-
-  // Get total sessions count
-  const totalSessions = await Session.countDocuments({ classId });
+  const [overallStats, weeklyTrends, monthlyTrends, totalSessions] = await Promise.all([
+    overallStatsPromise,
+    weeklyTrendsPromise,
+    monthlyTrendsPromise,
+    Session.countDocuments({ classId }),
+  ]);
 
   // Get the period parameter from query
   const { period = "weekly" } = req.query;
@@ -618,36 +623,45 @@ export const getDefaulters = asyncHandler(async (req, res) => {
 export const getTeacherStats = asyncHandler(async (req, res) => {
   const teacherId = req.user._id;
 
-  // Count total classes created
-  const totalClasses = await Class.countDocuments({ teacher: teacherId });
-
-  // Count total sessions conducted
-  const totalSessions = await Session.countDocuments({ teacherId });
-
-  // Count active sessions
-  const activeSessions = await Session.countDocuments({
-    teacherId,
-    active: true,
-  });
-
-  // Get classes with student count
-  const classesWithStats = await Class.aggregate([
-    {
-      $match: {
-        teacher: new mongoose.Types.ObjectId(teacherId),
-      },
-    },
-    {
-      $project: {
-        _id: 1,
-        name: 1,
-        code: 1,
-        department: 1,
-        semester: 1,
-        studentCount: { $size: "$students" },
-      },
-    },
-  ]);
+  const [totalClasses, totalSessions, activeSessions, classesWithStats, sessionStats] =
+    await Promise.all([
+      Class.countDocuments({ teacher: teacherId }),
+      Session.countDocuments({ teacherId }),
+      Session.countDocuments({
+        teacherId,
+        active: true,
+      }),
+      Class.aggregate([
+        {
+          $match: {
+            teacher: new mongoose.Types.ObjectId(teacherId),
+          },
+        },
+        {
+          $project: {
+            _id: 1,
+            name: 1,
+            code: 1,
+            department: 1,
+            semester: 1,
+            studentCount: { $size: "$students" },
+          },
+        },
+      ]),
+      Session.aggregate([
+        {
+          $match: {
+            teacherId: new mongoose.Types.ObjectId(teacherId),
+          },
+        },
+        {
+          $group: {
+            _id: "$type",
+            count: { $sum: 1 },
+          },
+        },
+      ]),
+    ]);
 
   // Calculate average students per class
   const totalStudents = classesWithStats.reduce(
@@ -657,37 +671,12 @@ export const getTeacherStats = asyncHandler(async (req, res) => {
   const averageStudentsPerClass =
     totalClasses > 0 ? (totalStudents / totalClasses).toFixed(2) : 0;
 
-  // Get session statistics
-  const sessionStats = await Session.aggregate([
+  const classIds = classesWithStats.map((cls) => cls._id);
+  const attendanceStats = classIds.length
+    ? await Attendance.aggregate([
     {
       $match: {
-        teacherId: new mongoose.Types.ObjectId(teacherId),
-      },
-    },
-    {
-      $group: {
-        _id: "$type",
-        count: { $sum: 1 },
-      },
-    },
-  ]);
-
-  // Calculate average attendance in teacher's classes
-  const attendanceStats = await Attendance.aggregate([
-    {
-      $lookup: {
-        from: "sessions",
-        localField: "sessionId",
-        foreignField: "_id",
-        as: "session",
-      },
-    },
-    {
-      $unwind: "$session",
-    },
-    {
-      $match: {
-        "session.teacherId": new mongoose.Types.ObjectId(teacherId),
+        classId: { $in: classIds },
       },
     },
     {
@@ -717,7 +706,8 @@ export const getTeacherStats = asyncHandler(async (req, res) => {
         },
       },
     },
-  ]);
+      ])
+    : [];
 
   res.status(200).json(
     new ApiResponse(
@@ -771,7 +761,8 @@ export const getComprehensiveReport = asyncHandler(async (req, res) => {
   // Get all classes matching criteria
   const classes = await Class.find(matchCriteria)
     .populate("teacher", "name email")
-    .select("name code department semester");
+    .select("name code department semester")
+    .lean();
 
   // Get statistics for each class
   const classIds = classes.map((cls) => cls._id);
@@ -806,12 +797,13 @@ export const getComprehensiveReport = asyncHandler(async (req, res) => {
   ]);
 
   // Merge class details with stats
+  const classStatsMap = new Map(
+    classStats.map((stat) => [stat.classId.toString(), stat])
+  );
   const report = classes.map((cls) => {
-    const stats = classStats.find(
-      (s) => s.classId.toString() === cls._id.toString()
-    );
+    const stats = classStatsMap.get(cls._id.toString());
     return {
-      ...cls.toObject(),
+      ...cls,
       stats: stats || {
         totalRecords: 0,
         presentCount: 0,
@@ -903,7 +895,11 @@ export const exportReport = asyncHandler(async (req, res) => {
       }
 
       // Fetch class with populated students
-      const classData = await Class.findById(targetId).populate("students", "name rollNumber");
+      const classData = await Class.findById(targetId)
+        .populate("students", "name rollNumber")
+        .populate("teacher", "name email")
+        .select("name code teacher department semester batch academicYear room section students")
+        .lean();
       
       if (!classData) {
         throw ApiError.notFound("Class not found");
@@ -931,13 +927,15 @@ export const exportReport = asyncHandler(async (req, res) => {
         sessionsQuery.startTime = dateFilter;
       }
 
-      const sessions = await Session.find(sessionsQuery).sort({ startTime: 1 });
+      const sessions = await Session.find(sessionsQuery).sort({ startTime: 1 }).lean();
 
       // Fetch attendance records
       const sessionIds = sessions.map((s) => s._id);
       const attendanceRecords = await Attendance.find({
         sessionId: { $in: sessionIds },
-      }).populate("studentId", "name rollNumber");
+      })
+        .populate("studentId", "name rollNumber")
+        .lean();
 
       // Create attendance map
       const attendanceMap = {};
@@ -957,7 +955,7 @@ export const exportReport = asyncHandler(async (req, res) => {
       }
 
       // Fetch student
-      const student = await User.findById(targetId);
+      const student = await User.findById(targetId).lean();
       
       if (!student) {
         throw ApiError.notFound("Student not found");
@@ -973,10 +971,9 @@ export const exportReport = asyncHandler(async (req, res) => {
       }
 
       // Fetch all classes student is enrolled in
-      const studentClasses = await Class.find({ students: targetId }).populate(
-        "teacher",
-        "name"
-      );
+      const studentClasses = await Class.find({ students: targetId })
+        .populate("teacher", "name")
+        .lean();
 
       // For each class, calculate attendance
       const classesData = await Promise.all(
@@ -990,7 +987,7 @@ export const exportReport = asyncHandler(async (req, res) => {
             sessionsQuery.startTime = dateFilter;
           }
 
-          const classSessions = await Session.find(sessionsQuery);
+          const classSessions = await Session.find(sessionsQuery).lean();
           
           const attendanceStats = await Attendance.aggregate([
             {
@@ -1043,14 +1040,16 @@ export const exportReport = asyncHandler(async (req, res) => {
       // For each department, calculate stats
       const departmentData = await Promise.all(
         departments.map(async (dept) => {
-          const deptClasses = await Class.find({ department: dept });
+          const deptClasses = await Class.find({ department: dept }).lean();
           const classIds = deptClasses.map((c) => c._id);
 
           // Get all students in this department
           const deptStudents = await User.find({
             department: dept,
             role: "student",
-          });
+          })
+            .select("_id")
+            .lean();
 
           // Get all sessions
           const sessionsQuery = {
@@ -1062,7 +1061,7 @@ export const exportReport = asyncHandler(async (req, res) => {
             sessionsQuery.startTime = dateFilter;
           }
 
-          const deptSessions = await Session.find(sessionsQuery);
+          const deptSessions = await Session.find(sessionsQuery).lean();
 
           // Calculate avg attendance
           const attendanceStats = await Attendance.aggregate([
@@ -1142,13 +1141,13 @@ export const checkAndNotifyDefaulters = asyncHandler(async (req, res) => {
   }
 
   // Get class details
-  const classDoc = await Class.findById(classId).populate("students");
+  const classDoc = await Class.findById(classId).populate("students").lean();
   if (!classDoc) {
     throw ApiError.notFound("Class not found");
   }
 
   // Get all sessions for this class
-  const sessions = await Session.find({ classId });
+  const sessions = await Session.find({ classId }).select("_id").lean();
   const totalSessions = sessions.length;
 
   if (totalSessions === 0) {
@@ -1157,37 +1156,40 @@ export const checkAndNotifyDefaulters = asyncHandler(async (req, res) => {
     );
   }
 
-  const defaulters = [];
+  const attendanceByStudent = await Attendance.aggregate([
+    {
+      $match: {
+        classId: new mongoose.Types.ObjectId(classId),
+        status: { $in: ["Present", "Late"] },
+      },
+    },
+    {
+      $group: {
+        _id: "$studentId",
+        attendedSessions: { $sum: 1 },
+      },
+    },
+  ]);
+  const attendanceMap = new Map(
+    attendanceByStudent.map((row) => [row._id.toString(), row.attendedSessions])
+  );
+  const defaulters = classDoc.students
+    .map((student) => {
+      const attendedSessions = attendanceMap.get(student._id.toString()) || 0;
+      const attendancePercentage = (attendedSessions / totalSessions) * 100;
+      return { student, percentage: attendancePercentage };
+    })
+    .filter((item) => item.percentage < 75);
 
-  // Check each student's attendance
-  for (const student of classDoc.students) {
-    const attendanceRecords = await Attendance.find({
-      studentId: student._id,
-      classId,
-      status: { $in: ["present", "late"] },
-    });
-
-    const attendedSessions = attendanceRecords.length;
-    const attendancePercentage = (attendedSessions / totalSessions) * 100;
-
-    if (attendancePercentage < 75) {
-      defaulters.push({
-        student,
-        percentage: attendancePercentage,
-      });
-
-      // Send warning email
+  await Promise.all(
+    defaulters.map(async ({ student, percentage }) => {
       try {
-        await EmailService.sendLowAttendanceWarning(
-          student,
-          classDoc,
-          attendancePercentage
-        );
+        await EmailService.sendLowAttendanceWarning(student, classDoc, percentage);
       } catch (emailError) {
         console.error(`Failed to send email to ${student.email}:`, emailError);
       }
-    }
-  }
+    })
+  );
 
   res.status(200).json(
     new ApiResponse(

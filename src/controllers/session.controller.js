@@ -4,6 +4,7 @@ import ApiResponse from "../../utils/ApiResponse.js";
 import Session from "../models/session.model.js";
 import Class from "../models/class.model.js";
 import jwt from "jsonwebtoken";
+import { emitToSession } from "../socket/socket.js";
 
 /**
  * Get client IP address (handles proxies and localhost)
@@ -37,7 +38,7 @@ export const startSession = asyncHandler(async (req, res) => {
   }
 
   // Check if class exists
-  const classDoc = await Class.findById(classId);
+  const classDoc = await Class.findById(classId).select("teacher").lean();
   if (!classDoc) {
     throw ApiError.notFound("Class not found");
   }
@@ -53,7 +54,9 @@ export const startSession = asyncHandler(async (req, res) => {
   const existingActiveSession = await Session.findOne({
     classId,
     active: true,
-  });
+  })
+    .select("_id")
+    .lean();
 
   if (existingActiveSession) {
     throw ApiError.conflict(
@@ -114,14 +117,20 @@ export const startSession = asyncHandler(async (req, res) => {
   });
 
   // Populate class and teacher info
-  const populatedSession = await Session.findById(session._id)
-    .populate("classId", "name code department semester")
-    .populate("teacherId", "name email");
+  await session.populate("classId", "name code department semester");
+  await session.populate("teacherId", "name email");
+
+  emitToSession(session._id.toString(), "session:started", {
+    sessionId: session._id.toString(),
+    classId: session.classId?._id?.toString?.() || classId,
+    startedAt: session.startTime,
+    securityConfig: session.securityConfig,
+  });
 
   res
     .status(201)
     .json(
-      new ApiResponse(201, populatedSession, "Session started successfully")
+      new ApiResponse(201, session, "Session started successfully")
     );
 });
 
@@ -133,7 +142,9 @@ export const getQRToken = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
   // Find session
-  const session = await Session.findById(id);
+  const session = await Session.findById(id).select(
+    "_id classId teacherId active securityConfig"
+  );
 
   if (!session) {
     throw ApiError.notFound("Session not found");
@@ -191,30 +202,30 @@ export const endSession = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
   // Find session
-  const session = await Session.findById(id);
-
+  const session = await Session.findById(id).select("teacherId active");
   if (!session) {
     throw ApiError.notFound("Session not found");
   }
-
-  // Verify teacher owns this session
   if (session.teacherId.toString() !== req.user._id.toString()) {
     throw ApiError.forbidden("You are not authorized to end this session");
   }
-
-  // Check if session is already ended
   if (!session.active) {
     throw ApiError.badRequest("Session is already ended");
   }
+  const updatedSession = await Session.findByIdAndUpdate(
+    id,
+    { $set: { active: false, endTime: new Date() } },
+    { new: true }
+  );
 
-  // Update session
-  session.active = false;
-  session.endTime = new Date();
-  await session.save();
+  emitToSession(id, "session:ended", {
+    sessionId: id,
+    endedAt: updatedSession?.endTime || new Date(),
+  });
 
   res
     .status(200)
-    .json(new ApiResponse(200, session, "Session ended successfully"));
+    .json(new ApiResponse(200, updatedSession, "Session ended successfully"));
 });
 
 /**
@@ -232,7 +243,7 @@ export const createRetroactiveSession = asyncHandler(async (req, res) => {
   }
 
   // Check if class exists
-  const classDoc = await Class.findById(classId);
+  const classDoc = await Class.findById(classId).select("teacher").lean();
   if (!classDoc) {
     throw ApiError.notFound("Class not found");
   }
@@ -277,16 +288,15 @@ export const createRetroactiveSession = asyncHandler(async (req, res) => {
   });
 
   // Populate class and teacher info
-  const populatedSession = await Session.findById(session._id)
-    .populate("classId", "name code department semester")
-    .populate("teacherId", "name email");
+  await session.populate("classId", "name code department semester");
+  await session.populate("teacherId", "name email");
 
   res
     .status(201)
     .json(
       new ApiResponse(
         201,
-        populatedSession,
+        session,
         "Retroactive session created successfully. You can now manually mark attendance."
       )
     );
@@ -300,7 +310,7 @@ export const getActiveSessionByClass = asyncHandler(async (req, res) => {
   const { classId } = req.params;
 
   // Check if class exists
-  const classDoc = await Class.findById(classId);
+  const classDoc = await Class.findById(classId).select("teacher").lean();
   if (!classDoc) {
     throw ApiError.notFound("Class not found");
   }
@@ -318,7 +328,8 @@ export const getActiveSessionByClass = asyncHandler(async (req, res) => {
     active: true,
   })
     .populate("classId", "name code department semester")
-    .populate("teacherId", "name email");
+    .populate("teacherId", "name email")
+    .lean();
 
   if (!activeSession) {
     return res
@@ -347,7 +358,8 @@ export const getAllActiveSessions = asyncHandler(async (req, res) => {
     active: true,
   })
     .populate("classId", "name code department semester")
-    .populate("teacherId", "name email");
+    .populate("teacherId", "name email")
+    .lean();
 
   if (!allActiveSessions || allActiveSessions.length === 0) {
     return res
@@ -374,7 +386,7 @@ export const getSessionsByClass = asyncHandler(async (req, res) => {
   const { classId } = req.params;
 
   // Check if class exists
-  const classDoc = await Class.findById(classId);
+  const classDoc = await Class.findById(classId).select("teacher students").lean();
   if (!classDoc) {
     throw ApiError.notFound("Class not found");
   }
@@ -393,7 +405,8 @@ export const getSessionsByClass = asyncHandler(async (req, res) => {
   // Get sessions
   const sessions = await Session.find({ classId })
     .populate("teacherId", "name email")
-    .sort({ startTime: -1 });
+    .sort({ startTime: -1 })
+    .lean();
 
   res.status(200).json(
     new ApiResponse(
@@ -416,7 +429,8 @@ export const getSessionDetails = asyncHandler(async (req, res) => {
 
   const session = await Session.findById(id)
     .populate("classId", "name code department semester")
-    .populate("teacherId", "name email");
+    .populate("teacherId", "name email")
+    .lean();
 
   if (!session) {
     throw ApiError.notFound("Session not found");

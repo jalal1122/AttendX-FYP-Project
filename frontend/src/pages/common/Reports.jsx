@@ -100,10 +100,16 @@ const Reports = () => {
       ["Class Information"],
       ["Class Name:", classData.name],
       ["Class Code:", classData.code],
+      ["Section:", classData.section || "N/A"],
       ["Department:", classData.department || "N/A"],
       ["Semester:", classData.semester || "N/A"],
+      ["Batch:", classData.batch || "N/A"],
+      ["Academic Year:", classData.academicYear || "N/A"],
+      ["Room:", classData.room || "N/A"],
       ["Teacher:", analytics.class?.teacher?.name || "N/A"],
       ["Teacher Email:", analytics.class?.teacher?.email || "N/A"],
+      ["Report Period:", period],
+      ["Date Range:", `${dateRange.startDate || "N/A"} to ${dateRange.endDate || "N/A"}`],
       ["Report Generated:", currentDate],
       [""],
       ["Attendance Summary"],
@@ -181,9 +187,10 @@ const Reports = () => {
         [
           "Student Name",
           "Roll No",
-          ...detailedData.sessions.map((s) =>
-            new Date(s.date).toLocaleDateString()
-          ),
+          ...detailedData.sessions.map((s) => {
+            const sessionDate = new Date(s.date);
+            return `${s.type || "Session"} - ${sessionDate.toLocaleDateString()} ${sessionDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+          }),
         ],
         ...detailedData.attendance.map((student) => [
           student.studentName,
@@ -236,10 +243,16 @@ const Reports = () => {
     csvContent += "Class Information\n";
     csvContent += `Class Name,${classData.name}\n`;
     csvContent += `Class Code,${classData.code}\n`;
+    csvContent += `Section,${classData.section || "N/A"}\n`;
     csvContent += `Department,${classData.department || "N/A"}\n`;
     csvContent += `Semester,${classData.semester || "N/A"}\n`;
+    csvContent += `Batch,${classData.batch || "N/A"}\n`;
+    csvContent += `Academic Year,${classData.academicYear || "N/A"}\n`;
+    csvContent += `Room,${classData.room || "N/A"}\n`;
     csvContent += `Teacher,${analytics.class?.teacher?.name || "N/A"}\n`;
     csvContent += `Teacher Email,${analytics.class?.teacher?.email || "N/A"}\n`;
+    csvContent += `Report Period,${period}\n`;
+    csvContent += `Date Range,${dateRange.startDate || "N/A"} to ${dateRange.endDate || "N/A"}\n`;
     csvContent += `Report Generated,${currentDate}\n\n`;
 
     csvContent += "Attendance Summary\n";
@@ -284,7 +297,10 @@ const Reports = () => {
       csvContent +=
         "Student Name,Roll No," +
         detailedData.sessions
-          .map((s) => new Date(s.date).toLocaleDateString())
+          .map((s) => {
+            const sessionDate = new Date(s.date);
+            return `${s.type || "Session"} - ${sessionDate.toLocaleDateString()} ${sessionDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+          })
           .join(",") +
         "\n";
 

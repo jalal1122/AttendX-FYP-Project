@@ -1,7 +1,6 @@
 import { useState } from "react";
 import Modal from "../ui/Modal";
 import Button from "../ui/Button";
-import Input from "../ui/Input";
 
 const StartSessionModal = ({ isOpen, onClose, onSubmit, className }) => {
   const [securityConfig, setSecurityConfig] = useState({
@@ -13,10 +12,55 @@ const StartSessionModal = ({ isOpen, onClose, onSubmit, className }) => {
   });
 
   const [type, setType] = useState("Lecture");
+  const [useGeolocation, setUseGeolocation] = useState(true);
+  const [isDetectingLocation, setIsDetectingLocation] = useState(false);
+  const [locationError, setLocationError] = useState("");
 
-  const handleSubmit = (e) => {
+  const getCurrentLocation = () =>
+    new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error("Geolocation is not supported in this browser"));
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          resolve({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          });
+        },
+        (error) => reject(error),
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 60000,
+        }
+      );
+    });
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onSubmit({ type, securityConfig });
+    setLocationError("");
+    let locationPayload = {};
+
+    if (useGeolocation) {
+      setIsDetectingLocation(true);
+      try {
+        locationPayload = await getCurrentLocation();
+      } catch (error) {
+        setLocationError(
+          error?.message ||
+            "Could not fetch current location. You can retry or start without geolocation."
+        );
+        setIsDetectingLocation(false);
+        return;
+      } finally {
+        setIsDetectingLocation(false);
+      }
+    }
+
+    onSubmit({ type, securityConfig, useGeolocation, ...locationPayload });
     onClose();
   };
 
@@ -29,6 +73,8 @@ const StartSessionModal = ({ isOpen, onClose, onSubmit, className }) => {
       manualApproval: false,
     });
     setType("Lecture");
+    setUseGeolocation(true);
+    setLocationError("");
   };
 
   return (
@@ -247,6 +293,32 @@ const StartSessionModal = ({ isOpen, onClose, onSubmit, className }) => {
                 </p>
               </div>
             </label>
+
+            {/* Geolocation */}
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={useGeolocation}
+                onChange={(e) => {
+                  setUseGeolocation(e.target.checked);
+                  setLocationError("");
+                }}
+                className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+              />
+              <div>
+                <span className="text-sm font-medium text-gray-900">
+                  Use Current Geolocation
+                </span>
+                <p className="text-xs text-gray-500">
+                  Captures teacher location at session start for geofence checks
+                </p>
+              </div>
+            </label>
+            {locationError && (
+              <div className="p-2 bg-orange-50 border border-orange-200 rounded text-xs text-orange-700">
+                {locationError}
+              </div>
+            )}
           </div>
 
           {/* Preset Buttons */}
@@ -308,7 +380,7 @@ const StartSessionModal = ({ isOpen, onClose, onSubmit, className }) => {
             Reset
           </Button>
           <Button type="submit" variant="success" className="flex-1">
-            Start Session
+            {isDetectingLocation ? "Detecting Location..." : "Start Session"}
           </Button>
         </div>
       </form>

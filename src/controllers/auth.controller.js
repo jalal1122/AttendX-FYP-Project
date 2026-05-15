@@ -27,6 +27,14 @@ const generateAccessAndRefreshTokens = async (userId) => {
   }
 };
 
+const sanitizeUser = (userDoc) => {
+  const user = userDoc.toObject ? userDoc.toObject() : { ...userDoc };
+  delete user.password;
+  delete user.refreshToken;
+  delete user.twoFactorSecret;
+  return user;
+};
+
 /**
  * Register User
  * POST /api/v1/auth/register
@@ -49,7 +57,7 @@ export const registerUser = asyncHandler(async (req, res) => {
   }
 
   // Check if user already exists
-  const existingUser = await User.findOne({ email });
+  const existingUser = await User.findOne({ email }).select("_id").lean();
   if (existingUser) {
     throw ApiError.conflict("User with this email already exists");
   }
@@ -107,9 +115,7 @@ export const registerUser = asyncHandler(async (req, res) => {
   );
 
   // Remove password and refresh token from response
-  const createdUser = await User.findById(user._id).select(
-    "-password -refreshToken"
-  );
+  const createdUser = sanitizeUser(user);
 
   // Set refresh token in HTTP-only cookie
   const cookieOptions = {
@@ -185,9 +191,7 @@ export const loginUser = asyncHandler(async (req, res) => {
   );
 
   // Remove password and refresh token from response
-  const loggedInUser = await User.findById(user._id).select(
-    "-password -refreshToken -twoFactorSecret"
-  );
+  const loggedInUser = sanitizeUser(user);
 
   // Set refresh token in HTTP-only cookie
   const cookieOptions = {
@@ -219,7 +223,7 @@ export const loginUser = asyncHandler(async (req, res) => {
 export const getCurrentUser = asyncHandler(async (req, res) => {
   const user = await User.findById(req.user._id).select(
     "-password -refreshToken -twoFactorSecret"
-  );
+  ).lean();
 
   if (!user) {
     throw ApiError.notFound("User not found");
@@ -277,7 +281,9 @@ export const refreshAccessToken = asyncHandler(async (req, res) => {
     );
 
     // Find user
-    const user = await User.findById(decodedToken._id);
+  const user = await User.findById(decodedToken._id).select(
+    "name email role refreshToken isTwoFactorEnabled twoFactorSecret info avatar"
+  );
     if (!user) {
       throw ApiError.unauthorized("Invalid refresh token");
     }
@@ -484,9 +490,7 @@ export const validate2FALogin = asyncHandler(async (req, res) => {
   );
 
   // Remove sensitive fields
-  const loggedInUser = await User.findById(user._id).select(
-    "-password -refreshToken -twoFactorSecret"
-  );
+  const loggedInUser = sanitizeUser(user);
 
   // Cookie options
   const cookieOptions = {
@@ -660,7 +664,7 @@ export const createAdmin = asyncHandler(async (req, res) => {
   }
 
   // Check if admin already exists
-  const existingUser = await User.findOne({ email });
+  const existingUser = await User.findOne({ email }).select("_id").lean();
   if (existingUser) {
     throw ApiError.conflict("User with this email already exists");
   }
@@ -675,9 +679,7 @@ export const createAdmin = asyncHandler(async (req, res) => {
   });
 
   // Remove password from response
-  const createdAdmin = await User.findById(admin._id).select(
-    "-password -refreshToken"
-  );
+  const createdAdmin = sanitizeUser(admin);
 
   res
     .status(201)

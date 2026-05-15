@@ -7,6 +7,7 @@ import attendanceAPI from "../../services/attendanceAPI";
 import Button from "../../components/ui/Button";
 import Card from "../../components/ui/Card";
 import StartSessionModal from "../../components/modals/StartSessionModal";
+import { connectSocket, joinSessionRoom, leaveSessionRoom } from "../../services/socket";
 
 const LiveSession = () => {
   const { classId } = useParams();
@@ -28,6 +29,7 @@ const LiveSession = () => {
   const qrIntervalRef = useRef(null);
   const countIntervalRef = useRef(null);
   const timerIntervalRef = useRef(null);
+  const socketRef = useRef(null);
 
   const fetchClassDetails = async () => {
     try {
@@ -78,64 +80,68 @@ const LiveSession = () => {
     await startSession(config);
   };
 
+  useEffect(() => {
+    if (!isActive || !sessionId) return;
+
+    const socket = connectSocket();
+    socketRef.current = socket;
+    joinSessionRoom(sessionId);
+
+    const handleAttendanceUpdated = () => {
+      fetchAttendanceCount(sessionId);
+      if (sessionConfig?.manualApproval) {
+        fetchPendingAttendance(sessionId);
+      }
+    };
+
+    const handleAttendanceApproved = () => {
+      fetchAttendanceCount(sessionId);
+      if (sessionConfig?.manualApproval) {
+        fetchPendingAttendance(sessionId);
+      }
+    };
+
+    const handleSessionEnded = (payload) => {
+      if (payload?.sessionId === sessionId) {
+        setError("This session was ended from another device.");
+        setIsActive(false);
+        navigate("/teacher/dashboard");
+      }
+    };
+
+    socket.on("attendance:updated", handleAttendanceUpdated);
+    socket.on("attendance:approved", handleAttendanceApproved);
+    socket.on("session:ended", handleSessionEnded);
+
+    return () => {
+      socket.off("attendance:updated", handleAttendanceUpdated);
+      socket.off("attendance:approved", handleAttendanceApproved);
+      socket.off("session:ended", handleSessionEnded);
+      leaveSessionRoom(sessionId);
+    };
+  }, [isActive, navigate, sessionConfig?.manualApproval, sessionId]);
+
   const startSession = async (config) => {
     try {
       setError("");
       setLoading(true);
 
-      // Get teacher's location
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          async (position) => {
-            const { latitude, longitude } = position.coords;
-            console.log("📍 Teacher location captured:", {
-              latitude,
-              longitude,
-            });
+      const payload = {
+        type: config.type,
+        securityConfig: config.securityConfig,
+      };
 
-            try {
-              // Start the session with location and security config
-              const response = await sessionAPI.startSession(classId, {
-                latitude,
-                longitude,
-                type: config.type,
-                securityConfig: config.securityConfig,
-              });
-              console.log(response.data);
-              
-              setSessionId(response.data._id);
-              setSessionConfig(response.data.securityConfig);
-              setIsActive(true);
-              setTimeRemaining(response.data.securityConfig.qrRefreshRate || 20);
-              continueSessionSetup(
-                response.data._id,
-                response.data.securityConfig
-              );
-            } catch (err) {
-              handleSessionError(err);
-            }
-          },
-          async (error) => {
-            console.warn("Location access denied:", error);
-            try {
-              // Start session without location
-              const response = await sessionAPI.startSession(classId);
-              setSessionId(response.data._id);
-              setIsActive(true);
-              continueSessionSetup(response.data._id);
-            } catch (err) {
-              handleSessionError(err);
-            }
-          }
-        );
-        return;
-      } else {
-        // Browser doesn't support geolocation
-        const response = await sessionAPI.startSession(classId);
-        setSessionId(response.data._id);
-        setIsActive(true);
-        continueSessionSetup(response.data._id);
+      if (config.useGeolocation && config.latitude && config.longitude) {
+        payload.latitude = config.latitude;
+        payload.longitude = config.longitude;
       }
+
+      const response = await sessionAPI.startSession(classId, payload);
+      setSessionId(response.data._id);
+      setSessionConfig(response.data.securityConfig);
+      setIsActive(true);
+      setTimeRemaining(response.data.securityConfig.qrRefreshRate || 20);
+      continueSessionSetup(response.data._id, response.data.securityConfig);
     } catch (err) {
       handleSessionError(err);
     }
@@ -178,7 +184,7 @@ const LiveSession = () => {
         if (manualApproval) {
           fetchPendingAttendance(sessionId);
         }
-      }, 5000);
+      }, 10000);
 
       // Start countdown timer (every second)
       timerIntervalRef.current = setInterval(() => {
@@ -284,6 +290,7 @@ const LiveSession = () => {
       if (qrIntervalRef.current) clearInterval(qrIntervalRef.current);
       if (countIntervalRef.current) clearInterval(countIntervalRef.current);
       if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+      leaveSessionRoom(sessionId);
 
       // End the session
       await sessionAPI.endSession(sessionId);

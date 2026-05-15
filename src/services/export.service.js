@@ -21,6 +21,17 @@ class ExportService {
     metadataBg: "F3F4F6", // Light Gray
   };
 
+  static toExcelColumnName(index) {
+    let columnName = "";
+    let currentIndex = index;
+    while (currentIndex > 0) {
+      const remainder = (currentIndex - 1) % 26;
+      columnName = String.fromCharCode(65 + remainder) + columnName;
+      currentIndex = Math.floor((currentIndex - 1) / 26);
+    }
+    return columnName;
+  }
+
   /**
    * Generate Class Attendance Matrix (Excel or CSV)
    * Rows = Students, Columns = Dates
@@ -43,8 +54,22 @@ class ExportService {
     // Sort sessions by date
     const sortedSessions = sessions.sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
 
+    const teacherName =
+      typeof classData.teacher === "object"
+        ? classData.teacher?.name || "N/A"
+        : "N/A";
+    const firstSession = sortedSessions[0];
+    const lastSession = sortedSessions[sortedSessions.length - 1];
+    const dateRange =
+      sortedSessions.length > 0
+        ? `${moment(firstSession.startTime).format("DD MMM YYYY")} - ${moment(
+            lastSession.startTime
+          ).format("DD MMM YYYY")}`
+        : "N/A";
+    const lastColumn = this.toExcelColumnName(sortedSessions.length + 6);
+
     // Metadata Row (Merged)
-    worksheet.mergeCells("A1", String.fromCharCode(65 + sortedSessions.length + 3) + "1");
+    worksheet.mergeCells(`A1:${lastColumn}1`);
     const titleCell = worksheet.getCell("A1");
     titleCell.value = `${classData.name} (${classData.code}) - Attendance Register`;
     titleCell.font = { size: 16, bold: true, color: { argb: "FF" + this.COLORS.headerBg } };
@@ -57,21 +82,50 @@ class ExportService {
     worksheet.getRow(1).height = 30;
 
     // Generated Date Row
-    worksheet.mergeCells("A2", String.fromCharCode(65 + sortedSessions.length + 3) + "2");
+    worksheet.mergeCells(`A2:${lastColumn}2`);
     const dateCell = worksheet.getCell("A2");
     dateCell.value = `Generated on: ${moment().format("MMMM DD, YYYY [at] HH:mm")}`;
     dateCell.font = { size: 10, italic: true };
     dateCell.alignment = { horizontal: "center" };
     worksheet.getRow(2).height = 20;
 
-    // Empty row for spacing
+    worksheet.addRow(["Teacher", teacherName, "Department", classData.department || "N/A"]);
+    worksheet.addRow([
+      "Class",
+      classData.name || "N/A",
+      "Class Code",
+      classData.code || "N/A",
+      "Section",
+      classData.section || "N/A",
+    ]);
+    worksheet.addRow([
+      "Semester",
+      classData.semester || "N/A",
+      "Batch",
+      classData.batch || "N/A",
+      "Academic Year",
+      classData.academicYear || "N/A",
+    ]);
+    worksheet.addRow([
+      "Session Count",
+      sortedSessions.length,
+      "Date Range",
+      dateRange,
+      "Room",
+      classData.room || "N/A",
+    ]);
     worksheet.addRow([]);
 
     // Header Row
     const headerRow = worksheet.addRow([
       "Roll No",
       "Student Name",
-      ...sortedSessions.map((s) => moment(s.startTime).format("MMM DD")),
+      ...sortedSessions.map((s, index) => {
+        const type = s.type || "Session";
+        const date = moment(s.startTime).format("DD MMM");
+        const time = moment(s.startTime).format("HH:mm");
+        return `S${index + 1} ${type} ${date} ${time}`;
+      }),
       "Present",
       "Absent",
       "Attendance %",
@@ -198,14 +252,41 @@ class ExportService {
    */
   static generateClassMatrixCSV(classData, sessions, attendanceMap) {
     const sortedSessions = sessions.sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
+    const teacherName =
+      typeof classData.teacher === "object"
+        ? classData.teacher?.name || "N/A"
+        : "N/A";
+    const firstSession = sortedSessions[0];
+    const lastSession = sortedSessions[sortedSessions.length - 1];
+    const dateRange =
+      sortedSessions.length > 0
+        ? `${moment(firstSession.startTime).format("DD MMM YYYY")} - ${moment(
+            lastSession.startTime
+          ).format("DD MMM YYYY")}`
+        : "N/A";
 
     // Header
     let csv = `${classData.name} (${classData.code}) - Attendance Register\n`;
     csv += `Generated on: ${moment().format("MMMM DD, YYYY [at] HH:mm")}\n\n`;
+    csv += `Teacher,${teacherName}\n`;
+    csv += `Department,${classData.department || "N/A"}\n`;
+    csv += `Class,${classData.name || "N/A"}\n`;
+    csv += `Class Code,${classData.code || "N/A"}\n`;
+    csv += `Section,${classData.section || "N/A"}\n`;
+    csv += `Semester,${classData.semester || "N/A"}\n`;
+    csv += `Batch,${classData.batch || "N/A"}\n`;
+    csv += `Academic Year,${classData.academicYear || "N/A"}\n`;
+    csv += `Session Count,${sortedSessions.length}\n`;
+    csv += `Date Range,${dateRange}\n\n`;
 
     // Column headers
     csv += `Roll No,Student Name,${sortedSessions
-      .map((s) => moment(s.startTime).format("MMM DD"))
+      .map((s, index) => {
+        const type = s.type || "Session";
+        const date = moment(s.startTime).format("DD MMM");
+        const time = moment(s.startTime).format("HH:mm");
+        return `S${index + 1} ${type} ${date} ${time}`;
+      })
       .join(",")},Present,Absent,Attendance %\n`;
 
     // Data rows

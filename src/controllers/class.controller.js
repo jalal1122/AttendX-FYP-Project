@@ -2,6 +2,8 @@ import asyncHandler from "../utils/asyncHandler.js";
 import ApiError from "../../utils/ApiError.js";
 import ApiResponse from "../../utils/ApiResponse.js";
 import Class from "../models/class.model.js";
+import Session from "../models/session.model.js";
+import Attendance from "../models/attendance.model.js";
 import crypto from "crypto";
 
 /**
@@ -36,7 +38,7 @@ export const createClass = asyncHandler(async (req, res) => {
 
   while (!isUnique && attempts < maxAttempts) {
     code = generateClassCode();
-    const existingClass = await Class.findOne({ code });
+    const existingClass = await Class.findOne({ code }).select("_id").lean();
     if (!existingClass) {
       isUnique = true;
     }
@@ -62,9 +64,9 @@ export const createClass = asyncHandler(async (req, res) => {
   });
 
   // Populate teacher info
-  const populatedClass = await Class.findById(newClass._id)
-    .populate("teacher", "name email role")
-    .select("-__v");
+  await newClass.populate("teacher", "name email role");
+  const populatedClass = newClass.toObject();
+  delete populatedClass.__v;
 
   res
     .status(201)
@@ -138,29 +140,19 @@ export const joinClass = asyncHandler(async (req, res) => {
  * GET /api/v1/class
  */
 export const getAllClasses = asyncHandler(async (req, res) => {
-  let classes;
-
-  if (req.user.role === "admin") {
-    // Admin gets ALL classes in the system
-    classes = await Class.find({})
-      .populate("teacher", "name email role")
-      .populate("students", "name email info")
-      .sort({ createdAt: -1 });
-  } else if (req.user.role === "teacher") {
-    // Get classes created by teacher
-    classes = await Class.find({ teacher: req.user._id })
-      .populate("teacher", "name email role")
-      .populate("students", "name email info")
-      .sort({ createdAt: -1 });
+  let query = {};
+  if (req.user.role === "teacher") {
+    query = { teacher: req.user._id };
   } else if (req.user.role === "student") {
-    // Get classes student has joined
-    classes = await Class.find({ students: req.user._id })
-      .populate("teacher", "name email role")
-      .populate("students", "name email info")
-      .sort({ createdAt: -1 });
-  } else {
+    query = { students: req.user._id };
+  } else if (req.user.role !== "admin") {
     throw ApiError.forbidden("Invalid role");
   }
+  const classes = await Class.find(query)
+    .populate("teacher", "name email role")
+    .populate("students", "name email info")
+    .sort({ createdAt: -1 })
+    .lean();
 
   res.status(200).json(
     new ApiResponse(
@@ -219,25 +211,18 @@ export const unjoinClass = asyncHandler(async (req, res) => {
     throw ApiError.badRequest("Class ID is required");
   }
 
-  const classDoc = await Class.findById(classId);
-
-  if (!classDoc) {
+  const classExists = await Class.exists({ _id: classId });
+  if (!classExists) {
     throw ApiError.notFound("Class not found");
   }
 
-  // Check if student is actually in this class
-  const isEnrolled = classDoc.students.some(
-    (studentId) => studentId.toString() === req.user._id.toString()
+  const removed = await Class.updateOne(
+    { _id: classId, students: req.user._id },
+    { $pull: { students: req.user._id } }
   );
-
-  if (!isEnrolled) {
+  if (removed.modifiedCount === 0) {
     throw ApiError.badRequest("You are not enrolled in this class");
   }
-
-  // Remove student from class using $pull
-  await Class.findByIdAndUpdate(classId, {
-    $pull: { students: req.user._id },
-  });
 
   // NOTE: We do NOT delete attendance records - preserving for audit trail
 
@@ -258,17 +243,11 @@ export const removeStudent = asyncHandler(async (req, res) => {
     throw ApiError.badRequest("Class ID and Student ID are required");
   }
 
-  const classDoc = await Class.findById(classId);
-
+  const classDoc = await Class.findById(classId).select("teacher students").lean();
   if (!classDoc) {
     throw ApiError.notFound("Class not found");
   }
-
-  // Verify teacher ownership
-  const isTeacher = classDoc.teacher.toString() === req.user._id.toString();
-  const isAdmin = req.user.role === "admin";
-
-  if (!isTeacher && !isAdmin) {
+  if (req.user.role !== "admin" && classDoc.teacher.toString() !== req.user._id.toString()) {
     throw ApiError.forbidden(
       "Only the class teacher or admin can remove students"
     );
@@ -304,36 +283,33 @@ export const updateClassDetails = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const { name, room, semester, department, batch, academicYear } = req.body;
 
-  const classDoc = await Class.findById(id);
-
-  if (!classDoc) {
-    throw ApiError.notFound("Class not found");
-  }
-
-  // Verify teacher ownership or admin
-  const isTeacher = classDoc.teacher.toString() === req.user._id.toString();
-  const isAdmin = req.user.role === "admin";
-
-  if (!isTeacher && !isAdmin) {
-    throw ApiError.forbidden(
-      "Only the class teacher or admin can update class details"
-    );
-  }
-
   // Validate semester if provided
   if (semester && (semester < 1 || semester > 8)) {
     throw ApiError.badRequest("Semester must be between 1 and 8");
   }
 
-  // Update fields
-  if (name) classDoc.name = name;
-  if (room) classDoc.room = room;
-  if (semester) classDoc.semester = semester;
-  if (department) classDoc.department = department;
-  if (batch) classDoc.batch = batch;
-  if (academicYear) classDoc.academicYear = academicYear;
+  const existingClass = await Class.findById(id).select("teacher").lean();
+  if (!existingClass) {
+    throw ApiError.notFound("Class not found");
+  }
+  if (
+    req.user.role !== "admin" &&
+    existingClass.teacher.toString() !== req.user._id.toString()
+  ) {
+    throw ApiError.forbidden(
+      "Only the class teacher or admin can update class details"
+    );
+  }
 
-  await classDoc.save();
+  const updates = {};
+  if (name) updates.name = name;
+  if (room) updates.room = room;
+  if (semester) updates.semester = semester;
+  if (department) updates.department = department;
+  if (batch) updates.batch = batch;
+  if (academicYear) updates.academicYear = academicYear;
+
+  const classDoc = await Class.findByIdAndUpdate(id, { $set: updates }, { new: true });
 
   res
     .status(200)
@@ -364,15 +340,11 @@ export const deleteClass = asyncHandler(async (req, res) => {
     );
   }
 
-  // Import models for cascade delete
-  const Session = (await import("../models/session.model.js")).default;
-  const Attendance = (await import("../models/attendance.model.js")).default;
-
   // Cascade delete: Delete all sessions for this class
-  const deletedSessions = await Session.deleteMany({ classId: id });
-
-  // Cascade delete: Delete all attendance records for this class
-  const deletedAttendance = await Attendance.deleteMany({ classId: id });
+  const [deletedSessions, deletedAttendance] = await Promise.all([
+    Session.deleteMany({ classId: id }),
+    Attendance.deleteMany({ classId: id }),
+  ]);
 
   // Finally, delete the class itself
   await Class.findByIdAndDelete(id);

@@ -6,7 +6,7 @@ import {
   useLocation,
 } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import {
   selectIsAuthenticated,
   selectCurrentUser,
@@ -17,33 +17,33 @@ import PrivateRoute from "./components/PrivateRoute";
 import Navbar from "./components/layout/Navbar";
 
 // Public Pages
-import LandingPage from "./pages/LandingPage";
+const LandingPage = lazy(() => import("./pages/LandingPage"));
 
 // Auth Pages
-import Login from "./pages/auth/Login";
-import ForgotPassword from "./pages/auth/ForgotPassword";
-import RegisterAdmin from "./pages/auth/RegisterAdmin";
+const Login = lazy(() => import("./pages/auth/Login"));
+const ForgotPassword = lazy(() => import("./pages/auth/ForgotPassword"));
+const RegisterAdmin = lazy(() => import("./pages/auth/RegisterAdmin"));
 
 // Admin Pages
-import AdminDashboard from "./pages/admin/AdminDashboard";
-import ManageUsers from "./pages/admin/ManageUsers";
-import ManageClasses from "./pages/admin/ManageClasses";
-import AdminReports from "./pages/admin/AdminReports";
+const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
+const ManageUsers = lazy(() => import("./pages/admin/ManageUsers"));
+const ManageClasses = lazy(() => import("./pages/admin/ManageClasses"));
+const AdminReports = lazy(() => import("./pages/admin/AdminReports"));
 
 // Teacher Pages
-import TeacherDashboard from "./pages/teacher/TeacherDashboard";
-import LiveSession from "./pages/teacher/LiveSession";
-import ClassDetails from "./pages/teacher/ClassDetails";
-import SessionHistory from "./pages/teacher/SessionHistory";
+const TeacherDashboard = lazy(() => import("./pages/teacher/TeacherDashboard"));
+const LiveSession = lazy(() => import("./pages/teacher/LiveSession"));
+const ClassDetails = lazy(() => import("./pages/teacher/ClassDetails"));
+const SessionHistory = lazy(() => import("./pages/teacher/SessionHistory"));
 
 // Student Pages
-import StudentDashboard from "./pages/student/StudentDashboard";
-import ScanAttendance from "./pages/student/ScanAttendance";
-import MyAttendance from "./pages/student/MyAttendance";
+const StudentDashboard = lazy(() => import("./pages/student/StudentDashboard"));
+const ScanAttendance = lazy(() => import("./pages/student/ScanAttendance"));
+const MyAttendance = lazy(() => import("./pages/student/MyAttendance"));
 
 // Common Pages
-import Reports from "./pages/common/Reports";
-import Profile from "./pages/common/Profile";
+const Reports = lazy(() => import("./pages/common/Reports"));
+const Profile = lazy(() => import("./pages/common/Profile"));
 
 // Layout wrapper component
 function Layout({ children }) {
@@ -57,7 +57,9 @@ function Layout({ children }) {
   return (
     <>
       {showNavbar && <Navbar />}
-      {children}
+      <Suspense fallback={<div className="min-h-screen bg-gray-50" />}>
+        {children}
+      </Suspense>
     </>
   );
 }

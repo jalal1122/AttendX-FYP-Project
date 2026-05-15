@@ -8,6 +8,11 @@ import Card from "../../components/ui/Card";
 import Modal from "../../components/ui/Modal";
 import Input from "../../components/ui/Input";
 import sessionAPI from "../../services/sessionAPI";
+import {
+  DEPARTMENT_OPTIONS,
+  SEMESTER_OPTIONS,
+  getBatchOptions,
+} from "../../constants/academicOptions";
 
 const TeacherDashboard = () => {
   const navigate = useNavigate();
@@ -25,6 +30,7 @@ const TeacherDashboard = () => {
   });
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const batchOptions = getBatchOptions();
 
   useEffect(() => {
     fetchClasses();
@@ -246,34 +252,64 @@ const TeacherDashboard = () => {
             required
           />
 
-          <Input
-            label="Department"
-            name="department"
-            value={formData.department}
-            onChange={handleInputChange}
-            placeholder="e.g., Computer Science"
-            required
-          />
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Department
+            </label>
+            <select
+              name="department"
+              value={formData.department}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              required
+            >
+              <option value="">Select Department</option>
+              {DEPARTMENT_OPTIONS.map((department) => (
+                <option key={department} value={department}>
+                  {department}
+                </option>
+              ))}
+            </select>
+          </div>
 
-          <Input
-            label="Semester"
-            name="semester"
-            type="number"
-            min="1"
-            max="8"
-            value={formData.semester}
-            onChange={handleInputChange}
-            placeholder="1-8"
-            required
-          />
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Semester
+            </label>
+            <select
+              name="semester"
+              value={formData.semester}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              required
+            >
+              <option value="">Select Semester</option>
+              {SEMESTER_OPTIONS.map((semester) => (
+                <option key={semester} value={semester}>
+                  Semester {semester}
+                </option>
+              ))}
+            </select>
+          </div>
 
-          <Input
-            label="Batch"
-            name="batch"
-            value={formData.batch}
-            onChange={handleInputChange}
-            placeholder="e.g., 2021-2025"
-          />
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Batch
+            </label>
+            <select
+              name="batch"
+              value={formData.batch}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+            >
+              <option value="">Select Batch</option>
+              {batchOptions.map((batch) => (
+                <option key={batch} value={batch}>
+                  {batch}
+                </option>
+              ))}
+            </select>
+          </div>
 
           <Input
             label="Academic Year"
