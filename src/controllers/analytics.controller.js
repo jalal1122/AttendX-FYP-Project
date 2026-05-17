@@ -896,7 +896,7 @@ export const exportReport = asyncHandler(async (req, res) => {
 
       // Fetch class with populated students
       const classData = await Class.findById(targetId)
-        .populate("students", "name rollNumber")
+        .populate("students", "name info")
         .populate("teacher", "name email")
         .select("name code teacher department semester batch academicYear room section students")
         .lean();
@@ -912,7 +912,7 @@ export const exportReport = asyncHandler(async (req, res) => {
 
       if (
         req.user.role === "teacher" &&
-        classData.teacher.toString() !== req.user._id.toString()
+        classData.teacher?._id?.toString() !== req.user._id.toString()
       ) {
         throw ApiError.forbidden("You can only export reports for your own classes");
       }
@@ -934,7 +934,7 @@ export const exportReport = asyncHandler(async (req, res) => {
       const attendanceRecords = await Attendance.find({
         sessionId: { $in: sessionIds },
       })
-        .populate("studentId", "name rollNumber")
+        .populate("studentId", "name info")
         .lean();
 
       // Create attendance map

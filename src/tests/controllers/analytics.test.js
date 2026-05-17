@@ -623,6 +623,29 @@ describe("GET /api/v1/analytics/export", () => {
     expect(response.body.length).toBeGreaterThan(0);
   });
 
+  test("exports a class matrix as XLSX for the owning teacher", async () => {
+    const response = await api()
+      .get("/api/v1/analytics/export")
+      .set("Authorization", `Bearer ${teacherToken}`)
+      .query({
+        type: "class_matrix",
+        format: "xlsx",
+        targetId: alphaClass._id.toString(),
+        range: "semester",
+      })
+      .buffer(true)
+      .parse(binaryParser);
+
+    expect(response.statusCode).toBe(200);
+    expect(response.headers["content-type"]).toContain(
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    );
+    expect(response.headers["content-disposition"]).toContain(
+      `filename="${alphaClass.code}_Attendance_`,
+    );
+    expect(response.body.length).toBeGreaterThan(0);
+  });
+
   test("exports a student transcript as CSV for the student themselves", async () => {
     const response = await api()
       .get("/api/v1/analytics/export")
@@ -639,6 +662,8 @@ describe("GET /api/v1/analytics/export", () => {
     expect(response.headers["content-type"]).toContain("text/csv");
     const csvText = response.text || response.body.toString("utf8");
     expect(csvText).toContain("Student Attendance Transcript");
+    expect(csvText).toContain("Roll Number:,CS-001");
+    expect(csvText).toContain("Department:,Computer Science");
     expect(csvText).toContain("Algorithms");
     expect(csvText).toContain("Databases");
   });

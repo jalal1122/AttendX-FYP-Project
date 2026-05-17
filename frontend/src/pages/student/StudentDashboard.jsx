@@ -49,11 +49,13 @@ const StudentDashboard = () => {
 
     try {
       const response = await classAPI.joinClass(joinCode.trim().toUpperCase());
-      setSuccess(`Successfully joined ${response.data.name}!`);
+      const joinedClass = response.data?.class || response.data;
+
+      setSuccess(`Successfully joined ${joinedClass?.name || "the class"}!`);
       setJoinCode("");
 
       // Add the joined class to the list
-      setClasses([response.data, ...classes]);
+      setClasses((currentClasses) => [joinedClass, ...currentClasses]);
     } catch (error) {
       setError(error.response?.data?.message || "Failed to join class");
     } finally {

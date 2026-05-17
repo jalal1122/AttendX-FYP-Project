@@ -32,6 +32,21 @@ class ExportService {
     return columnName;
   }
 
+  static getStudentProfile(student = {}) {
+    const info = student.info || {};
+
+    return {
+      rollNo:
+        student.rollNumber ||
+        student.rollNo ||
+        info.rollNumber ||
+        info.rollNo ||
+        "N/A",
+      department: student.department || info.department || "N/A",
+      semester: student.semester || info.semester || "N/A",
+    };
+  }
+
   /**
    * Generate Class Attendance Matrix (Excel or CSV)
    * Rows = Students, Columns = Dates
@@ -151,6 +166,7 @@ class ExportService {
 
     // Data Rows
     classData.students.forEach((student) => {
+      const { rollNo } = this.getStudentProfile(student);
       const studentAttendance = sortedSessions.map((session) => {
         const key = `${session._id}_${student._id}`;
         const record = attendanceMap[key];
@@ -163,7 +179,7 @@ class ExportService {
         sortedSessions.length > 0 ? ((presentCount / sortedSessions.length) * 100).toFixed(2) : 0;
 
       const dataRow = worksheet.addRow([
-        student.rollNumber || "N/A",
+        rollNo,
         student.name,
         ...studentAttendance,
         presentCount,
@@ -291,6 +307,7 @@ class ExportService {
 
     // Data rows
     classData.students.forEach((student) => {
+      const { rollNo } = this.getStudentProfile(student);
       const studentAttendance = sortedSessions.map((session) => {
         const key = `${session._id}_${student._id}`;
         const record = attendanceMap[key];
@@ -302,7 +319,7 @@ class ExportService {
       const attendancePercentage =
         sortedSessions.length > 0 ? ((presentCount / sortedSessions.length) * 100).toFixed(2) : 0;
 
-      csv += `${student.rollNumber || "N/A"},${student.name},${studentAttendance.join(",")},${presentCount},${absentCount},${attendancePercentage}%\n`;
+      csv += `${rollNo},${student.name},${studentAttendance.join(",")},${presentCount},${absentCount},${attendancePercentage}%\n`;
     });
 
     return csv;
@@ -325,6 +342,7 @@ class ExportService {
   static async generateStudentTranscriptExcel(student, classesData) {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet("Student Transcript");
+    const profile = this.getStudentProfile(student);
 
     // Title Row
     worksheet.mergeCells("A1:F1");
@@ -342,9 +360,9 @@ class ExportService {
     // Student Info
     worksheet.addRow([]);
     worksheet.addRow(["Student Name:", student.name]);
-    worksheet.addRow(["Roll Number:", student.rollNumber || "N/A"]);
-    worksheet.addRow(["Department:", student.department || "N/A"]);
-    worksheet.addRow(["Semester:", student.semester || "N/A"]);
+    worksheet.addRow(["Roll Number:", profile.rollNo]);
+    worksheet.addRow(["Department:", profile.department]);
+    worksheet.addRow(["Semester:", profile.semester]);
     worksheet.addRow(["Generated on:", moment().format("MMMM DD, YYYY [at] HH:mm")]);
     worksheet.addRow([]);
 
@@ -473,9 +491,10 @@ class ExportService {
   static generateStudentTranscriptCSV(student, classesData) {
     let csv = `Student Attendance Transcript\n\n`;
     csv += `Student Name:,${student.name}\n`;
-    csv += `Roll Number:,${student.rollNumber || "N/A"}\n`;
-    csv += `Department:,${student.department || "N/A"}\n`;
-    csv += `Semester:,${student.semester || "N/A"}\n`;
+    const profile = this.getStudentProfile(student);
+    csv += `Roll Number:,${profile.rollNo}\n`;
+    csv += `Department:,${profile.department}\n`;
+    csv += `Semester:,${profile.semester}\n`;
     csv += `Generated on:,${moment().format("MMMM DD, YYYY [at] HH:mm")}\n\n`;
 
     csv += `Class Name,Class Code,Total Sessions,Present,Absent,Attendance %\n`;
