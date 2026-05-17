@@ -224,11 +224,11 @@ See `PHASE_14_FINAL_POLISH.md` for complete details.
 
 **Final Year Project - Agriculture University Peshawar**
 
-| Member | Role | ID |
-| :--- | :--- | :--- |
-| **Muhammad Jalal** | Full Stack Developer | `2022-Agr-U-50775` |
-| **Anis Riaz** | Mern Stack Developer | `2022-Agr-U-50541` |
-| **Mahnoor Zafar** | Frontend Developer | `2022-Agr-U-50788` |
+| Member | Role |
+| :--- | :--- |
+| **Muhammad Jalal** | Full Stack Developer |
+| **Anis Riaz** | Mern Stack Developer |
+| **Mahnoor Zafar** | Frontend Developer |
 
 -----
 
