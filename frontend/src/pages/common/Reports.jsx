@@ -336,9 +336,9 @@ const Reports = () => {
       const classResponse = await classAPI.getClassDetails(classId);
       setClassData(classResponse.data);
 
-      // Fetch analytics using effective class id
+      // Fetch analytics using the current class id from the route
       const analyticsResponse = await analyticsAPI.getClassAnalytics(
-        effectiveClassId,
+        classId,
         period,
         dateRange.startDate,
         dateRange.endDate
@@ -348,7 +348,7 @@ const Reports = () => {
       setAnalytics(analyticsResponse?.data || analyticsResponse);
 
       // Fetch defaulters
-      const defaultersResponse = await analyticsAPI.getDefaulters(effectiveClassId, 75);
+      const defaultersResponse = await analyticsAPI.getDefaulters(classId, 75);
       setDefaulters(defaultersResponse.data.defaulters || []);
 
       setLoading(false);
@@ -382,7 +382,7 @@ const Reports = () => {
     if (!analytics?.trends) return [];
 
     return analytics.trends
-      .map((trend, index) => {
+      .map((trend) => {
         const identifier = trend._id || trend.weekNumber || trend.month;
 
         // Skip entries without valid identifier

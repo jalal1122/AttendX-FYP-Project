@@ -245,6 +245,18 @@ export const getClassAnalytics = asyncHandler(async (req, res) => {
   const { classId } = req.params;
   const { startDate, endDate } = req.query;
 
+  const startOfDay = (value) => {
+    const date = new Date(value);
+    date.setHours(0, 0, 0, 0);
+    return date;
+  };
+
+  const endOfDay = (value) => {
+    const date = new Date(value);
+    date.setHours(23, 59, 59, 999);
+    return date;
+  };
+
   // Validate class exists
   const classDoc = await Class.findById(classId)
     .populate("teacher", "name email")
@@ -265,12 +277,12 @@ export const getClassAnalytics = asyncHandler(async (req, res) => {
   // Build date filter
   const dateFilter = {};
   if (startDate || endDate) {
-    dateFilter.createdAt = {};
+    dateFilter.date = {};
     if (startDate) {
-      dateFilter.createdAt.$gte = new Date(startDate);
+      dateFilter.date.$gte = startOfDay(startDate);
     }
     if (endDate) {
-      dateFilter.createdAt.$lte = new Date(endDate);
+      dateFilter.date.$lte = endOfDay(endDate);
     }
   }
 

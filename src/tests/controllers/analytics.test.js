@@ -423,6 +423,30 @@ describe("GET /api/v1/analytics/class/:classId", () => {
     expect(response.body.data.monthlyTrends.length).toBeGreaterThanOrEqual(1);
   });
 
+  test("returns the same attendance totals when filtered by the current month range", async () => {
+    const startDate = dayOffset(7).toISOString().split("T")[0];
+    const endDate = dayOffset(0).toISOString().split("T")[0];
+
+    const response = await api()
+      .get(`/api/v1/analytics/class/${alphaClass._id}`)
+      .set("Authorization", `Bearer ${teacherToken}`)
+      .query({
+        period: "monthly",
+        startDate,
+        endDate,
+      });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.body.success).toBe(true);
+    expect(response.body.data.overallStats).toMatchObject({
+      totalPresent: 3,
+      totalAbsent: 2,
+      totalLate: 1,
+      totalLeave: 0,
+    });
+    expect(response.body.data.trends.length).toBeGreaterThanOrEqual(1);
+  });
+
   test("returns 404 when the class does not exist", async () => {
     const missingClassId = new mongoose.Types.ObjectId();
 
