@@ -86,7 +86,7 @@ const Reports = () => {
       const detailedResponse = await analyticsAPI.getDetailedAttendance(
         classId,
         dateRange.startDate,
-        dateRange.endDate
+        dateRange.endDate,
       );
       detailedData = detailedResponse?.data || detailedResponse;
     } catch (error) {
@@ -109,7 +109,10 @@ const Reports = () => {
       ["Teacher:", analytics.class?.teacher?.name || "N/A"],
       ["Teacher Email:", analytics.class?.teacher?.email || "N/A"],
       ["Report Period:", period],
-      ["Date Range:", `${dateRange.startDate || "N/A"} to ${dateRange.endDate || "N/A"}`],
+      [
+        "Date Range:",
+        `${dateRange.startDate || "N/A"} to ${dateRange.endDate || "N/A"}`,
+      ],
       ["Report Generated:", currentDate],
       [""],
       ["Attendance Summary"],
@@ -232,7 +235,7 @@ const Reports = () => {
       const detailedResponse = await analyticsAPI.getDetailedAttendance(
         classId,
         dateRange.startDate,
-        dateRange.endDate
+        dateRange.endDate,
       );
       detailedData = detailedResponse?.data || detailedResponse;
     } catch (error) {
@@ -312,7 +315,7 @@ const Reports = () => {
           return "-";
         });
         csvContent += `${student.studentName},${student.rollNo},${statuses.join(
-          ","
+          ",",
         )}\n`;
       });
     }
@@ -341,7 +344,7 @@ const Reports = () => {
         classId,
         period,
         dateRange.startDate,
-        dateRange.endDate
+        dateRange.endDate,
       );
       console.log("Analytics response:", analyticsResponse);
       console.log("Analytics data:", analyticsResponse?.data);
