@@ -110,7 +110,7 @@ const ClassDetails = () => {
       navigate(`/teacher/session/${sessionId}/edit`);
     } catch (error) {
       setError(
-        error.response?.data?.message || "Failed to create retroactive session"
+        error.response?.data?.message || "Failed to create retroactive session",
       );
     }
   };
@@ -118,7 +118,7 @@ const ClassDetails = () => {
   const handleRemoveStudent = async (studentId, studentName) => {
     if (
       !window.confirm(
-        `Are you sure you want to remove ${studentName} from this class? Their past attendance records will be preserved.`
+        `Are you sure you want to remove ${studentName} from this class? Their past attendance records will be preserved.`,
       )
     ) {
       return;
@@ -200,7 +200,10 @@ const ClassDetails = () => {
               </h1>
               <p className="mt-1 text-sm text-gray-600">
                 {classData?.code} • {classData?.department} • Semester{" "}
-                {classData?.semester}
+                {classData?.semester} • ID: {classData?._id}
+              </p>
+              <p className="mt-1 text-xs text-gray-500">
+                Teacher ID: {classData?.teacher?._id || "N/A"}
               </p>
             </div>
             <div className="flex gap-3">
@@ -374,15 +377,15 @@ const ClassDetails = () => {
                               session.active
                                 ? "bg-success-100 text-success-700"
                                 : session.isRetroactive
-                                ? "bg-yellow-100 text-yellow-700"
-                                : "bg-gray-100 text-gray-700"
+                                  ? "bg-yellow-100 text-yellow-700"
+                                  : "bg-gray-100 text-gray-700"
                             }`}
                           >
                             {session.active
                               ? "Live"
                               : session.isRetroactive
-                              ? "Manual"
-                              : "Ended"}
+                                ? "Manual"
+                                : "Ended"}
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
@@ -426,6 +429,9 @@ const ClassDetails = () => {
                         Name
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                        Student ID
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                         Email
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
@@ -441,6 +447,9 @@ const ClassDetails = () => {
                       <tr key={student._id} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                           {student.name}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {student._id}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {student.email}

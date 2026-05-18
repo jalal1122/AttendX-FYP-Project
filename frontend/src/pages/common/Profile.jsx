@@ -49,8 +49,8 @@ const Profile = () => {
                     user.role === "admin"
                       ? "bg-purple-100 text-purple-700"
                       : user.role === "teacher"
-                      ? "bg-blue-100 text-blue-700"
-                      : "bg-green-100 text-green-700"
+                        ? "bg-blue-100 text-blue-700"
+                        : "bg-green-100 text-green-700"
                   }`}
                 >
                   {user.role?.charAt(0).toUpperCase() + user.role?.slice(1)}
@@ -62,6 +62,12 @@ const Profile = () => {
                   Account Information
                 </h3>
                 <dl className="space-y-2">
+                  <div>
+                    <dt className="text-sm text-gray-600">User ID</dt>
+                    <dd className="text-sm font-medium text-gray-900 break-all">
+                      {user._id}
+                    </dd>
+                  </div>
                   {user.info?.rollNo && (
                     <div>
                       <dt className="text-sm text-gray-600">Roll Number</dt>

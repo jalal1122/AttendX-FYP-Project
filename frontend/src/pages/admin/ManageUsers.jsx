@@ -65,7 +65,7 @@ const ManageUsers = () => {
   const handleResetDevice = async (userId, userName) => {
     if (
       !window.confirm(
-        `Reset device binding for ${userName}? They will be able to bind a new device on next attendance.`
+        `Reset device binding for ${userName}? They will be able to bind a new device on next attendance.`,
       )
     ) {
       return;
@@ -125,7 +125,7 @@ const ManageUsers = () => {
     const roles = ["student", "teacher", "admin"];
     const newRole = window.prompt(
       `Change role for this user.\nCurrent: ${currentRole}\nEnter new role (student/teacher/admin):`,
-      currentRole
+      currentRole,
     );
 
     if (!newRole || newRole === currentRole) return;
@@ -259,6 +259,9 @@ const ManageUsers = () => {
                     Name
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    User ID
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Email
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -280,13 +283,16 @@ const ManageUsers = () => {
                         {user.name}
                       </div>
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 break-all">
+                      {user._id}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-500">{user.email}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
                         className={`px-2 py-1 text-xs font-medium rounded ${getRoleBadgeColor(
-                          user.role
+                          user.role,
                         )}`}
                       >
                         {user.role}
@@ -365,6 +371,13 @@ const ManageUsers = () => {
         >
           <form onSubmit={handleUpdateUser}>
             <div className="space-y-4">
+              <Input
+                label="User ID"
+                value={editingUser?._id || ""}
+                disabled
+                className="bg-gray-100 cursor-not-allowed break-all"
+              />
+
               {/* Email (Read-only) */}
               <Input
                 label="Email (Cannot be changed)"

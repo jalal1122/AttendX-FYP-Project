@@ -34,6 +34,12 @@ const attendanceSchema = new mongoose.Schema(
       type: String,
       index: true,
     },
+    // Optional section identifier (stores section code or name)
+    section: {
+      type: String,
+      trim: true,
+      index: true,
+    },
     date: {
       type: Date,
       required: [true, "Date is required"],
@@ -56,7 +62,7 @@ const attendanceSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // Compound unique index to prevent double marking

@@ -51,7 +51,12 @@ class ExportService {
    * Generate Class Attendance Matrix (Excel or CSV)
    * Rows = Students, Columns = Dates
    */
-  static async generateClassMatrix(classData, sessions, attendanceMap, format = "xlsx") {
+  static async generateClassMatrix(
+    classData,
+    sessions,
+    attendanceMap,
+    format = "xlsx",
+  ) {
     if (format === "csv") {
       return this.generateClassMatrixCSV(classData, sessions, attendanceMap);
     } else {
@@ -67,7 +72,9 @@ class ExportService {
     const worksheet = workbook.addWorksheet("Attendance Register");
 
     // Sort sessions by date
-    const sortedSessions = sessions.sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
+    const sortedSessions = sessions.sort(
+      (a, b) => new Date(a.startTime) - new Date(b.startTime),
+    );
 
     const teacherName =
       typeof classData.teacher === "object"
@@ -78,7 +85,7 @@ class ExportService {
     const dateRange =
       sortedSessions.length > 0
         ? `${moment(firstSession.startTime).format("DD MMM YYYY")} - ${moment(
-            lastSession.startTime
+            lastSession.startTime,
           ).format("DD MMM YYYY")}`
         : "N/A";
     const lastColumn = this.toExcelColumnName(sortedSessions.length + 6);
@@ -87,7 +94,11 @@ class ExportService {
     worksheet.mergeCells(`A1:${lastColumn}1`);
     const titleCell = worksheet.getCell("A1");
     titleCell.value = `${classData.name} (${classData.code}) - Attendance Register`;
-    titleCell.font = { size: 16, bold: true, color: { argb: "FF" + this.COLORS.headerBg } };
+    titleCell.font = {
+      size: 16,
+      bold: true,
+      color: { argb: "FF" + this.COLORS.headerBg },
+    };
     titleCell.alignment = { horizontal: "center", vertical: "middle" };
     titleCell.fill = {
       type: "pattern",
@@ -104,7 +115,12 @@ class ExportService {
     dateCell.alignment = { horizontal: "center" };
     worksheet.getRow(2).height = 20;
 
-    worksheet.addRow(["Teacher", teacherName, "Department", classData.department || "N/A"]);
+    worksheet.addRow([
+      "Teacher",
+      teacherName,
+      "Department",
+      classData.department || "N/A",
+    ]);
     worksheet.addRow([
       "Class",
       classData.name || "N/A",
@@ -148,7 +164,10 @@ class ExportService {
 
     // Style header
     headerRow.eachCell((cell) => {
-      cell.font = { bold: true, color: { argb: "FF" + this.COLORS.headerText } };
+      cell.font = {
+        bold: true,
+        color: { argb: "FF" + this.COLORS.headerText },
+      };
       cell.fill = {
         type: "pattern",
         pattern: "solid",
@@ -173,10 +192,16 @@ class ExportService {
         return record ? record.status : "Absent";
       });
 
-      const presentCount = studentAttendance.filter((s) => s === "Present").length;
-      const absentCount = studentAttendance.filter((s) => s === "Absent").length;
+      const presentCount = studentAttendance.filter(
+        (s) => s === "Present",
+      ).length;
+      const absentCount = studentAttendance.filter(
+        (s) => s === "Absent",
+      ).length;
       const attendancePercentage =
-        sortedSessions.length > 0 ? ((presentCount / sortedSessions.length) * 100).toFixed(2) : 0;
+        sortedSessions.length > 0
+          ? ((presentCount / sortedSessions.length) * 100).toFixed(2)
+          : 0;
 
       const dataRow = worksheet.addRow([
         rollNo,
@@ -206,21 +231,30 @@ class ExportService {
               pattern: "solid",
               fgColor: { argb: "FF" + this.COLORS.presentBg },
             };
-            cell.font = { color: { argb: "FF" + this.COLORS.presentText }, bold: true };
+            cell.font = {
+              color: { argb: "FF" + this.COLORS.presentText },
+              bold: true,
+            };
           } else if (status === "Absent") {
             cell.fill = {
               type: "pattern",
               pattern: "solid",
               fgColor: { argb: "FF" + this.COLORS.absentBg },
             };
-            cell.font = { color: { argb: "FF" + this.COLORS.absentText }, bold: true };
+            cell.font = {
+              color: { argb: "FF" + this.COLORS.absentText },
+              bold: true,
+            };
           } else if (status === "Pending") {
             cell.fill = {
               type: "pattern",
               pattern: "solid",
               fgColor: { argb: "FF" + this.COLORS.pendingBg },
             };
-            cell.font = { color: { argb: "FF" + this.COLORS.pendingText }, bold: true };
+            cell.font = {
+              color: { argb: "FF" + this.COLORS.pendingText },
+              bold: true,
+            };
           }
         }
 
@@ -233,14 +267,20 @@ class ExportService {
               pattern: "solid",
               fgColor: { argb: "FF" + this.COLORS.absentBg },
             };
-            cell.font = { color: { argb: "FF" + this.COLORS.absentText }, bold: true };
+            cell.font = {
+              color: { argb: "FF" + this.COLORS.absentText },
+              bold: true,
+            };
           } else {
             cell.fill = {
               type: "pattern",
               pattern: "solid",
               fgColor: { argb: "FF" + this.COLORS.presentBg },
             };
-            cell.font = { color: { argb: "FF" + this.COLORS.presentText }, bold: true };
+            cell.font = {
+              color: { argb: "FF" + this.COLORS.presentText },
+              bold: true,
+            };
           }
         }
       });
@@ -267,7 +307,9 @@ class ExportService {
    * Generate Class Matrix as CSV
    */
   static generateClassMatrixCSV(classData, sessions, attendanceMap) {
-    const sortedSessions = sessions.sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
+    const sortedSessions = sessions.sort(
+      (a, b) => new Date(a.startTime) - new Date(b.startTime),
+    );
     const teacherName =
       typeof classData.teacher === "object"
         ? classData.teacher?.name || "N/A"
@@ -277,7 +319,7 @@ class ExportService {
     const dateRange =
       sortedSessions.length > 0
         ? `${moment(firstSession.startTime).format("DD MMM YYYY")} - ${moment(
-            lastSession.startTime
+            lastSession.startTime,
           ).format("DD MMM YYYY")}`
         : "N/A";
 
@@ -314,10 +356,16 @@ class ExportService {
         return record ? record.status : "Absent";
       });
 
-      const presentCount = studentAttendance.filter((s) => s === "Present").length;
-      const absentCount = studentAttendance.filter((s) => s === "Absent").length;
+      const presentCount = studentAttendance.filter(
+        (s) => s === "Present",
+      ).length;
+      const absentCount = studentAttendance.filter(
+        (s) => s === "Absent",
+      ).length;
       const attendancePercentage =
-        sortedSessions.length > 0 ? ((presentCount / sortedSessions.length) * 100).toFixed(2) : 0;
+        sortedSessions.length > 0
+          ? ((presentCount / sortedSessions.length) * 100).toFixed(2)
+          : 0;
 
       csv += `${rollNo},${student.name},${studentAttendance.join(",")},${presentCount},${absentCount},${attendancePercentage}%\n`;
     });
@@ -328,7 +376,11 @@ class ExportService {
   /**
    * Generate Student Transcript (All classes)
    */
-  static async generateStudentTranscript(student, classesData, format = "xlsx") {
+  static async generateStudentTranscript(
+    student,
+    classesData,
+    format = "xlsx",
+  ) {
     if (format === "csv") {
       return this.generateStudentTranscriptCSV(student, classesData);
     } else {
@@ -348,7 +400,11 @@ class ExportService {
     worksheet.mergeCells("A1:F1");
     const titleCell = worksheet.getCell("A1");
     titleCell.value = `Student Attendance Transcript`;
-    titleCell.font = { size: 16, bold: true, color: { argb: "FF" + this.COLORS.headerBg } };
+    titleCell.font = {
+      size: 16,
+      bold: true,
+      color: { argb: "FF" + this.COLORS.headerBg },
+    };
     titleCell.alignment = { horizontal: "center", vertical: "middle" };
     titleCell.fill = {
       type: "pattern",
@@ -363,7 +419,10 @@ class ExportService {
     worksheet.addRow(["Roll Number:", profile.rollNo]);
     worksheet.addRow(["Department:", profile.department]);
     worksheet.addRow(["Semester:", profile.semester]);
-    worksheet.addRow(["Generated on:", moment().format("MMMM DD, YYYY [at] HH:mm")]);
+    worksheet.addRow([
+      "Generated on:",
+      moment().format("MMMM DD, YYYY [at] HH:mm"),
+    ]);
     worksheet.addRow([]);
 
     // Header Row
@@ -377,7 +436,10 @@ class ExportService {
     ]);
 
     headerRow.eachCell((cell) => {
-      cell.font = { bold: true, color: { argb: "FF" + this.COLORS.headerText } };
+      cell.font = {
+        bold: true,
+        color: { argb: "FF" + this.COLORS.headerText },
+      };
       cell.fill = {
         type: "pattern",
         pattern: "solid",
@@ -428,14 +490,20 @@ class ExportService {
               pattern: "solid",
               fgColor: { argb: "FF" + this.COLORS.absentBg },
             };
-            cell.font = { color: { argb: "FF" + this.COLORS.absentText }, bold: true };
+            cell.font = {
+              color: { argb: "FF" + this.COLORS.absentText },
+              bold: true,
+            };
           } else {
             cell.fill = {
               type: "pattern",
               pattern: "solid",
               fgColor: { argb: "FF" + this.COLORS.presentBg },
             };
-            cell.font = { color: { argb: "FF" + this.COLORS.presentText }, bold: true };
+            cell.font = {
+              color: { argb: "FF" + this.COLORS.presentText },
+              bold: true,
+            };
           }
         }
       });
@@ -443,7 +511,8 @@ class ExportService {
 
     // Summary row
     worksheet.addRow([]);
-    const overallPercentage = totalSessions > 0 ? (totalPresent / totalSessions) * 100 : 0;
+    const overallPercentage =
+      totalSessions > 0 ? (totalPresent / totalSessions) * 100 : 0;
     const summaryRow = worksheet.addRow([
       "Overall",
       "",
@@ -510,7 +579,8 @@ class ExportService {
       totalAbsent += classInfo.absentCount;
     });
 
-    const overallPercentage = totalSessions > 0 ? (totalPresent / totalSessions) * 100 : 0;
+    const overallPercentage =
+      totalSessions > 0 ? (totalPresent / totalSessions) * 100 : 0;
     csv += `\nOverall,,${totalSessions},${totalPresent},${totalAbsent},${overallPercentage.toFixed(2)}%\n`;
 
     return csv;
@@ -538,7 +608,11 @@ class ExportService {
     worksheet.mergeCells("A1:G1");
     const titleCell = worksheet.getCell("A1");
     titleCell.value = `Department-wise Attendance Summary`;
-    titleCell.font = { size: 16, bold: true, color: { argb: "FF" + this.COLORS.headerBg } };
+    titleCell.font = {
+      size: 16,
+      bold: true,
+      color: { argb: "FF" + this.COLORS.headerBg },
+    };
     titleCell.alignment = { horizontal: "center", vertical: "middle" };
     titleCell.fill = {
       type: "pattern",
@@ -548,7 +622,10 @@ class ExportService {
     worksheet.getRow(1).height = 30;
 
     worksheet.addRow([]);
-    worksheet.addRow(["Generated on:", moment().format("MMMM DD, YYYY [at] HH:mm")]);
+    worksheet.addRow([
+      "Generated on:",
+      moment().format("MMMM DD, YYYY [at] HH:mm"),
+    ]);
     worksheet.addRow([]);
 
     // Header
@@ -563,7 +640,10 @@ class ExportService {
     ]);
 
     headerRow.eachCell((cell) => {
-      cell.font = { bold: true, color: { argb: "FF" + this.COLORS.headerText } };
+      cell.font = {
+        bold: true,
+        color: { argb: "FF" + this.COLORS.headerText },
+      };
       cell.fill = {
         type: "pattern",
         pattern: "solid",
@@ -580,7 +660,12 @@ class ExportService {
 
     // Data rows
     departmentData.forEach((dept) => {
-      const status = dept.avgAttendance >= 75 ? "Good" : dept.avgAttendance >= 60 ? "Fair" : "Poor";
+      const status =
+        dept.avgAttendance >= 75
+          ? "Good"
+          : dept.avgAttendance >= 60
+            ? "Fair"
+            : "Poor";
 
       const dataRow = worksheet.addRow([
         dept.department,
@@ -609,21 +694,30 @@ class ExportService {
               pattern: "solid",
               fgColor: { argb: "FF" + this.COLORS.absentBg },
             };
-            cell.font = { color: { argb: "FF" + this.COLORS.absentText }, bold: true };
+            cell.font = {
+              color: { argb: "FF" + this.COLORS.absentText },
+              bold: true,
+            };
           } else if (percentage < 75) {
             cell.fill = {
               type: "pattern",
               pattern: "solid",
               fgColor: { argb: "FF" + this.COLORS.pendingBg },
             };
-            cell.font = { color: { argb: "FF" + this.COLORS.pendingText }, bold: true };
+            cell.font = {
+              color: { argb: "FF" + this.COLORS.pendingText },
+              bold: true,
+            };
           } else {
             cell.fill = {
               type: "pattern",
               pattern: "solid",
               fgColor: { argb: "FF" + this.COLORS.presentBg },
             };
-            cell.font = { color: { argb: "FF" + this.COLORS.presentText }, bold: true };
+            cell.font = {
+              color: { argb: "FF" + this.COLORS.presentText },
+              bold: true,
+            };
           }
         }
 
@@ -634,21 +728,30 @@ class ExportService {
               pattern: "solid",
               fgColor: { argb: "FF" + this.COLORS.presentBg },
             };
-            cell.font = { color: { argb: "FF" + this.COLORS.presentText }, bold: true };
+            cell.font = {
+              color: { argb: "FF" + this.COLORS.presentText },
+              bold: true,
+            };
           } else if (status === "Fair") {
             cell.fill = {
               type: "pattern",
               pattern: "solid",
               fgColor: { argb: "FF" + this.COLORS.pendingBg },
             };
-            cell.font = { color: { argb: "FF" + this.COLORS.pendingText }, bold: true };
+            cell.font = {
+              color: { argb: "FF" + this.COLORS.pendingText },
+              bold: true,
+            };
           } else {
             cell.fill = {
               type: "pattern",
               pattern: "solid",
               fgColor: { argb: "FF" + this.COLORS.absentBg },
             };
-            cell.font = { color: { argb: "FF" + this.COLORS.absentText }, bold: true };
+            cell.font = {
+              color: { argb: "FF" + this.COLORS.absentText },
+              bold: true,
+            };
           }
         }
       });
@@ -679,7 +782,12 @@ class ExportService {
     csv += `Department,Total Classes,Total Students,Total Sessions,Avg Attendance %,Defaulters (<75%),Status\n`;
 
     departmentData.forEach((dept) => {
-      const status = dept.avgAttendance >= 75 ? "Good" : dept.avgAttendance >= 60 ? "Fair" : "Poor";
+      const status =
+        dept.avgAttendance >= 75
+          ? "Good"
+          : dept.avgAttendance >= 60
+            ? "Fair"
+            : "Poor";
       csv += `${dept.department},${dept.totalClasses},${dept.totalStudents},${dept.totalSessions},${dept.avgAttendance.toFixed(2)}%,${dept.defaulters},${status}\n`;
     });
 

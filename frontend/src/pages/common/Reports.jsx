@@ -336,9 +336,9 @@ const Reports = () => {
       const classResponse = await classAPI.getClassDetails(classId);
       setClassData(classResponse.data);
 
-      // Fetch analytics
+      // Fetch analytics using effective class id
       const analyticsResponse = await analyticsAPI.getClassAnalytics(
-        classId,
+        effectiveClassId,
         period,
         dateRange.startDate,
         dateRange.endDate
@@ -348,7 +348,7 @@ const Reports = () => {
       setAnalytics(analyticsResponse?.data || analyticsResponse);
 
       // Fetch defaulters
-      const defaultersResponse = await analyticsAPI.getDefaulters(classId, 75);
+      const defaultersResponse = await analyticsAPI.getDefaulters(effectiveClassId, 75);
       setDefaulters(defaultersResponse.data.defaulters || []);
 
       setLoading(false);

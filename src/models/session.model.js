@@ -75,7 +75,7 @@ const sessionSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // Indexes for faster queries

@@ -154,7 +154,7 @@ export const getStudentReport = asyncHandler(async (req, res) => {
 
   // Flag low attendance subjects (< 75%)
   const lowAttendanceSubjects = subjectWiseReport.filter(
-    (subject) => subject.attendancePercentage < 75
+    (subject) => subject.attendancePercentage < 75,
   );
 
   // Get recent sessions/attendance records
@@ -232,8 +232,8 @@ export const getStudentReport = asyncHandler(async (req, res) => {
           lowAttendanceSubjects,
         },
       },
-      "Student report generated successfully"
-    )
+      "Student report generated successfully",
+    ),
   );
 });
 
@@ -438,12 +438,13 @@ export const getClassAnalytics = asyncHandler(async (req, res) => {
     },
   ]);
 
-  const [overallStats, weeklyTrends, monthlyTrends, totalSessions] = await Promise.all([
-    overallStatsPromise,
-    weeklyTrendsPromise,
-    monthlyTrendsPromise,
-    Session.countDocuments({ classId }),
-  ]);
+  const [overallStats, weeklyTrends, monthlyTrends, totalSessions] =
+    await Promise.all([
+      overallStatsPromise,
+      weeklyTrendsPromise,
+      monthlyTrendsPromise,
+      Session.countDocuments({ classId }),
+    ]);
 
   // Get the period parameter from query
   const { period = "weekly" } = req.query;
@@ -488,8 +489,8 @@ export const getClassAnalytics = asyncHandler(async (req, res) => {
         weeklyTrends,
         monthlyTrends,
       },
-      "Class analytics retrieved successfully"
-    )
+      "Class analytics retrieved successfully",
+    ),
   );
 });
 
@@ -504,7 +505,7 @@ export const getDefaulters = asyncHandler(async (req, res) => {
   // Validate class exists
   const classDoc = await Class.findById(classId).populate(
     "students",
-    "name email info"
+    "name email info",
   );
   if (!classDoc) {
     throw ApiError.notFound("Class not found");
@@ -530,8 +531,8 @@ export const getDefaulters = asyncHandler(async (req, res) => {
           defaulters: [],
           message: "No sessions conducted yet for this class",
         },
-        "No sessions found"
-      )
+        "No sessions found",
+      ),
     );
   }
 
@@ -611,8 +612,8 @@ export const getDefaulters = asyncHandler(async (req, res) => {
         defaultersCount: defaulters.length,
         defaulters,
       },
-      `Found ${defaulters.length} students with attendance below ${minPercentage}%`
-    )
+      `Found ${defaulters.length} students with attendance below ${minPercentage}%`,
+    ),
   );
 });
 
@@ -623,50 +624,55 @@ export const getDefaulters = asyncHandler(async (req, res) => {
 export const getTeacherStats = asyncHandler(async (req, res) => {
   const teacherId = req.user._id;
 
-  const [totalClasses, totalSessions, activeSessions, classesWithStats, sessionStats] =
-    await Promise.all([
-      Class.countDocuments({ teacher: teacherId }),
-      Session.countDocuments({ teacherId }),
-      Session.countDocuments({
-        teacherId,
-        active: true,
-      }),
-      Class.aggregate([
-        {
-          $match: {
-            teacher: new mongoose.Types.ObjectId(teacherId),
-          },
+  const [
+    totalClasses,
+    totalSessions,
+    activeSessions,
+    classesWithStats,
+    sessionStats,
+  ] = await Promise.all([
+    Class.countDocuments({ teacher: teacherId }),
+    Session.countDocuments({ teacherId }),
+    Session.countDocuments({
+      teacherId,
+      active: true,
+    }),
+    Class.aggregate([
+      {
+        $match: {
+          teacher: new mongoose.Types.ObjectId(teacherId),
         },
-        {
-          $project: {
-            _id: 1,
-            name: 1,
-            code: 1,
-            department: 1,
-            semester: 1,
-            studentCount: { $size: "$students" },
-          },
+      },
+      {
+        $project: {
+          _id: 1,
+          name: 1,
+          code: 1,
+          department: 1,
+          semester: 1,
+          studentCount: { $size: "$students" },
         },
-      ]),
-      Session.aggregate([
-        {
-          $match: {
-            teacherId: new mongoose.Types.ObjectId(teacherId),
-          },
+      },
+    ]),
+    Session.aggregate([
+      {
+        $match: {
+          teacherId: new mongoose.Types.ObjectId(teacherId),
         },
-        {
-          $group: {
-            _id: "$type",
-            count: { $sum: 1 },
-          },
+      },
+      {
+        $group: {
+          _id: "$type",
+          count: { $sum: 1 },
         },
-      ]),
-    ]);
+      },
+    ]),
+  ]);
 
   // Calculate average students per class
   const totalStudents = classesWithStats.reduce(
     (sum, cls) => sum + cls.studentCount,
-    0
+    0,
   );
   const averageStudentsPerClass =
     totalClasses > 0 ? (totalStudents / totalClasses).toFixed(2) : 0;
@@ -674,38 +680,41 @@ export const getTeacherStats = asyncHandler(async (req, res) => {
   const classIds = classesWithStats.map((cls) => cls._id);
   const attendanceStats = classIds.length
     ? await Attendance.aggregate([
-    {
-      $match: {
-        classId: { $in: classIds },
-      },
-    },
-    {
-      $group: {
-        _id: null,
-        totalRecords: { $sum: 1 },
-        presentCount: {
-          $sum: {
-            $cond: [{ $eq: ["$status", "Present"] }, 1, 0],
+        {
+          $match: {
+            classId: { $in: classIds },
           },
         },
-      },
-    },
-    {
-      $project: {
-        _id: 0,
-        totalRecords: 1,
-        presentCount: 1,
-        averageAttendance: {
-          $cond: [
-            { $gt: ["$totalRecords", 0] },
-            {
-              $multiply: [{ $divide: ["$presentCount", "$totalRecords"] }, 100],
+        {
+          $group: {
+            _id: null,
+            totalRecords: { $sum: 1 },
+            presentCount: {
+              $sum: {
+                $cond: [{ $eq: ["$status", "Present"] }, 1, 0],
+              },
             },
-            0,
-          ],
+          },
         },
-      },
-    },
+        {
+          $project: {
+            _id: 0,
+            totalRecords: 1,
+            presentCount: 1,
+            averageAttendance: {
+              $cond: [
+                { $gt: ["$totalRecords", 0] },
+                {
+                  $multiply: [
+                    { $divide: ["$presentCount", "$totalRecords"] },
+                    100,
+                  ],
+                },
+                0,
+              ],
+            },
+          },
+        },
       ])
     : [];
 
@@ -734,8 +743,8 @@ export const getTeacherStats = asyncHandler(async (req, res) => {
           averageAttendance: 0,
         },
       },
-      "Teacher statistics retrieved successfully"
-    )
+      "Teacher statistics retrieved successfully",
+    ),
   );
 });
 
@@ -749,7 +758,7 @@ export const getComprehensiveReport = asyncHandler(async (req, res) => {
   // Only admin can access comprehensive reports
   if (req.user.role !== "admin") {
     throw ApiError.forbidden(
-      "Only administrators can access comprehensive reports"
+      "Only administrators can access comprehensive reports",
     );
   }
 
@@ -798,7 +807,7 @@ export const getComprehensiveReport = asyncHandler(async (req, res) => {
 
   // Merge class details with stats
   const classStatsMap = new Map(
-    classStats.map((stat) => [stat.classId.toString(), stat])
+    classStats.map((stat) => [stat.classId.toString(), stat]),
   );
   const report = classes.map((cls) => {
     const stats = classStatsMap.get(cls._id.toString());
@@ -820,8 +829,8 @@ export const getComprehensiveReport = asyncHandler(async (req, res) => {
         totalClasses: classes.length,
         report,
       },
-      "Comprehensive report generated successfully"
-    )
+      "Comprehensive report generated successfully",
+    ),
   );
 });
 
@@ -836,7 +845,14 @@ export const getComprehensiveReport = asyncHandler(async (req, res) => {
  *   - targetId: (ClassID, StudentID, or DeptID)
  */
 export const exportReport = asyncHandler(async (req, res) => {
-  const { type, format = "xlsx", range = "semester", startDate, endDate, targetId } = req.query;
+  const {
+    type,
+    format = "xlsx",
+    range = "semester",
+    startDate,
+    endDate,
+    targetId,
+  } = req.query;
 
   if (!type) {
     throw ApiError.badRequest("Report type is required");
@@ -852,7 +868,8 @@ export const exportReport = asyncHandler(async (req, res) => {
 
   // Set content type based on format
   if (format === "xlsx") {
-    contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+    contentType =
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
   } else {
     contentType = "text/csv";
   }
@@ -891,30 +908,38 @@ export const exportReport = asyncHandler(async (req, res) => {
   switch (type) {
     case "class_matrix":
       if (!targetId) {
-        throw ApiError.badRequest("Class ID is required for class matrix report");
+        throw ApiError.badRequest(
+          "Class ID is required for class matrix report",
+        );
       }
 
       // Fetch class with populated students
       const classData = await Class.findById(targetId)
         .populate("students", "name info")
         .populate("teacher", "name email")
-        .select("name code teacher department semester batch academicYear room section students")
+        .select(
+          "name code teacher department semester batch academicYear room section students",
+        )
         .lean();
-      
+
       if (!classData) {
         throw ApiError.notFound("Class not found");
       }
 
       // Check authorization
       if (req.user.role !== "admin" && req.user.role !== "teacher") {
-        throw ApiError.forbidden("Only admins and teachers can export class reports");
+        throw ApiError.forbidden(
+          "Only admins and teachers can export class reports",
+        );
       }
 
       if (
         req.user.role === "teacher" &&
         classData.teacher?._id?.toString() !== req.user._id.toString()
       ) {
-        throw ApiError.forbidden("You can only export reports for your own classes");
+        throw ApiError.forbidden(
+          "You can only export reports for your own classes",
+        );
       }
 
       // Fetch sessions
@@ -927,7 +952,9 @@ export const exportReport = asyncHandler(async (req, res) => {
         sessionsQuery.startTime = dateFilter;
       }
 
-      const sessions = await Session.find(sessionsQuery).sort({ startTime: 1 }).lean();
+      const sessions = await Session.find(sessionsQuery)
+        .sort({ startTime: 1 })
+        .lean();
 
       // Fetch attendance records
       const sessionIds = sessions.map((s) => s._id);
@@ -945,18 +972,25 @@ export const exportReport = asyncHandler(async (req, res) => {
       });
 
       // Generate export
-      buffer = await ExportService.generateClassMatrix(classData, sessions, attendanceMap, format);
+      buffer = await ExportService.generateClassMatrix(
+        classData,
+        sessions,
+        attendanceMap,
+        format,
+      );
       filename = `${classData.code}_Attendance_${moment().format("YYYY-MM-DD")}.${format}`;
       break;
 
     case "student_transcript":
       if (!targetId) {
-        throw ApiError.badRequest("Student ID is required for student transcript");
+        throw ApiError.badRequest(
+          "Student ID is required for student transcript",
+        );
       }
 
       // Fetch student
       const student = await User.findById(targetId).lean();
-      
+
       if (!student) {
         throw ApiError.notFound("Student not found");
       }
@@ -988,7 +1022,7 @@ export const exportReport = asyncHandler(async (req, res) => {
           }
 
           const classSessions = await Session.find(sessionsQuery).lean();
-          
+
           const attendanceStats = await Attendance.aggregate([
             {
               $match: {
@@ -1006,8 +1040,7 @@ export const exportReport = asyncHandler(async (req, res) => {
 
           const presentCount =
             attendanceStats.find((s) => s._id === "Present")?.count || 0;
-          const absentCount =
-            classSessions.length - presentCount;
+          const absentCount = classSessions.length - presentCount;
           const percentage =
             classSessions.length > 0
               ? (presentCount / classSessions.length) * 100
@@ -1021,31 +1054,44 @@ export const exportReport = asyncHandler(async (req, res) => {
             absentCount,
             percentage,
           };
-        })
+        }),
       );
 
-      buffer = await ExportService.generateStudentTranscript(student, classesData, format);
+      buffer = await ExportService.generateStudentTranscript(
+        student,
+        classesData,
+        format,
+      );
       filename = `${student.rollNumber || student._id}_Transcript_${moment().format("YYYY-MM-DD")}.${format}`;
       break;
 
     case "dept_summary":
       // Check authorization
-      if (req.user.role !== "admin") {
-        throw ApiError.forbidden("Only admins can export department summary");
+      if (req.user.role !== "admin" && req.user.role !== "teacher") {
+        throw ApiError.forbidden(
+          "Only admins and teachers can export department summary",
+        );
       }
 
-      // Get all departments
-      const departments = await Class.distinct("department");
+      // Teachers can only summarize departments for their own classes
+      const departmentScope =
+        req.user.role === "teacher" ? { teacher: req.user._id } : {};
+
+      // Get departments visible to the current user
+      const departments = await Class.distinct("department", departmentScope);
 
       // For each department, calculate stats
       const departmentData = await Promise.all(
         departments.map(async (dept) => {
-          const deptClasses = await Class.find({ department: dept }).lean();
+          const deptClasses = await Class.find({
+            department: dept,
+            ...departmentScope,
+          }).lean();
           const classIds = deptClasses.map((c) => c._id);
 
           // Get all students in this department
           const deptStudents = await User.find({
-            department: dept,
+            "info.department": dept,
             role: "student",
           })
             .select("_id")
@@ -1087,7 +1133,7 @@ export const exportReport = asyncHandler(async (req, res) => {
 
           // Count defaulters
           const defaultersCount = await User.countDocuments({
-            department: dept,
+            "info.department": dept,
             role: "student",
             // This is a simplified count; in reality, you'd need to calculate per-student attendance
           });
@@ -1100,10 +1146,13 @@ export const exportReport = asyncHandler(async (req, res) => {
             avgAttendance,
             defaulters: Math.floor(defaultersCount * 0.2), // Rough estimate
           };
-        })
+        }),
       );
 
-      buffer = await ExportService.generateDepartmentSummary(departmentData, format);
+      buffer = await ExportService.generateDepartmentSummary(
+        departmentData,
+        format,
+      );
       filename = `Department_Summary_${moment().format("YYYY-MM-DD")}.${format}`;
       break;
 
@@ -1151,9 +1200,15 @@ export const checkAndNotifyDefaulters = asyncHandler(async (req, res) => {
   const totalSessions = sessions.length;
 
   if (totalSessions === 0) {
-    return res.status(200).json(
-      new ApiResponse(200, { notified: 0 }, "No sessions found for this class")
-    );
+    return res
+      .status(200)
+      .json(
+        new ApiResponse(
+          200,
+          { notified: 0 },
+          "No sessions found for this class",
+        ),
+      );
   }
 
   const attendanceByStudent = await Attendance.aggregate([
@@ -1171,7 +1226,10 @@ export const checkAndNotifyDefaulters = asyncHandler(async (req, res) => {
     },
   ]);
   const attendanceMap = new Map(
-    attendanceByStudent.map((row) => [row._id.toString(), row.attendedSessions])
+    attendanceByStudent.map((row) => [
+      row._id.toString(),
+      row.attendedSessions,
+    ]),
   );
   const defaulters = classDoc.students
     .map((student) => {
@@ -1184,11 +1242,15 @@ export const checkAndNotifyDefaulters = asyncHandler(async (req, res) => {
   await Promise.all(
     defaulters.map(async ({ student, percentage }) => {
       try {
-        await EmailService.sendLowAttendanceWarning(student, classDoc, percentage);
+        await EmailService.sendLowAttendanceWarning(
+          student,
+          classDoc,
+          percentage,
+        );
       } catch (emailError) {
         console.error(`Failed to send email to ${student.email}:`, emailError);
       }
-    })
+    }),
   );
 
   res.status(200).json(
@@ -1202,7 +1264,7 @@ export const checkAndNotifyDefaulters = asyncHandler(async (req, res) => {
           percentage: d.percentage.toFixed(2),
         })),
       },
-      `Notified ${defaulters.length} student(s) with low attendance`
-    )
+      `Notified ${defaulters.length} student(s) with low attendance`,
+    ),
   );
 });

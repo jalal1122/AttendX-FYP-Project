@@ -1,0 +1,10 @@
+ID show on details page on all sides (teacher , student and admin) such as class id, student id, teacher id etc
+from teacher side department summary report (its not working fix it)
+always check device binding id on login (if device binding id is not same as the one in database then show error message and do not allow to login)
+when creating user on admin side add select on (depaortment,semester,batch)
+
+Add Sections in classes , attendance and marks entry (from all sides) in reports too
+also in the class for each section there will be a separate attendance and marks entry
+in the class details page show the sections then when each section is clicked show the students in that section and then the attendance and marks entry for that section
+in the student details page show the section in which the student is enrolled
+also in reports show the section wise attendance and marks entry

@@ -45,13 +45,13 @@ export const markAttendance = asyncHandler(async (req, res) => {
   try {
     decodedToken = jwt.verify(
       token,
-      process.env.QR_SECRET || process.env.JWT_ACCESS_SECRET
+      process.env.QR_SECRET || process.env.JWT_ACCESS_SECRET,
     );
   } catch (error) {
     if (error.name === "TokenExpiredError") {
       throw ApiError.securityError(
         "QR code has expired. Please refresh and try again.",
-        ApiError.QR_EXPIRED
+        ApiError.QR_EXPIRED,
       );
     }
     throw ApiError.securityError("Invalid QR token", ApiError.QR_INVALID);
@@ -61,7 +61,7 @@ export const markAttendance = asyncHandler(async (req, res) => {
 
   // Find session with security config
   const session = await Session.findById(sessionId).select(
-    "_id active location securityConfig teacherIP"
+    "_id active location securityConfig teacherIP",
   );
   if (!session) {
     throw ApiError.notFound("Session not found");
@@ -107,7 +107,7 @@ export const markAttendance = asyncHandler(async (req, res) => {
       sessionLat,
       sessionLon,
       studentLat,
-      studentLon
+      studentLon,
     );
 
     console.log(`   Calculated Distance: ${Math.round(distance)}m`);
@@ -115,10 +115,10 @@ export const markAttendance = asyncHandler(async (req, res) => {
     // Check for GPS accuracy issues (large distances often indicate GPS problems)
     if (distance > 500 && allowedRadius < 100) {
       console.warn(
-        `⚠️ Large distance detected (${Math.round(distance)}m) with small radius (${allowedRadius}m). This may indicate GPS accuracy issues.`
+        `⚠️ Large distance detected (${Math.round(distance)}m) with small radius (${allowedRadius}m). This may indicate GPS accuracy issues.`,
       );
       console.warn(
-        "💡 Consider: 1) Using a mobile device instead of laptop, 2) Enabling high-accuracy GPS, 3) Increasing radius to 100m+"
+        "💡 Consider: 1) Using a mobile device instead of laptop, 2) Enabling high-accuracy GPS, 3) Increasing radius to 100m+",
       );
     }
 
@@ -128,12 +128,12 @@ export const markAttendance = asyncHandler(async (req, res) => {
         sessionLon,
         studentLat,
         studentLon,
-        allowedRadius
+        allowedRadius,
       )
     ) {
       // Enhanced error message for GPS accuracy issues
       let errorMsg = `You are too far from the class location (${Math.round(distance)}m away, ${allowedRadius}m allowed).`;
-      
+
       if (distance > 1000) {
         errorMsg += ` ⚠️ Large distance detected - this is likely a GPS accuracy issue. Try: 1) Using your phone instead of laptop, 2) Enabling high-accuracy location, 3) Moving outdoors for better GPS signal, or 4) Ask teacher to increase the radius.`;
       } else {
@@ -144,7 +144,7 @@ export const markAttendance = asyncHandler(async (req, res) => {
     }
 
     console.log(
-      `✓ Geofencing passed: Student is ${distance}m away (within ${allowedRadius}m radius)`
+      `✓ Geofencing passed: Student is ${distance}m away (within ${allowedRadius}m radius)`,
     );
   }
 
@@ -153,7 +153,10 @@ export const markAttendance = asyncHandler(async (req, res) => {
   if (!classExists) {
     throw ApiError.notFound("Class not found");
   }
-  const isEnrolled = await Class.exists({ _id: classId, students: req.user._id });
+  const isEnrolled = await Class.exists({
+    _id: classId,
+    students: req.user._id,
+  });
   if (!isEnrolled) {
     throw ApiError.forbidden("You are not enrolled in this class");
   }
@@ -169,7 +172,7 @@ export const markAttendance = asyncHandler(async (req, res) => {
       console.log(`   Teacher IP: ${teacherIP}`);
       console.log(`   Student IP: ${studentIP}`);
       console.log(
-        "   IP matching is enabled but IPs don't match. (Normal on localhost)"
+        "   IP matching is enabled but IPs don't match. (Normal on localhost)",
       );
       ipMatch = false;
     }
@@ -190,7 +193,7 @@ export const markAttendance = asyncHandler(async (req, res) => {
     // First time: bind this device to the student
     student.deviceId = deviceId;
     await student.save({ validateBeforeSave: false });
-    
+
     // Send device binding email
     try {
       await EmailService.sendDeviceAlert(student, "bind", deviceId);
@@ -201,7 +204,7 @@ export const markAttendance = asyncHandler(async (req, res) => {
     // Different device than the one registered for this student
     throw ApiError.securityError(
       "This account is already bound to a different device. Please contact admin to reset your device.",
-      ApiError.DEVICE_LOCK_VIOLATION
+      ApiError.DEVICE_LOCK_VIOLATION,
     );
   }
 
@@ -217,15 +220,18 @@ export const markAttendance = asyncHandler(async (req, res) => {
     }).select("status"),
   ]);
 
-  if (deviceUsage && deviceUsage.studentId.toString() !== req.user._id.toString()) {
+  if (
+    deviceUsage &&
+    deviceUsage.studentId.toString() !== req.user._id.toString()
+  ) {
     throw ApiError.forbidden(
-      "Security Alert: This device has already marked attendance for this session."
+      "Security Alert: This device has already marked attendance for this session.",
     );
   }
 
   if (existingAttendance) {
     throw ApiError.conflict(
-      `Attendance already marked as ${existingAttendance.status}`
+      `Attendance already marked as ${existingAttendance.status}`,
     );
   }
 
@@ -234,7 +240,7 @@ export const markAttendance = asyncHandler(async (req, res) => {
     ? "Pending"
     : "Present";
 
-  // Create attendance record
+  // Create attendance record (include optional section)
   const attendance = await Attendance.create({
     sessionId,
     studentId: req.user._id,
@@ -242,6 +248,7 @@ export const markAttendance = asyncHandler(async (req, res) => {
     status: attendanceStatus,
     verificationMethod: "QR",
     deviceId: deviceId || null,
+    section: req.body.section || null,
     date: new Date(),
   });
 
@@ -273,8 +280,8 @@ export const markAttendance = asyncHandler(async (req, res) => {
         ipMatch,
         requiresApproval: securityConfig.manualApproval,
       },
-      message
-    )
+      message,
+    ),
   );
 });
 
@@ -288,7 +295,7 @@ export const manualUpdate = asyncHandler(async (req, res) => {
   // Validate required fields
   if (!sessionId || !studentId || !status) {
     throw ApiError.badRequest(
-      "Session ID, student ID, and status are required"
+      "Session ID, student ID, and status are required",
     );
   }
 
@@ -296,12 +303,14 @@ export const manualUpdate = asyncHandler(async (req, res) => {
   const validStatuses = ["Present", "Absent", "Late", "Leave"];
   if (!validStatuses.includes(status)) {
     throw ApiError.badRequest(
-      `Status must be one of: ${validStatuses.join(", ")}`
+      `Status must be one of: ${validStatuses.join(", ")}`,
     );
   }
 
   // Find session
-  const session = await Session.findById(sessionId).select("teacherId classId active type startTime endTime");
+  const session = await Session.findById(sessionId).select(
+    "teacherId classId active type startTime endTime",
+  );
   if (!session) {
     throw ApiError.notFound("Session not found");
   }
@@ -312,7 +321,7 @@ export const manualUpdate = asyncHandler(async (req, res) => {
 
   if (!isTeacher && !isAdmin) {
     throw ApiError.forbidden(
-      "You are not authorized to update attendance for this session"
+      "You are not authorized to update attendance for this session",
     );
   }
 
@@ -324,7 +333,7 @@ export const manualUpdate = asyncHandler(async (req, res) => {
 
   // Check if student is enrolled in this class
   const isEnrolled = classDoc.students.some(
-    (student) => student.toString() === studentId
+    (student) => student.toString() === studentId,
   );
 
   if (!isEnrolled) {
@@ -346,7 +355,7 @@ export const manualUpdate = asyncHandler(async (req, res) => {
       upsert: true,
       new: true,
       runValidators: true,
-    }
+    },
   )
     .populate("studentId", "name email info")
     .populate("sessionId", "startTime type")
@@ -383,10 +392,7 @@ export const getAttendanceBySession = asyncHandler(async (req, res) => {
   // Find class
   const classDoc = await Class.findById(session.classId)
     .select("students")
-    .populate(
-    "students",
-    "name email info"
-  )
+    .populate("students", "name email info")
     .lean();
   if (!classDoc) {
     throw ApiError.notFound("Class not found");
@@ -395,7 +401,7 @@ export const getAttendanceBySession = asyncHandler(async (req, res) => {
   // Check if user has access
   const isTeacher = session.teacherId.toString() === req.user._id.toString();
   const isStudent = classDoc.students.some(
-    (student) => student._id.toString() === req.user._id.toString()
+    (student) => student._id.toString() === req.user._id.toString(),
   );
   const isAdmin = req.user.role === "admin";
 
@@ -436,7 +442,13 @@ export const getAttendanceBySession = asyncHandler(async (req, res) => {
   });
 
   // Calculate statistics
-  const stats = { total: allStudents.length, present: 0, absent: 0, late: 0, leave: 0 };
+  const stats = {
+    total: allStudents.length,
+    present: 0,
+    absent: 0,
+    late: 0,
+    leave: 0,
+  };
   for (const item of completeAttendanceList) {
     if (item.status === "Present") stats.present += 1;
     else if (item.status === "Absent") stats.absent += 1;
@@ -458,8 +470,8 @@ export const getAttendanceBySession = asyncHandler(async (req, res) => {
         stats,
         attendance: completeAttendanceList,
       },
-      "Attendance retrieved successfully"
-    )
+      "Attendance retrieved successfully",
+    ),
   );
 });
 
@@ -499,8 +511,8 @@ export const getStudentAttendance = asyncHandler(async (req, res) => {
         count: attendanceRecords.length,
         attendance: attendanceRecords,
       },
-      "Attendance history retrieved successfully"
-    )
+      "Attendance history retrieved successfully",
+    ),
   );
 });
 
@@ -549,8 +561,8 @@ export const getMyAttendanceForClass = asyncHandler(async (req, res) => {
         },
         attendance: attendanceRecords,
       },
-      "Class attendance for current student retrieved successfully"
-    )
+      "Class attendance for current student retrieved successfully",
+    ),
   );
 });
 
@@ -603,7 +615,9 @@ export const getDetailedClassAttendance = asyncHandler(async (req, res) => {
     }
   }
 
-  const sessions = await Session.find(sessionFilter).sort({ startTime: 1 }).lean();
+  const sessions = await Session.find(sessionFilter)
+    .sort({ startTime: 1 })
+    .lean();
 
   // Get all attendance records for these sessions
   const sessionIds = sessions.map((s) => s._id);
@@ -618,7 +632,7 @@ export const getDetailedClassAttendance = asyncHandler(async (req, res) => {
   for (const record of attendanceRecords) {
     attendanceMap.set(
       `${record.sessionId.toString()}:${record.studentId._id.toString()}`,
-      record
+      record,
     );
   }
   const report = classDoc.students.map((student) => {
@@ -632,7 +646,7 @@ export const getDetailedClassAttendance = asyncHandler(async (req, res) => {
 
     sessions.forEach((session) => {
       const attendance = attendanceMap.get(
-        `${session._id.toString()}:${student._id.toString()}`
+        `${session._id.toString()}:${student._id.toString()}`,
       );
 
       studentAttendance.sessions.push({
@@ -662,8 +676,8 @@ export const getDetailedClassAttendance = asyncHandler(async (req, res) => {
         })),
         attendance: report,
       },
-      "Detailed attendance retrieved successfully"
-    )
+      "Detailed attendance retrieved successfully",
+    ),
   );
 });
 
@@ -689,7 +703,7 @@ export const approveAttendance = asyncHandler(async (req, res) => {
 
   if (!isTeacher && !isAdmin) {
     throw ApiError.forbidden(
-      "Only the session teacher or admin can approve attendance"
+      "Only the session teacher or admin can approve attendance",
     );
   }
 
@@ -702,7 +716,7 @@ export const approveAttendance = asyncHandler(async (req, res) => {
     },
     {
       $set: { status: "Present" },
-    }
+    },
   );
 
   // Get updated attendance records
@@ -728,7 +742,7 @@ export const approveAttendance = asyncHandler(async (req, res) => {
         approvedCount: result.modifiedCount,
         attendance: updatedAttendance,
       },
-      `${result.modifiedCount} attendance record(s) approved successfully`
-    )
+      `${result.modifiedCount} attendance record(s) approved successfully`,
+    ),
   );
 });

@@ -45,10 +45,22 @@ const classSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    sections: [
+      {
+        name: { type: String, trim: true },
+        code: { type: String, trim: true },
+        students: [
+          {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+          },
+        ],
+      },
+    ],
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // Index for faster queries

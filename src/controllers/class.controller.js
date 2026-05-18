@@ -18,7 +18,8 @@ const generateClassCode = () => {
  * POST /api/v1/class/create
  */
 export const createClass = asyncHandler(async (req, res) => {
-  const { name, department, semester, batch, academicYear } = req.body;
+  const { name, department, semester, batch, academicYear, sections } =
+    req.body;
 
   // Validate required fields
   if (!name || !department || !semester) {
@@ -47,9 +48,26 @@ export const createClass = asyncHandler(async (req, res) => {
 
   if (!isUnique) {
     throw ApiError.internal(
-      "Failed to generate unique class code. Please try again"
+      "Failed to generate unique class code. Please try again",
     );
   }
+
+  // Parse sections if provided (frontend may send JSON string)
+  let parsedSections = [];
+  if (sections) {
+    try {
+      parsedSections =
+        typeof sections === "string" ? JSON.parse(sections) : sections;
+    } catch (err) {
+      parsedSections = sections;
+    }
+  }
+
+  // Flatten students from sections into class-level students (unique)
+  const sectionStudentIds = new Set();
+  parsedSections.forEach((s) => {
+    (s.students || []).forEach((stu) => sectionStudentIds.add(stu.toString()));
+  });
 
   // Create class
   const newClass = await Class.create({
@@ -60,7 +78,8 @@ export const createClass = asyncHandler(async (req, res) => {
     semester,
     batch: batch || "",
     academicYear: academicYear || new Date().getFullYear().toString(),
-    students: [],
+    students: Array.from(sectionStudentIds),
+    sections: parsedSections,
   });
 
   // Populate teacher info
@@ -104,7 +123,7 @@ export const joinClass = asyncHandler(async (req, res) => {
     const updatedClass = await Class.findByIdAndUpdate(
       classDoc._id,
       { $addToSet: { students: req.user._id } },
-      { new: true }
+      { new: true },
     )
       .populate("teacher", "name email")
       .populate("students", "name email info");
@@ -116,8 +135,8 @@ export const joinClass = asyncHandler(async (req, res) => {
           class: updatedClass,
           warning: `Your semester (${studentSemester}) does not match the class semester (${classDoc.semester})`,
         },
-        "Joined class successfully with semester mismatch warning"
-      )
+        "Joined class successfully with semester mismatch warning",
+      ),
     );
   }
 
@@ -125,7 +144,7 @@ export const joinClass = asyncHandler(async (req, res) => {
   const updatedClass = await Class.findByIdAndUpdate(
     classDoc._id,
     { $addToSet: { students: req.user._id } },
-    { new: true }
+    { new: true },
   )
     .populate("teacher", "name email")
     .populate("students", "name email info");
@@ -161,8 +180,8 @@ export const getAllClasses = asyncHandler(async (req, res) => {
         count: classes.length,
         classes,
       },
-      "Classes retrieved successfully"
-    )
+      "Classes retrieved successfully",
+    ),
   );
 });
 
@@ -175,7 +194,8 @@ export const getClassDetails = asyncHandler(async (req, res) => {
 
   const classDoc = await Class.findById(id)
     .populate("teacher", "name email role info")
-    .populate("students", "name email info");
+    .populate("students", "name email info")
+    .populate("sections.students", "name email info");
 
   if (!classDoc) {
     throw ApiError.notFound("Class not found");
@@ -184,7 +204,7 @@ export const getClassDetails = asyncHandler(async (req, res) => {
   // Check if user has access to this class
   const isTeacher = classDoc.teacher._id.toString() === req.user._id.toString();
   const isStudent = classDoc.students.some(
-    (student) => student._id.toString() === req.user._id.toString()
+    (student) => student._id.toString() === req.user._id.toString(),
   );
   const isAdmin = req.user.role === "admin";
 
@@ -195,7 +215,7 @@ export const getClassDetails = asyncHandler(async (req, res) => {
   res
     .status(200)
     .json(
-      new ApiResponse(200, classDoc, "Class details retrieved successfully")
+      new ApiResponse(200, classDoc, "Class details retrieved successfully"),
     );
 });
 
@@ -218,7 +238,7 @@ export const unjoinClass = asyncHandler(async (req, res) => {
 
   const removed = await Class.updateOne(
     { _id: classId, students: req.user._id },
-    { $pull: { students: req.user._id } }
+    { $pull: { students: req.user._id } },
   );
   if (removed.modifiedCount === 0) {
     throw ApiError.badRequest("You are not enrolled in this class");
@@ -243,19 +263,24 @@ export const removeStudent = asyncHandler(async (req, res) => {
     throw ApiError.badRequest("Class ID and Student ID are required");
   }
 
-  const classDoc = await Class.findById(classId).select("teacher students").lean();
+  const classDoc = await Class.findById(classId)
+    .select("teacher students")
+    .lean();
   if (!classDoc) {
     throw ApiError.notFound("Class not found");
   }
-  if (req.user.role !== "admin" && classDoc.teacher.toString() !== req.user._id.toString()) {
+  if (
+    req.user.role !== "admin" &&
+    classDoc.teacher.toString() !== req.user._id.toString()
+  ) {
     throw ApiError.forbidden(
-      "Only the class teacher or admin can remove students"
+      "Only the class teacher or admin can remove students",
     );
   }
 
   // Check if student is actually in this class
   const isEnrolled = classDoc.students.some(
-    (id) => id.toString() === studentId
+    (id) => id.toString() === studentId,
   );
 
   if (!isEnrolled) {
@@ -281,7 +306,8 @@ export const removeStudent = asyncHandler(async (req, res) => {
  */
 export const updateClassDetails = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const { name, room, semester, department, batch, academicYear } = req.body;
+  const { name, room, semester, department, batch, academicYear, sections } =
+    req.body;
 
   // Validate semester if provided
   if (semester && (semester < 1 || semester > 8)) {
@@ -297,7 +323,7 @@ export const updateClassDetails = asyncHandler(async (req, res) => {
     existingClass.teacher.toString() !== req.user._id.toString()
   ) {
     throw ApiError.forbidden(
-      "Only the class teacher or admin can update class details"
+      "Only the class teacher or admin can update class details",
     );
   }
 
@@ -308,8 +334,27 @@ export const updateClassDetails = asyncHandler(async (req, res) => {
   if (department) updates.department = department;
   if (batch) updates.batch = batch;
   if (academicYear) updates.academicYear = academicYear;
+  if (sections) {
+    try {
+      const parsed =
+        typeof sections === "string" ? JSON.parse(sections) : sections;
+      updates.sections = parsed;
+      // Also update class-level students to include students from sections
+      const sectionStudentIds = new Set();
+      parsed.forEach((s) =>
+        (s.students || []).forEach((st) => sectionStudentIds.add(st)),
+      );
+      updates.students = Array.from(sectionStudentIds);
+    } catch (err) {
+      updates.sections = sections;
+    }
+  }
 
-  const classDoc = await Class.findByIdAndUpdate(id, { $set: updates }, { new: true });
+  const classDoc = await Class.findByIdAndUpdate(
+    id,
+    { $set: updates },
+    { new: true },
+  );
 
   res
     .status(200)
@@ -336,7 +381,7 @@ export const deleteClass = asyncHandler(async (req, res) => {
 
   if (!isTeacher && !isAdmin) {
     throw ApiError.forbidden(
-      "Only the class teacher or admin can delete this class"
+      "Only the class teacher or admin can delete this class",
     );
   }
 
@@ -356,7 +401,7 @@ export const deleteClass = asyncHandler(async (req, res) => {
         deletedSessions: deletedSessions.deletedCount,
         deletedAttendance: deletedAttendance.deletedCount,
       },
-      "Class and all related data deleted successfully"
-    )
+      "Class and all related data deleted successfully",
+    ),
   );
 });

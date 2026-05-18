@@ -46,7 +46,7 @@ export const startSession = asyncHandler(async (req, res) => {
   // Verify teacher owns this class
   if (classDoc.teacher.toString() !== req.user._id.toString()) {
     throw ApiError.forbidden(
-      "You are not authorized to start a session for this class"
+      "You are not authorized to start a session for this class",
     );
   }
 
@@ -60,7 +60,7 @@ export const startSession = asyncHandler(async (req, res) => {
 
   if (existingActiveSession) {
     throw ApiError.conflict(
-      "There is already an active session for this class. Please end it before starting a new one."
+      "There is already an active session for this class. Please end it before starting a new one.",
     );
   }
 
@@ -77,13 +77,13 @@ export const startSession = asyncHandler(async (req, res) => {
   // Prepare security config with defaults and validation
   const rawRadius = securityConfig?.radius || 50;
   const rawQrRefresh = securityConfig?.qrRefreshRate || 20;
-  
+
   // Clamp radius to sensible range (10m - 500m)
   const clampedRadius = Math.max(10, Math.min(500, rawRadius));
-  
+
   // Clamp QR refresh rate to sensible range (5s - 60s)
   const clampedQrRefresh = Math.max(5, Math.min(60, rawQrRefresh));
-  
+
   const finalSecurityConfig = {
     radius: clampedRadius,
     ipMatchEnabled:
@@ -94,13 +94,17 @@ export const startSession = asyncHandler(async (req, res) => {
     qrRefreshRate: clampedQrRefresh,
     manualApproval: securityConfig?.manualApproval || false,
   };
-  
+
   // Log validation warnings if values were clamped
   if (clampedRadius !== rawRadius) {
-    console.warn(`⚠️ Radius clamped from ${rawRadius}m to ${clampedRadius}m (allowed: 10-500m)`);
+    console.warn(
+      `⚠️ Radius clamped from ${rawRadius}m to ${clampedRadius}m (allowed: 10-500m)`,
+    );
   }
   if (clampedQrRefresh !== rawQrRefresh) {
-    console.warn(`⚠️ QR refresh rate clamped from ${rawQrRefresh}s to ${clampedQrRefresh}s (allowed: 5-60s)`);
+    console.warn(
+      `⚠️ QR refresh rate clamped from ${rawQrRefresh}s to ${clampedQrRefresh}s (allowed: 5-60s)`,
+    );
   }
 
   // Create session
@@ -129,9 +133,7 @@ export const startSession = asyncHandler(async (req, res) => {
 
   res
     .status(201)
-    .json(
-      new ApiResponse(201, session, "Session started successfully")
-    );
+    .json(new ApiResponse(201, session, "Session started successfully"));
 });
 
 /**
@@ -143,7 +145,7 @@ export const getQRToken = asyncHandler(async (req, res) => {
 
   // Find session
   const session = await Session.findById(id).select(
-    "_id classId teacherId active securityConfig"
+    "_id classId teacherId active securityConfig",
   );
 
   if (!session) {
@@ -162,7 +164,8 @@ export const getQRToken = asyncHandler(async (req, res) => {
 
   // Determine QR token lifetime from session security config (fallback to 20s)
   const refreshRate =
-    session.securityConfig?.qrRefreshRate && session.securityConfig.qrRefreshRate > 0
+    session.securityConfig?.qrRefreshRate &&
+    session.securityConfig.qrRefreshRate > 0
       ? session.securityConfig.qrRefreshRate
       : 20;
 
@@ -177,7 +180,7 @@ export const getQRToken = asyncHandler(async (req, res) => {
     process.env.QR_SECRET || process.env.JWT_ACCESS_SECRET,
     {
       expiresIn: `${refreshRate}s`,
-    }
+    },
   );
 
   res.status(200).json(
@@ -189,8 +192,8 @@ export const getQRToken = asyncHandler(async (req, res) => {
         sessionId: session._id,
         securityConfig: session.securityConfig, // Include security config for frontend sync
       },
-      "QR token generated successfully"
-    )
+      "QR token generated successfully",
+    ),
   );
 });
 
@@ -215,7 +218,7 @@ export const endSession = asyncHandler(async (req, res) => {
   const updatedSession = await Session.findByIdAndUpdate(
     id,
     { $set: { active: false, endTime: new Date() } },
-    { new: true }
+    { new: true },
   );
 
   emitToSession(id, "session:ended", {
@@ -238,7 +241,7 @@ export const createRetroactiveSession = asyncHandler(async (req, res) => {
   // Validate required fields
   if (!classId || !date || !startTime || !endTime) {
     throw ApiError.badRequest(
-      "Class ID, date, start time, and end time are required"
+      "Class ID, date, start time, and end time are required",
     );
   }
 
@@ -251,7 +254,7 @@ export const createRetroactiveSession = asyncHandler(async (req, res) => {
   // Verify teacher owns this class
   if (classDoc.teacher.toString() !== req.user._id.toString()) {
     throw ApiError.forbidden(
-      "You are not authorized to create a session for this class"
+      "You are not authorized to create a session for this class",
     );
   }
 
@@ -268,7 +271,7 @@ export const createRetroactiveSession = asyncHandler(async (req, res) => {
   // Validate that session is in the past (not future)
   if (sessionStartTime > new Date()) {
     throw ApiError.badRequest(
-      "Cannot create retroactive session for future date"
+      "Cannot create retroactive session for future date",
     );
   }
 
@@ -297,8 +300,8 @@ export const createRetroactiveSession = asyncHandler(async (req, res) => {
       new ApiResponse(
         201,
         session,
-        "Retroactive session created successfully. You can now manually mark attendance."
-      )
+        "Retroactive session created successfully. You can now manually mark attendance.",
+      ),
     );
 });
 
@@ -318,7 +321,7 @@ export const getActiveSessionByClass = asyncHandler(async (req, res) => {
   // Verify teacher owns this class
   if (classDoc.teacher.toString() !== req.user._id.toString()) {
     throw ApiError.forbidden(
-      "You are not authorized to access this class's sessions"
+      "You are not authorized to access this class's sessions",
     );
   }
 
@@ -343,8 +346,8 @@ export const getActiveSessionByClass = asyncHandler(async (req, res) => {
       new ApiResponse(
         200,
         activeSession,
-        "Active session retrieved successfully"
-      )
+        "Active session retrieved successfully",
+      ),
     );
 });
 
@@ -373,8 +376,8 @@ export const getAllActiveSessions = asyncHandler(async (req, res) => {
       new ApiResponse(
         200,
         { allActiveSessions, count: allActiveSessions.length },
-        "Active sessions retrieved successfully"
-      )
+        "Active sessions retrieved successfully",
+      ),
     );
 });
 
@@ -386,7 +389,9 @@ export const getSessionsByClass = asyncHandler(async (req, res) => {
   const { classId } = req.params;
 
   // Check if class exists
-  const classDoc = await Class.findById(classId).select("teacher students").lean();
+  const classDoc = await Class.findById(classId)
+    .select("teacher students")
+    .lean();
   if (!classDoc) {
     throw ApiError.notFound("Class not found");
   }
@@ -394,7 +399,7 @@ export const getSessionsByClass = asyncHandler(async (req, res) => {
   // Check if user has access to this class
   const isTeacher = classDoc.teacher.toString() === req.user._id.toString();
   const isStudent = classDoc.students.some(
-    (student) => student.toString() === req.user._id.toString()
+    (student) => student.toString() === req.user._id.toString(),
   );
   const isAdmin = req.user.role === "admin";
 
@@ -415,8 +420,8 @@ export const getSessionsByClass = asyncHandler(async (req, res) => {
         count: sessions.length,
         sessions,
       },
-      "Sessions retrieved successfully"
-    )
+      "Sessions retrieved successfully",
+    ),
   );
 });
 
@@ -439,6 +444,6 @@ export const getSessionDetails = asyncHandler(async (req, res) => {
   res
     .status(200)
     .json(
-      new ApiResponse(200, session, "Session details retrieved successfully")
+      new ApiResponse(200, session, "Session details retrieved successfully"),
     );
 });

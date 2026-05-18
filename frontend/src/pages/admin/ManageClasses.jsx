@@ -29,7 +29,7 @@ const ManageClasses = () => {
 
   // Get unique departments
   const departments = [...new Set(classes.map((cls) => cls.department))].filter(
-    Boolean
+    Boolean,
   );
 
   // Filter classes
@@ -124,6 +124,9 @@ const ManageClasses = () => {
                     <p className="text-sm text-gray-500">
                       Semester {cls.semester}
                     </p>
+                    <p className="text-xs text-gray-400 break-all mt-1">
+                      Class ID: {cls._id}
+                    </p>
                   </div>
                   <span className="px-2 py-1 text-xs font-medium bg-primary-100 text-primary-700 rounded">
                     {cls.code}
@@ -138,6 +141,12 @@ const ManageClasses = () => {
                   <div className="flex items-center text-sm text-gray-600">
                     <span className="font-medium w-24">Teacher:</span>
                     <span>{cls.teacher?.name || "N/A"}</span>
+                  </div>
+                  <div className="flex items-center text-sm text-gray-600">
+                    <span className="font-medium w-24">Teacher ID:</span>
+                    <span className="break-all">
+                      {cls.teacher?._id || "N/A"}
+                    </span>
                   </div>
                   <div className="flex items-center text-sm text-gray-600">
                     <span className="font-medium w-24">Students:</span>
@@ -185,7 +194,7 @@ const ManageClasses = () => {
               <p className="text-2xl font-bold text-green-600">
                 {filteredClasses.reduce(
                   (sum, cls) => sum + (cls.students?.length || 0),
-                  0
+                  0,
                 )}
               </p>
               <p className="text-sm text-gray-600">Total Enrollments</p>

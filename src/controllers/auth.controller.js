@@ -45,14 +45,14 @@ export const registerUser = asyncHandler(async (req, res) => {
   // Validate required fields
   if (!name || !email || !password || !role) {
     throw ApiError.badRequest(
-      "All fields are required: name, email, password, role"
+      "All fields are required: name, email, password, role",
     );
   }
 
   // Validate role
   if (!["admin", "teacher", "student"].includes(role)) {
     throw ApiError.badRequest(
-      "Invalid role. Must be admin, teacher, or student"
+      "Invalid role. Must be admin, teacher, or student",
     );
   }
 
@@ -67,7 +67,7 @@ export const registerUser = asyncHandler(async (req, res) => {
     const { rollNo, semester, department, batch, year } = info;
     if (!rollNo || !semester || !department || !batch || !year) {
       throw ApiError.badRequest(
-        "Student info must include: rollNo, semester, department, batch, year"
+        "Student info must include: rollNo, semester, department, batch, year",
       );
     }
   }
@@ -76,7 +76,7 @@ export const registerUser = asyncHandler(async (req, res) => {
     const { department, designation } = info;
     if (!department || !designation) {
       throw ApiError.badRequest(
-        "Teacher info must include: department, designation"
+        "Teacher info must include: department, designation",
       );
     }
   }
@@ -111,7 +111,7 @@ export const registerUser = asyncHandler(async (req, res) => {
 
   // Generate tokens
   const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(
-    user._id
+    user._id,
   );
 
   // Remove password and refresh token from response
@@ -135,8 +135,8 @@ export const registerUser = asyncHandler(async (req, res) => {
           user: createdUser,
           accessToken,
         },
-        "User registered successfully"
-      )
+        "User registered successfully",
+      ),
     );
 });
 
@@ -164,13 +164,30 @@ export const loginUser = asyncHandler(async (req, res) => {
     throw ApiError.unauthorized("Invalid email or password");
   }
 
+  // Device binding enforcement: require client to send deviceId header or body
+  const incomingDeviceId = req.body.deviceId || req.headers["x-device-id"];
+  if (user.deviceId) {
+    if (!incomingDeviceId) {
+      throw ApiError.securityError(
+        "This account is bound to a device. Please provide deviceId in request header 'x-device-id' or in the request body.",
+        ApiError.DEVICE_LOCK_VIOLATION,
+      );
+    }
+    if (user.deviceId !== incomingDeviceId) {
+      throw ApiError.securityError(
+        "This account is already bound to a different device. Please contact admin to reset your device.",
+        ApiError.DEVICE_LOCK_VIOLATION,
+      );
+    }
+  }
+
   // Check if 2FA is enabled
   if (user.isTwoFactorEnabled) {
     // Generate temporary short-lived token (5 minutes)
     const tempToken = jwt.sign(
       { _id: user._id, temp2FA: true },
       process.env.JWT_ACCESS_SECRET,
-      { expiresIn: "5m" }
+      { expiresIn: "5m" },
     );
 
     return res.status(200).json(
@@ -180,14 +197,14 @@ export const loginUser = asyncHandler(async (req, res) => {
           require2FA: true,
           tempToken,
         },
-        "2FA verification required"
-      )
+        "2FA verification required",
+      ),
     );
   }
 
   // Generate tokens (if 2FA not enabled)
   const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(
-    user._id
+    user._id,
   );
 
   // Remove password and refresh token from response
@@ -211,8 +228,8 @@ export const loginUser = asyncHandler(async (req, res) => {
           user: loggedInUser,
           accessToken,
         },
-        "User logged in successfully"
-      )
+        "User logged in successfully",
+      ),
     );
 });
 
@@ -221,9 +238,9 @@ export const loginUser = asyncHandler(async (req, res) => {
  * GET /api/v1/auth/me
  */
 export const getCurrentUser = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.user._id).select(
-    "-password -refreshToken -twoFactorSecret"
-  ).lean();
+  const user = await User.findById(req.user._id)
+    .select("-password -refreshToken -twoFactorSecret")
+    .lean();
 
   if (!user) {
     throw ApiError.notFound("User not found");
@@ -245,7 +262,7 @@ export const logoutUser = asyncHandler(async (req, res) => {
     {
       $unset: { refreshToken: 1 },
     },
-    { new: true }
+    { new: true },
   );
 
   // Clear cookie
@@ -277,13 +294,13 @@ export const refreshAccessToken = asyncHandler(async (req, res) => {
     // Verify refresh token
     const decodedToken = jwt.verify(
       incomingRefreshToken,
-      process.env.JWT_REFRESH_SECRET
+      process.env.JWT_REFRESH_SECRET,
     );
 
     // Find user
-  const user = await User.findById(decodedToken._id).select(
-    "name email role refreshToken isTwoFactorEnabled twoFactorSecret info avatar"
-  );
+    const user = await User.findById(decodedToken._id).select(
+      "name email role refreshToken isTwoFactorEnabled twoFactorSecret info avatar",
+    );
     if (!user) {
       throw ApiError.unauthorized("Invalid refresh token");
     }
@@ -305,15 +322,18 @@ export const refreshAccessToken = asyncHandler(async (req, res) => {
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     };
 
-    res.status(200).cookie("refreshToken", newRefreshToken, cookieOptions).json(
-      new ApiResponse(
-        200,
-        {
-          accessToken,
-        },
-        "Access token refreshed successfully"
-      )
-    );
+    res
+      .status(200)
+      .cookie("refreshToken", newRefreshToken, cookieOptions)
+      .json(
+        new ApiResponse(
+          200,
+          {
+            accessToken,
+          },
+          "Access token refreshed successfully",
+        ),
+      );
   } catch (error) {
     throw ApiError.unauthorized(error?.message || "Invalid refresh token");
   }
@@ -354,8 +374,8 @@ export const enable2FA = asyncHandler(async (req, res) => {
         secret: secret,
         email: user.email,
       },
-      "2FA QR Code generated. Scan with your authenticator app and verify."
-    )
+      "2FA QR Code generated. Scan with your authenticator app and verify.",
+    ),
   );
 });
 
@@ -395,8 +415,8 @@ export const verify2FA = asyncHandler(async (req, res) => {
       {
         isTwoFactorEnabled: true,
       },
-      "2FA enabled successfully"
-    )
+      "2FA enabled successfully",
+    ),
   );
 });
 
@@ -443,8 +463,8 @@ export const disable2FA = asyncHandler(async (req, res) => {
       {
         isTwoFactorEnabled: false,
       },
-      "2FA disabled successfully"
-    )
+      "2FA disabled successfully",
+    ),
   );
 });
 
@@ -486,7 +506,7 @@ export const validate2FALogin = asyncHandler(async (req, res) => {
 
   // Generate actual access and refresh tokens
   const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(
-    user._id
+    user._id,
   );
 
   // Remove sensitive fields
@@ -511,8 +531,8 @@ export const validate2FALogin = asyncHandler(async (req, res) => {
           accessToken,
           refreshToken,
         },
-        "Login successful"
-      )
+        "Login successful",
+      ),
     );
 });
 
@@ -576,8 +596,8 @@ export const forgotPassword = asyncHandler(async (req, res) => {
         email: email.toLowerCase(),
         message: "OTP sent successfully",
       },
-      "Password reset OTP sent to your email"
-    )
+      "Password reset OTP sent to your email",
+    ),
   );
 });
 
@@ -630,8 +650,8 @@ export const resetPassword = asyncHandler(async (req, res) => {
       new ApiResponse(
         200,
         {},
-        "Password reset successful. Please login with your new password."
-      )
+        "Password reset successful. Please login with your new password.",
+      ),
     );
 });
 
@@ -646,7 +666,7 @@ export const createAdmin = asyncHandler(async (req, res) => {
   // Validate required fields
   if (!name || !email || !password || !adminSecret) {
     throw ApiError.badRequest(
-      "All fields are required: name, email, password, adminSecret"
+      "All fields are required: name, email, password, adminSecret",
     );
   }
 
@@ -655,7 +675,7 @@ export const createAdmin = asyncHandler(async (req, res) => {
 
   if (!envAdminSecret) {
     throw ApiError.internal(
-      "Admin secret not configured on server. Contact system administrator."
+      "Admin secret not configured on server. Contact system administrator.",
     );
   }
 
@@ -687,7 +707,7 @@ export const createAdmin = asyncHandler(async (req, res) => {
       new ApiResponse(
         201,
         { user: createdAdmin },
-        "Admin account created successfully. Please login to continue."
-      )
+        "Admin account created successfully. Please login to continue.",
+      ),
     );
 });

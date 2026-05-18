@@ -36,7 +36,27 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const result = await dispatch(login(formData));
+    // Ensure a persistent deviceId is sent with login for device binding checks
+    const getOrCreateDeviceId = () => {
+      try {
+        let id = localStorage.getItem("deviceId");
+        if (!id) {
+          id =
+            (window.crypto &&
+              window.crypto.randomUUID &&
+              window.crypto.randomUUID()) ||
+            `dev-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+          localStorage.setItem("deviceId", id);
+        }
+        return id;
+      } catch (err) {
+        return `dev-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+      }
+    };
+
+    const payload = { ...formData, deviceId: getOrCreateDeviceId() };
+
+    const result = await dispatch(login(payload));
 
     if (login.fulfilled.match(result)) {
       // Check if 2FA is required
@@ -102,7 +122,7 @@ const Login = () => {
       window.location.reload();
     } catch (error) {
       setTwoFAError(
-        error.response?.data?.message || "Invalid verification code"
+        error.response?.data?.message || "Invalid verification code",
       );
     } finally {
       setTwoFALoading(false);

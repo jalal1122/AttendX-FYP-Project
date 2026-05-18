@@ -1,6 +1,11 @@
 import { useState } from "react";
 import Button from "../ui/Button";
 import userAPI from "../../services/userAPI";
+import {
+  DEPARTMENT_OPTIONS,
+  SEMESTER_OPTIONS,
+  getBatchOptions,
+} from "../../constants/academicOptions";
 
 const CreateUserModal = ({ isOpen, onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
@@ -9,6 +14,7 @@ const CreateUserModal = ({ isOpen, onClose, onSuccess }) => {
     password: "",
     role: "student",
     rollNo: "",
+    section: "",
     semester: "",
     department: "",
     batch: "",
@@ -22,9 +28,10 @@ const CreateUserModal = ({ isOpen, onClose, onSuccess }) => {
   if (!isOpen) return null;
 
   const handleChange = (e) => {
+    const { name, value } = e.target;
     setFormData({
       ...formData,
-      [e.target.name]: e.target.value,
+      [name]: name === "section" ? value.toUpperCase() : value,
     });
   };
 
@@ -48,11 +55,14 @@ const CreateUserModal = ({ isOpen, onClose, onSuccess }) => {
       const info = {};
       if (formData.role === "student") {
         info.rollNo = formData.rollNo;
+        info.section = formData.section || undefined;
         info.semester = parseInt(formData.semester);
         info.department = formData.department;
         info.batch = formData.batch;
         info.year = formData.year;
       } else if (formData.role === "teacher") {
+        // allow assigning a default section to a teacher if provided
+        if (formData.section) info.section = formData.section;
         info.department = formData.department;
         info.designation = formData.designation;
       }
@@ -74,6 +84,7 @@ const CreateUserModal = ({ isOpen, onClose, onSuccess }) => {
         password: "",
         role: "student",
         rollNo: "",
+        section: "",
         semester: "",
         department: "",
         batch: "",
@@ -114,10 +125,14 @@ const CreateUserModal = ({ isOpen, onClose, onSuccess }) => {
             {/* Basic Info */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="create-user-name"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   Name *
                 </label>
                 <input
+                  id="create-user-name"
                   type="text"
                   name="name"
                   value={formData.name}
@@ -128,10 +143,14 @@ const CreateUserModal = ({ isOpen, onClose, onSuccess }) => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="create-user-email"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   Email *
                 </label>
                 <input
+                  id="create-user-email"
                   type="email"
                   name="email"
                   value={formData.email}
@@ -142,10 +161,14 @@ const CreateUserModal = ({ isOpen, onClose, onSuccess }) => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="create-user-password"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   Password *
                 </label>
                 <input
+                  id="create-user-password"
                   type="password"
                   name="password"
                   value={formData.password}
@@ -157,10 +180,14 @@ const CreateUserModal = ({ isOpen, onClose, onSuccess }) => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label
+                  htmlFor="create-user-role"
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
                   Role *
                 </label>
                 <select
+                  id="create-user-role"
                   name="role"
                   value={formData.role}
                   onChange={handleChange}
@@ -176,10 +203,14 @@ const CreateUserModal = ({ isOpen, onClose, onSuccess }) => {
 
             {/* Profile Picture */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="create-user-avatar"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Profile Picture
               </label>
               <input
+                id="create-user-avatar"
                 type="file"
                 accept="image/*"
                 onChange={handleFileChange}
@@ -191,10 +222,14 @@ const CreateUserModal = ({ isOpen, onClose, onSuccess }) => {
             {formData.role === "student" && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="create-user-rollNo"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     Roll Number *
                   </label>
                   <input
+                    id="create-user-rollNo"
                     type="text"
                     name="rollNo"
                     value={formData.rollNo}
@@ -205,55 +240,104 @@ const CreateUserModal = ({ isOpen, onClose, onSuccess }) => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="create-user-semester"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     Semester *
                   </label>
-                  <input
-                    type="number"
+                  <select
+                    id="create-user-semester"
                     name="semester"
                     value={formData.semester}
                     onChange={handleChange}
                     required
-                    min="1"
-                    max="8"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  />
+                  >
+                    <option value="">Select semester</option>
+                    {SEMESTER_OPTIONS.map((s) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="create-user-department"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     Department *
                   </label>
-                  <input
-                    type="text"
+                  <select
+                    id="create-user-department"
                     name="department"
                     value={formData.department}
                     onChange={handleChange}
                     required
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  />
+                  >
+                    <option value="">Select department</option>
+                    {DEPARTMENT_OPTIONS.map((d) => (
+                      <option key={d} value={d}>
+                        {d}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="create-user-batch"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     Batch *
                   </label>
-                  <input
-                    type="text"
+                  <select
+                    id="create-user-batch"
                     name="batch"
                     value={formData.batch}
                     onChange={handleChange}
                     required
-                    placeholder="e.g., 2021-2025"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="">Select batch</option>
+                    {getBatchOptions().map((b) => (
+                      <option key={b} value={b}>
+                        {b}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="create-user-section"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Section (optional)
+                  </label>
+                  <input
+                    id="create-user-section"
+                    type="text"
+                    name="section"
+                    value={formData.section}
+                    onChange={handleChange}
+                    placeholder="e.g., A"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="create-user-year"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     Year *
                   </label>
                   <input
+                    id="create-user-year"
                     type="text"
                     name="year"
                     value={formData.year}
@@ -269,24 +353,38 @@ const CreateUserModal = ({ isOpen, onClose, onSuccess }) => {
             {formData.role === "teacher" && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="create-user-teacher-department"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     Department *
                   </label>
-                  <input
-                    type="text"
+                  <select
+                    id="create-user-teacher-department"
                     name="department"
                     value={formData.department}
                     onChange={handleChange}
                     required
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  />
+                  >
+                    <option value="">Select department</option>
+                    {DEPARTMENT_OPTIONS.map((d) => (
+                      <option key={d} value={d}>
+                        {d}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label
+                    htmlFor="create-user-designation"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
                     Designation *
                   </label>
                   <input
+                    id="create-user-designation"
                     type="text"
                     name="designation"
                     value={formData.designation}

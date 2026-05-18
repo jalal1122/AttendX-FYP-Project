@@ -67,7 +67,7 @@ const StudentDashboard = () => {
   const calculateAttendancePercentage = (classData) => {
     if (!classData.totalSessions || classData.totalSessions === 0) return 0;
     return Math.round(
-      (classData.attendedSessions / classData.totalSessions) * 100
+      (classData.attendedSessions / classData.totalSessions) * 100,
     );
   };
 
@@ -86,15 +86,15 @@ const StudentDashboard = () => {
               </p>
             </div>
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-              <Button 
-                variant="secondary" 
+              <Button
+                variant="secondary"
                 onClick={() => setShowExportModal(true)}
                 className="mobile-btn w-full sm:w-auto"
               >
                 📄 Download Transcript
               </Button>
-              <Button 
-                variant="success" 
+              <Button
+                variant="success"
                 onClick={() => navigate("/student/scan")}
                 className="mobile-btn w-full sm:w-auto"
               >
@@ -126,7 +126,10 @@ const StudentDashboard = () => {
           <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4">
             Join a New Class
           </h2>
-          <form onSubmit={handleJoinClass} className="flex flex-col sm:flex-row gap-3">
+          <form
+            onSubmit={handleJoinClass}
+            className="flex flex-col sm:flex-row gap-3"
+          >
             <Input
               placeholder="Enter class code (e.g., ABC123)"
               value={joinCode}
@@ -164,8 +167,8 @@ const StudentDashboard = () => {
                 ? Math.round(
                     classes.reduce(
                       (sum, cls) => sum + calculateAttendancePercentage(cls),
-                      0
-                    ) / classes.length
+                      0,
+                    ) / classes.length,
                   )
                 : 0}
               %
@@ -212,9 +215,7 @@ const StudentDashboard = () => {
                       </h3>
                       <span
                         className={`px-2 py-1 text-xs font-medium rounded flex-shrink-0 ml-2 ${
-                          isLowAttendance
-                            ? "badge-danger"
-                            : "badge-success"
+                          isLowAttendance ? "badge-danger" : "badge-success"
                         }`}
                       >
                         {attendancePercentage}%

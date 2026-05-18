@@ -690,6 +690,28 @@ describe("GET /api/v1/analytics/export", () => {
     expect(response.body.length).toBeGreaterThan(0);
   });
 
+  test("exports a department summary as XLSX for the owning teacher", async () => {
+    const response = await api()
+      .get("/api/v1/analytics/export")
+      .set("Authorization", `Bearer ${teacherToken}`)
+      .query({
+        type: "dept_summary",
+        format: "xlsx",
+        range: "semester",
+      })
+      .buffer(true)
+      .parse(binaryParser);
+
+    expect(response.statusCode).toBe(200);
+    expect(response.headers["content-type"]).toContain(
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    );
+    expect(response.headers["content-disposition"]).toContain(
+      "Department_Summary_",
+    );
+    expect(response.body.length).toBeGreaterThan(0);
+  });
+
   test("returns 400 when the report type is missing", async () => {
     const response = await api()
       .get("/api/v1/analytics/export")

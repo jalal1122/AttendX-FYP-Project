@@ -148,7 +148,8 @@ const MyAttendance = () => {
               </h1>
               <p className="mt-1 text-sm text-gray-600">
                 {reportData?.student?.name} •{" "}
-                {reportData?.student?.info?.rollNo}
+                {reportData?.student?.info?.rollNo} • ID:{" "}
+                {reportData?.student?._id}
               </p>
             </div>
             <Button variant="secondary" onClick={() => navigate(-1)}>
@@ -171,10 +172,10 @@ const MyAttendance = () => {
                 {r === "week"
                   ? "Last 7 Days"
                   : r === "month"
-                  ? "Last 30 Days"
-                  : r === "semester"
-                  ? "Semester"
-                  : "All Time"}
+                    ? "Last 30 Days"
+                    : r === "semester"
+                      ? "Semester"
+                      : "All Time"}
               </button>
             ))}
           </div>
@@ -399,7 +400,7 @@ const MyAttendance = () => {
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span
                           className={`px-2 py-1 text-xs font-medium rounded ${getStatusBadge(
-                            session.status
+                            session.status,
                           )}`}
                         >
                           {session.status}
@@ -408,7 +409,7 @@ const MyAttendance = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {session.sessionId?.startTime
                           ? new Date(
-                              session.sessionId.startTime
+                              session.sessionId.startTime,
                             ).toLocaleTimeString()
                           : "N/A"}
                       </td>

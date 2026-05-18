@@ -96,10 +96,14 @@ describe("Login", () => {
     await user.click(screen.getByRole("button", { name: /login/i }));
 
     await waitFor(() => {
-      expect(mockApiPost).toHaveBeenCalledWith("/auth/login", {
-        email: "teacher@example.com",
-        password: "CorrectHorseBatteryStaple!",
-      });
+      expect(mockApiPost).toHaveBeenCalledWith(
+        "/auth/login",
+        expect.objectContaining({
+          email: "teacher@example.com",
+          password: "CorrectHorseBatteryStaple!",
+          deviceId: expect.any(String),
+        }),
+      );
     });
   });
 

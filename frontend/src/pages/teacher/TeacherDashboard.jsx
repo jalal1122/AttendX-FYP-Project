@@ -41,7 +41,9 @@ const TeacherDashboard = () => {
     try {
       setLoading(true);
       const response = await classAPI.getAllClasses();
-      setClasses(response.data.classes || []);
+      const classes =
+        response?.data?.classes || response?.data?.data?.classes || [];
+      setClasses(classes);
     } catch (error) {
       console.error("Error fetching classes:", error);
       setError("Failed to load classes");
@@ -53,7 +55,8 @@ const TeacherDashboard = () => {
   const getAllActiveSessions = async () => {
     try {
       const response = await sessionAPI.getAllActiveSessions();
-      setActiveSessionCount(response.data.count);
+      const count = response?.data?.count ?? response?.count ?? 0;
+      setActiveSessionCount(count);
     } catch (error) {
       console.error("Error fetching active sessions:", error);
       return 0;
@@ -84,7 +87,8 @@ const TeacherDashboard = () => {
       setShowCreateModal(false);
 
       // Add new class to the list
-      setClasses([response.data, ...classes]);
+      const createdClass = response?.data?.data || response?.data || response;
+      setClasses((currentClasses) => [createdClass, ...currentClasses]);
 
       // Reset form
       setFormData({
@@ -160,7 +164,9 @@ const TeacherDashboard = () => {
             <h3 className="text-gray-500 text-sm font-medium">
               Active Sessions
             </h3>
-            <p className="text-3xl font-bold text-gray-900 mt-2">{activeSessionCount}</p>
+            <p className="text-3xl font-bold text-gray-900 mt-2">
+              {activeSessionCount}
+            </p>
           </Card>
         </div>
 

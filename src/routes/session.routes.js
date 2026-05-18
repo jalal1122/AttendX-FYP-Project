@@ -30,14 +30,14 @@ router.post("/:id/end", hasRole("teacher", "admin"), endSession);
 router.post(
   "/create-retroactive",
   hasRole("teacher", "admin"),
-  createRetroactiveSession
+  createRetroactiveSession,
 );
 
 // Get active session for a class (Teacher/Admin only)
 router.get(
   "/class/:classId/active",
   hasRole("teacher", "admin"),
-  getActiveSessionByClass
+  getActiveSessionByClass,
 );
 
 // Get All Active Sessions (Teacher/Admin only)
