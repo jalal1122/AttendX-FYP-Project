@@ -64,7 +64,9 @@ const AdminDashboard = () => {
       {/* Header */}
       <div className="bg-white shadow-sm border-b border-slate-100 sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+            Admin Dashboard
+          </h1>
           <p className="mt-1 text-sm text-muted">
             System overview and management
           </p>
@@ -143,7 +145,8 @@ const AdminDashboard = () => {
                     Students by Batch
                   </h2>
                   <span className="text-sm text-gray-500">
-                    {batchStats.length} batch{batchStats.length === 1 ? "" : "es"}
+                    {batchStats.length} batch
+                    {batchStats.length === 1 ? "" : "es"}
                   </span>
                 </div>
 
