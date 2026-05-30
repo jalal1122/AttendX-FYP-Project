@@ -14,6 +14,8 @@ import {
   getBatchOptions,
 } from "../../constants/academicOptions";
 
+const classNamePattern = /^.+\sSection\s[A-Z]$/i;
+
 const TeacherDashboard = () => {
   const navigate = useNavigate();
   const user = useSelector(selectCurrentUser);
@@ -81,8 +83,17 @@ const TeacherDashboard = () => {
     setError("");
     setSuccess("");
 
+    const trimmedName = formData.name.trim();
+    if (!classNamePattern.test(trimmedName)) {
+      setError("Class name must end with 'Section A' through 'Section Z'.");
+      return;
+    }
+
     try {
-      const response = await classAPI.createClass(formData);
+      const response = await classAPI.createClass({
+        ...formData,
+        name: trimmedName,
+      });
       setSuccess("Class created successfully!");
       setShowCreateModal(false);
 
@@ -254,9 +265,14 @@ const TeacherDashboard = () => {
             name="name"
             value={formData.name}
             onChange={handleInputChange}
-            placeholder="e.g., Web Engineering"
+            placeholder="Web Engineering Section A"
             required
+            pattern="^.+\\sSection\\s[A-Z]$"
+            title="Use the format: Class Name Section A to Z"
           />
+          <p className="-mt-2 mb-4 text-xs text-gray-500">
+            Example: Web Engineering Section A
+          </p>
 
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">

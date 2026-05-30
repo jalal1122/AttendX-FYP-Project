@@ -7,6 +7,7 @@ import {
   test,
 } from "@jest/globals";
 import request from "supertest";
+import XLSX from "xlsx";
 
 import User from "../../models/user.model.js";
 import { clearDatabase } from "../setup/db.js";
@@ -129,6 +130,30 @@ describe("GET /api/v1/user/all", () => {
     });
     expect(response.body.data.users[0]).not.toHaveProperty("password");
     expect(response.body.data.users[0]).not.toHaveProperty("refreshToken");
+  });
+
+  test("filters users by name, email, and student profile fields", async () => {
+    const response = await api()
+      .get("/api/v1/user/all")
+      .query({
+        role: "student",
+        name: "Student",
+        email: "student.one@example.com",
+        rollNo: "CS-001",
+        department: "Computer Science",
+        semester: "6",
+        batch: "2022",
+        year: "4",
+      })
+      .set("Authorization", `Bearer ${adminToken}`);
+
+    expect(response.statusCode).toBe(200);
+    expect(response.body.data.count).toBe(1);
+    expect(response.body.data.users).toHaveLength(1);
+    expect(response.body.data.users[0]).toMatchObject({
+      email: studentUser.email,
+      role: "student",
+    });
   });
 
   test("returns an empty list when the search matches nothing", async () => {
@@ -321,6 +346,133 @@ describe("POST /api/v1/user/create", () => {
         password: "Password123!",
         role: "student",
       });
+
+    expectForbidden(response);
+  });
+});
+
+describe("POST /api/v1/user/bulk-students", () => {
+  const buildWorkbookBuffer = (rows) => {
+    const workbook = XLSX.utils.book_new();
+    const worksheet = XLSX.utils.json_to_sheet(rows);
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Students");
+    return XLSX.write(workbook, { bookType: "xlsx", type: "buffer" });
+  };
+
+  test("creates multiple student accounts from a spreadsheet", async () => {
+    const response = await api()
+      .post("/api/v1/user/bulk-students")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .attach(
+        "sheet",
+        buildWorkbookBuffer([
+          {
+            name: "Bulk Student One",
+            email: "bulk.student1@example.com",
+            password: "Password123!",
+            rollNo: "CS-201",
+            semester: 5,
+            department: "Computer Science",
+            batch: "2021-2025",
+            year: "3",
+          },
+          {
+            name: "Bulk Student Two",
+            email: "bulk.student2@example.com",
+            password: "Password123!",
+            rollNo: "CS-202",
+            section: "B",
+            semester: 6,
+            department: "Computer Science",
+            batch: "2021-2025",
+            year: "3",
+          },
+        ]),
+        {
+          filename: "students.xlsx",
+          contentType:
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        },
+      );
+
+    expect(response.statusCode).toBe(201);
+    expect(response.body.success).toBe(true);
+    expect(response.body.data.createdCount).toBe(2);
+    expect(response.body.data.users).toHaveLength(2);
+    expect(response.body.data.users[0]).toMatchObject({
+      email: "bulk.student1@example.com",
+      role: "student",
+    });
+    expect(response.body.data.users[1]).toMatchObject({
+      email: "bulk.student2@example.com",
+      role: "student",
+    });
+
+    const createdUsers = await User.find({
+      email: {
+        $in: ["bulk.student1@example.com", "bulk.student2@example.com"],
+      },
+    });
+
+    expect(createdUsers).toHaveLength(2);
+    expect(await createdUsers[0].isPasswordCorrect("Password123!")).toBe(true);
+    expect(mockSendWelcomeEmail).toHaveBeenCalledTimes(2);
+  });
+
+  test("rejects a spreadsheet when one of the emails already exists", async () => {
+    const response = await api()
+      .post("/api/v1/user/bulk-students")
+      .set("Authorization", `Bearer ${adminToken}`)
+      .attach(
+        "sheet",
+        buildWorkbookBuffer([
+          {
+            name: "Existing Student",
+            email: studentUser.email,
+            password: "Password123!",
+            rollNo: "CS-301",
+            semester: 5,
+            department: "Computer Science",
+            batch: "2021-2025",
+            year: "3",
+          },
+        ]),
+        {
+          filename: "students.xlsx",
+          contentType:
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        },
+      );
+
+    expect(response.statusCode).toBe(409);
+    expect(response.body.success).toBe(false);
+    expect(response.body.message).toContain("already exist");
+  });
+
+  test("returns 403 for a non-admin user", async () => {
+    const response = await api()
+      .post("/api/v1/user/bulk-students")
+      .set("Authorization", `Bearer ${studentToken}`)
+      .attach(
+        "sheet",
+        buildWorkbookBuffer([
+          {
+            name: "Denied Student",
+            email: "denied.bulk@example.com",
+            password: "Password123!",
+            rollNo: "CS-401",
+            semester: 5,
+            department: "Computer Science",
+            batch: "2021-2025",
+            year: "3",
+          },
+        ]),
+        {
+          filename: "students.xlsx",
+          contentType:
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        },
+      );
 
     expectForbidden(response);
   });

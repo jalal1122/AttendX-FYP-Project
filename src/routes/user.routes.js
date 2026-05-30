@@ -6,12 +6,14 @@ import {
   updateUserRole,
   deleteUser,
   createUser,
+  bulkCreateStudents,
   updateUser,
   resetUserDevice,
 } from "../controllers/user.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import { hasRole } from "../middlewares/role.middleware.js";
 import upload from "../middlewares/upload.middleware.js";
+import spreadsheetUpload from "../middlewares/spreadsheetUpload.middleware.js";
 
 const router = express.Router();
 
@@ -20,6 +22,13 @@ router.use(verifyJWT, hasRole("admin"));
 
 // Create user
 router.post("/create", upload.single("avatar"), createUser);
+
+// Bulk create student users from a spreadsheet
+router.post(
+  "/bulk-students",
+  spreadsheetUpload.single("sheet"),
+  bulkCreateStudents,
+);
 
 // Get all users
 router.get("/all", getAllUsers);

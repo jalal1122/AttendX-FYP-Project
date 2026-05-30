@@ -5,13 +5,99 @@ import User from "../models/user.model.js";
 import { uploadToCloudinary } from "../../config/cloudinary.js";
 import EmailService from "../services/email.service.js";
 import fs from "fs";
+import bcrypt from "bcryptjs";
+import XLSX from "xlsx";
+
+const studentSpreadsheetAliases = {
+  name: ["name", "studentname", "fullname"],
+  email: ["email", "emailaddress", "studentemail"],
+  password: ["password", "temppassword", "initialpassword"],
+  rollNo: ["rollno", "rollnumber", "roll"],
+  section: ["section", "sec"],
+  semester: ["semester", "sem"],
+  department: ["department", "dept"],
+  batch: ["batch", "admissionbatch"],
+  year: ["year", "academicyear", "classyear"],
+};
+
+const normalizeSpreadsheetKey = (value) =>
+  String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+
+const normalizeSpreadsheetValue = (value) => {
+  if (value === null || value === undefined) return "";
+  if (typeof value === "string") return value.trim();
+  if (typeof value === "number") return String(value).trim();
+  return String(value).trim();
+};
+
+const readSpreadsheetRow = (row) => {
+  const mapped = {};
+
+  for (const [key, value] of Object.entries(row || {})) {
+    const normalizedKey = normalizeSpreadsheetKey(key);
+
+    for (const [field, aliases] of Object.entries(studentSpreadsheetAliases)) {
+      if (aliases.includes(normalizedKey)) {
+        mapped[field] = normalizeSpreadsheetValue(value);
+        break;
+      }
+    }
+  }
+
+  return mapped;
+};
+
+const parseStudentSpreadsheet = (buffer) => {
+  const workbook = XLSX.read(buffer, { type: "buffer" });
+  const firstSheetName = workbook.SheetNames[0];
+
+  if (!firstSheetName) {
+    throw ApiError.badRequest("The spreadsheet does not contain any sheets");
+  }
+
+  const worksheet = workbook.Sheets[firstSheetName];
+  const rows = XLSX.utils.sheet_to_json(worksheet, {
+    defval: "",
+    blankrows: false,
+  });
+
+  if (!rows.length) {
+    throw ApiError.badRequest(
+      "The spreadsheet does not contain any student rows",
+    );
+  }
+
+  return rows.map((row, index) => ({
+    rowNumber: index + 2,
+    data: readSpreadsheetRow(row),
+  }));
+};
+
+const buildBulkStudentValidationError = (rowNumber, messages) =>
+  `Row ${rowNumber}: ${messages.join(", ")}`;
+
+const escapeRegex = (value) =>
+  String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 /**
  * Get All Users (Admin only)
  * GET /api/v1/user/all
  */
 export const getAllUsers = asyncHandler(async (req, res) => {
-  const { role, search } = req.query;
+  const {
+    role,
+    search,
+    department,
+    semester,
+    batch,
+    year,
+    name,
+    email,
+    rollNo,
+  } = req.query;
 
   let query = {};
 
@@ -22,10 +108,58 @@ export const getAllUsers = asyncHandler(async (req, res) => {
 
   // Search by name or email
   if (search) {
-    query.$or = [
-      { name: { $regex: search, $options: "i" } },
-      { email: { $regex: search, $options: "i" } },
-    ];
+    query.$and = query.$and || [];
+    query.$and.push({
+      $or: [
+        { name: { $regex: search, $options: "i" } },
+        { email: { $regex: search, $options: "i" } },
+        { "info.rollNo": { $regex: search, $options: "i" } },
+      ],
+    });
+  }
+
+  if (name) {
+    query.$and = query.$and || [];
+    query.$and.push({ name: { $regex: escapeRegex(name), $options: "i" } });
+  }
+
+  if (email) {
+    query.$and = query.$and || [];
+    query.$and.push({ email: { $regex: escapeRegex(email), $options: "i" } });
+  }
+
+  if (rollNo) {
+    query.$and = query.$and || [];
+    query.$and.push({
+      "info.rollNo": { $regex: escapeRegex(rollNo), $options: "i" },
+    });
+  }
+
+  if (department) {
+    query.$and = query.$and || [];
+    query.$and.push({
+      "info.department": {
+        $regex: `^${escapeRegex(department)}$`,
+        $options: "i",
+      },
+    });
+  }
+
+  if (semester) {
+    query.$and = query.$and || [];
+    query.$and.push({ "info.semester": String(semester) });
+  }
+
+  if (batch) {
+    query.$and = query.$and || [];
+    query.$and.push({
+      "info.batch": { $regex: `^${escapeRegex(batch)}$`, $options: "i" },
+    });
+  }
+
+  if (year) {
+    query.$and = query.$and || [];
+    query.$and.push({ "info.year": String(year) });
   }
 
   const users = await User.find(query)
@@ -40,8 +174,8 @@ export const getAllUsers = asyncHandler(async (req, res) => {
         count: users.length,
         users,
       },
-      "Users retrieved successfully"
-    )
+      "Users retrieved successfully",
+    ),
   );
 });
 
@@ -53,21 +187,16 @@ export const getUserStats = asyncHandler(async (req, res) => {
   // Get users created in the last 30 days
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-  const [
-    totalUsers,
-    totalStudents,
-    totalTeachers,
-    totalAdmins,
-    recentUsers,
-  ] = await Promise.all([
-    User.countDocuments(),
-    User.countDocuments({ role: "student" }),
-    User.countDocuments({ role: "teacher" }),
-    User.countDocuments({ role: "admin" }),
-    User.countDocuments({
-      createdAt: { $gte: thirtyDaysAgo },
-    }),
-  ]);
+  const [totalUsers, totalStudents, totalTeachers, totalAdmins, recentUsers] =
+    await Promise.all([
+      User.countDocuments(),
+      User.countDocuments({ role: "student" }),
+      User.countDocuments({ role: "teacher" }),
+      User.countDocuments({ role: "admin" }),
+      User.countDocuments({
+        createdAt: { $gte: thirtyDaysAgo },
+      }),
+    ]);
 
   res.status(200).json(
     new ApiResponse(
@@ -79,8 +208,8 @@ export const getUserStats = asyncHandler(async (req, res) => {
         totalAdmins,
         recentUsers,
       },
-      "User statistics retrieved successfully"
-    )
+      "User statistics retrieved successfully",
+    ),
   );
 });
 
@@ -112,7 +241,7 @@ export const updateUserRole = asyncHandler(async (req, res) => {
 
   if (!role || !["student", "teacher", "admin"].includes(role)) {
     throw ApiError.badRequest(
-      "Invalid role. Must be student, teacher, or admin"
+      "Invalid role. Must be student, teacher, or admin",
     );
   }
 
@@ -124,7 +253,7 @@ export const updateUserRole = asyncHandler(async (req, res) => {
   const user = await User.findByIdAndUpdate(
     id,
     { $set: { role } },
-    { new: true, runValidators: true }
+    { new: true, runValidators: true },
   )
     .select("-password -refreshToken")
     .lean();
@@ -168,14 +297,14 @@ export const createUser = asyncHandler(async (req, res) => {
   // Validate required fields
   if (!name || !email || !password || !role) {
     throw ApiError.badRequest(
-      "All fields are required: name, email, password, role"
+      "All fields are required: name, email, password, role",
     );
   }
 
   // Validate role
   if (!["admin", "teacher", "student"].includes(role)) {
     throw ApiError.badRequest(
-      "Invalid role. Must be admin, teacher, or student"
+      "Invalid role. Must be admin, teacher, or student",
     );
   }
 
@@ -242,6 +371,144 @@ export const createUser = asyncHandler(async (req, res) => {
 });
 
 /**
+ * Bulk Create Student Users (Admin only)
+ * POST /api/v1/user/bulk-students
+ */
+export const bulkCreateStudents = asyncHandler(async (req, res) => {
+  if (!req.file) {
+    throw ApiError.badRequest("An Excel sheet file is required");
+  }
+
+  const spreadsheetRows = parseStudentSpreadsheet(req.file.buffer);
+  const validationErrors = [];
+  const emails = [];
+  const seenEmails = new Set();
+  const preparedStudents = [];
+
+  for (const { rowNumber, data } of spreadsheetRows) {
+    const rowErrors = [];
+
+    const name = normalizeSpreadsheetValue(data.name);
+    const email = normalizeSpreadsheetValue(data.email).toLowerCase();
+    const password = normalizeSpreadsheetValue(data.password);
+    const rollNo = normalizeSpreadsheetValue(data.rollNo);
+    const section = normalizeSpreadsheetValue(data.section).toUpperCase();
+    const semesterRaw = normalizeSpreadsheetValue(data.semester);
+    const department = normalizeSpreadsheetValue(data.department);
+    const batch = normalizeSpreadsheetValue(data.batch);
+    const year = normalizeSpreadsheetValue(data.year);
+
+    if (!name) rowErrors.push("name is required");
+    if (!email) rowErrors.push("email is required");
+    if (!password) rowErrors.push("password is required");
+    if (!rollNo) rowErrors.push("rollNo is required");
+    if (!semesterRaw) rowErrors.push("semester is required");
+    if (!department) rowErrors.push("department is required");
+    if (!batch) rowErrors.push("batch is required");
+    if (!year) rowErrors.push("year is required");
+
+    const semester = Number.parseInt(semesterRaw, 10);
+    if (
+      semesterRaw &&
+      (!Number.isInteger(semester) || semester < 1 || semester > 8)
+    ) {
+      rowErrors.push("semester must be a number between 1 and 8");
+    }
+
+    if (password && password.length < 6) {
+      rowErrors.push("password must be at least 6 characters");
+    }
+
+    if (email && !/^\S+@\S+\.\S+$/.test(email)) {
+      rowErrors.push("email is invalid");
+    }
+
+    if (email) {
+      if (seenEmails.has(email)) {
+        rowErrors.push("email is duplicated within the spreadsheet");
+      }
+      seenEmails.add(email);
+      emails.push(email);
+    }
+
+    if (rowErrors.length) {
+      validationErrors.push(
+        buildBulkStudentValidationError(rowNumber, rowErrors),
+      );
+      continue;
+    }
+
+    preparedStudents.push({
+      rowNumber,
+      name,
+      email,
+      password,
+      info: {
+        rollNo,
+        section: section || undefined,
+        semester,
+        department,
+        batch,
+        year,
+      },
+    });
+  }
+
+  if (validationErrors.length) {
+    throw ApiError.badRequest(
+      `Invalid spreadsheet data: ${validationErrors.join(" | ")}`,
+    );
+  }
+
+  const existingUsers = await User.find({ email: { $in: emails } })
+    .select("email")
+    .lean();
+
+  if (existingUsers.length) {
+    throw ApiError.conflict(
+      `The following emails already exist: ${existingUsers
+        .map((user) => user.email)
+        .join(", ")}`,
+    );
+  }
+
+  const documents = await Promise.all(
+    preparedStudents.map(async (student) => ({
+      name: student.name,
+      email: student.email,
+      password: await bcrypt.hash(student.password, 10),
+      role: "student",
+      info: student.info,
+    })),
+  );
+
+  const createdUsers = await User.insertMany(documents, { ordered: true });
+
+  await Promise.allSettled(
+    preparedStudents.map((student, index) =>
+      EmailService.sendWelcomeEmail(createdUsers[index], student.password),
+    ),
+  );
+
+  res.status(201).json(
+    new ApiResponse(
+      201,
+      {
+        createdCount: createdUsers.length,
+        users: createdUsers.map((user) => ({
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          info: user.info,
+        })),
+      },
+      `${createdUsers.length} student accounts created successfully`,
+    ),
+  );
+});
+
+/**
  * Update User (Admin only)
  * PUT /api/v1/user/:id
  * Admin can update name, mobileNumber, and info fields
@@ -254,7 +521,7 @@ export const updateUser = asyncHandler(async (req, res) => {
   // Security: Prevent email/password changes
   if (email || password) {
     throw ApiError.badRequest(
-      "Email and password cannot be changed through this endpoint. Use dedicated password reset/change endpoints."
+      "Email and password cannot be changed through this endpoint. Use dedicated password reset/change endpoints.",
     );
   }
 
@@ -295,7 +562,7 @@ export const resetUserDevice = asyncHandler(async (req, res) => {
   const user = await User.findByIdAndUpdate(
     id,
     { $set: { deviceId: null } },
-    { new: true }
+    { new: true },
   )
     .select("_id deviceId")
     .lean();
@@ -310,7 +577,7 @@ export const resetUserDevice = asyncHandler(async (req, res) => {
         _id: user._id,
         deviceId: user.deviceId,
       },
-      "User device binding reset successfully. The user can now bind a new device on next attendance."
-    )
+      "User device binding reset successfully. The user can now bind a new device on next attendance.",
+    ),
   );
 });

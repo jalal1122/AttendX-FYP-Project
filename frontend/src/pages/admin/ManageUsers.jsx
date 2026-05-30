@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import userAPI from "../../services/userAPI";
 import Card from "../../components/ui/Card";
@@ -6,15 +6,29 @@ import Button from "../../components/ui/Button";
 import Modal from "../../components/ui/Modal";
 import Input from "../../components/ui/Input";
 import CreateUserModal from "../../components/modals/CreateUserModal";
+import {
+  DEPARTMENT_OPTIONS,
+  SEMESTER_OPTIONS,
+  getBatchOptions,
+} from "../../constants/academicOptions";
 
 const ManageUsers = () => {
   const navigate = useNavigate();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState("all");
-  const [searchQuery, setSearchQuery] = useState("");
+  const [activeTab, setActiveTab] = useState("all");
+  const [filters, setFilters] = useState({
+    name: "",
+    email: "",
+    rollNo: "",
+    department: "",
+    semester: "",
+    batch: "",
+    year: "",
+  });
   const [message, setMessage] = useState({ type: "", text: "" });
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [createModalMode, setCreateModalMode] = useState("single");
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [editFormData, setEditFormData] = useState({
@@ -23,18 +37,36 @@ const ManageUsers = () => {
     info: {},
   });
 
-  useEffect(() => {
-    fetchUsers();
-  }, [filter, searchQuery]);
+  const updateFilter = (field, value) => {
+    setFilters((current) => ({
+      ...current,
+      [field]: value,
+    }));
+  };
 
-  const fetchUsers = async () => {
+  const filtersStateMap = (state) => ({
+    name: state.name?.trim(),
+    email: state.email?.trim(),
+    rollNo: state.rollNo?.trim(),
+    department: state.department?.trim(),
+    semester: state.semester?.trim(),
+    batch: state.batch?.trim(),
+    year: state.year?.trim(),
+  });
+
+  const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
-      const filters = {};
-      if (filter !== "all") filters.role = filter;
-      if (searchQuery) filters.search = searchQuery;
 
-      const response = await userAPI.getAllUsers(filters);
+      const query = {};
+      if (activeTab !== "all") query.role = activeTab;
+
+      const activeFilters = filtersStateMap(filters);
+      Object.entries(activeFilters).forEach(([key, value]) => {
+        if (value) query[key] = value;
+      });
+
+      const response = await userAPI.getAllUsers(query);
       setUsers(response.data.users || []);
     } catch (error) {
       console.error("Error fetching users:", error);
@@ -42,7 +74,11 @@ const ManageUsers = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeTab, filters]);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
 
   const handleDeleteUser = async (userId, userName) => {
     if (!window.confirm(`Are you sure you want to delete ${userName}?`)) {
@@ -178,9 +214,21 @@ const ManageUsers = () => {
             <div className="flex gap-3">
               <Button
                 variant="primary"
-                onClick={() => setShowCreateModal(true)}
+                onClick={() => {
+                  setCreateModalMode("single");
+                  setShowCreateModal(true);
+                }}
               >
                 + Create User
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setCreateModalMode("bulk");
+                  setShowCreateModal(true);
+                }}
+              >
+                Bulk Student Import
               </Button>
               <Button
                 variant="outline"
@@ -208,36 +256,179 @@ const ManageUsers = () => {
           </div>
         )}
 
+        {/* Role tabs */}
+        <Card className="mb-6">
+          <div className="flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() => setActiveTab("all")}
+              className={`px-4 py-2 rounded-md text-sm font-medium border ${
+                activeTab === "all"
+                  ? "bg-primary-600 text-white border-primary-600"
+                  : "bg-white text-gray-700 border-gray-300"
+              }`}
+            >
+              All Users
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("admin")}
+              className={`px-4 py-2 rounded-md text-sm font-medium border ${
+                activeTab === "admin"
+                  ? "bg-primary-600 text-white border-primary-600"
+                  : "bg-white text-gray-700 border-gray-300"
+              }`}
+            >
+              Admins
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("student")}
+              className={`px-4 py-2 rounded-md text-sm font-medium border ${
+                activeTab === "student"
+                  ? "bg-primary-600 text-white border-primary-600"
+                  : "bg-white text-gray-700 border-gray-300"
+              }`}
+            >
+              Students
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("teacher")}
+              className={`px-4 py-2 rounded-md text-sm font-medium border ${
+                activeTab === "teacher"
+                  ? "bg-primary-600 text-white border-primary-600"
+                  : "bg-white text-gray-700 border-gray-300"
+              }`}
+            >
+              Teachers
+            </button>
+          </div>
+        </Card>
+
         {/* Filters */}
         <Card className="mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Filter by Role
+                Name
+              </label>
+              <input
+                type="text"
+                value={filters.name}
+                onChange={(e) => updateFilter("name", e.target.value)}
+                placeholder="Filter by name"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Email
+              </label>
+              <input
+                type="text"
+                value={filters.email}
+                onChange={(e) => updateFilter("email", e.target.value)}
+                placeholder="Filter by email"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Roll Number
+              </label>
+              <input
+                type="text"
+                value={filters.rollNo}
+                onChange={(e) => updateFilter("rollNo", e.target.value)}
+                placeholder="Filter by roll number"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Department
               </label>
               <select
-                value={filter}
-                onChange={(e) => setFilter(e.target.value)}
+                value={filters.department}
+                onChange={(e) => updateFilter("department", e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
               >
-                <option value="all">All Users</option>
-                <option value="student">Students</option>
-                <option value="teacher">Teachers</option>
-                <option value="admin">Admins</option>
+                <option value="">All departments</option>
+                {DEPARTMENT_OPTIONS.map((department) => (
+                  <option key={department} value={department}>
+                    {department}
+                  </option>
+                ))}
               </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Search
+                Semester
+              </label>
+              <select
+                value={filters.semester}
+                onChange={(e) => updateFilter("semester", e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+              >
+                <option value="">All semesters</option>
+                {SEMESTER_OPTIONS.map((semester) => (
+                  <option key={semester} value={semester}>
+                    {semester}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Batch
+              </label>
+              <select
+                value={filters.batch}
+                onChange={(e) => updateFilter("batch", e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+              >
+                <option value="">All batches</option>
+                {getBatchOptions().map((batch) => (
+                  <option key={batch} value={batch}>
+                    {batch}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Year
               </label>
               <input
                 type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by name or email..."
+                value={filters.year}
+                onChange={(e) => updateFilter("year", e.target.value)}
+                placeholder="Filter by year"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
             </div>
+          </div>
+
+          <div className="mt-4 flex justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setActiveTab("all");
+                setFilters({
+                  name: "",
+                  email: "",
+                  rollNo: "",
+                  department: "",
+                  semester: "",
+                  batch: "",
+                  year: "",
+                });
+              }}
+            >
+              Clear Filters
+            </Button>
           </div>
         </Card>
 
@@ -353,6 +544,7 @@ const ManageUsers = () => {
         {/* Create User Modal */}
         <CreateUserModal
           isOpen={showCreateModal}
+          initialMode={createModalMode}
           onClose={() => setShowCreateModal(false)}
           onSuccess={() => {
             setMessage({ type: "success", text: "User created successfully" });

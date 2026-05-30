@@ -7,6 +7,13 @@ export const userAPI = {
     const params = new URLSearchParams();
     if (filters.role) params.append("role", filters.role);
     if (filters.search) params.append("search", filters.search);
+    if (filters.department) params.append("department", filters.department);
+    if (filters.semester) params.append("semester", filters.semester);
+    if (filters.batch) params.append("batch", filters.batch);
+    if (filters.year) params.append("year", filters.year);
+    if (filters.name) params.append("name", filters.name);
+    if (filters.email) params.append("email", filters.email);
+    if (filters.rollNo) params.append("rollNo", filters.rollNo);
 
     const response = await api.get(`/user/all?${params.toString()}`);
     return response.data;
@@ -51,6 +58,16 @@ export const userAPI = {
   // Create user (with FormData for file upload)
   createUser: async (formData) => {
     const response = await api.post("/user/create", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+    return response.data;
+  },
+
+  // Bulk create student users from a spreadsheet
+  bulkCreateStudents: async (formData) => {
+    const response = await api.post("/user/bulk-students", formData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },

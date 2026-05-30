@@ -13,6 +13,8 @@ const generateClassCode = () => {
   return crypto.randomBytes(3).toString("hex").toUpperCase();
 };
 
+const classNamePattern = /^.+\sSection\s[A-Z]$/i;
+
 /**
  * Create Class (Teacher/Admin only)
  * POST /api/v1/class/create
@@ -21,9 +23,17 @@ export const createClass = asyncHandler(async (req, res) => {
   const { name, department, semester, batch, academicYear, sections } =
     req.body;
 
+  const trimmedName = typeof name === "string" ? name.trim() : "";
+
   // Validate required fields
-  if (!name || !department || !semester) {
+  if (!trimmedName || !department || !semester) {
     throw ApiError.badRequest("Name, department, and semester are required");
+  }
+
+  if (!classNamePattern.test(trimmedName)) {
+    throw ApiError.badRequest(
+      "Class name must end with 'Section A' through 'Section Z'",
+    );
   }
 
   // Validate semester
@@ -71,7 +81,7 @@ export const createClass = asyncHandler(async (req, res) => {
 
   // Create class
   const newClass = await Class.create({
-    name,
+    name: trimmedName,
     code,
     teacher: req.user._id,
     department,
