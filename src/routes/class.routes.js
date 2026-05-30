@@ -6,6 +6,7 @@ import {
   getClassDetails,
   unjoinClass,
   removeStudent,
+  promoteClassStudents,
   updateClassDetails,
   deleteClass,
 } from "../controllers/class.controller.js";
@@ -28,6 +29,13 @@ router.post("/unjoin", hasRole("student"), unjoinClass);
 
 // Remove student from class (Teacher and Admin only)
 router.post("/remove-student", hasRole("teacher", "admin"), removeStudent);
+
+// Promote all students in a class to the next semester (Teacher and Admin only)
+router.post(
+  "/:id/promote-semester",
+  hasRole("teacher", "admin"),
+  promoteClassStudents,
+);
 
 // Update class details (Teacher and Admin only)
 router.put("/:id", hasRole("teacher", "admin"), updateClassDetails);

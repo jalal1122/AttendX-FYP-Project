@@ -91,7 +91,7 @@ export const registerUser = asyncHandler(async (req, res) => {
         fs.unlinkSync(req.file.path);
       } catch (unlinkError) {
         // Ignore unlink errors in serverless environments
-        console.log("Temp file cleanup skipped (serverless environment)");
+        ("Temp file cleanup skipped (serverless environment)");
       }
     } catch (error) {
       console.error("Avatar upload error:", error);

@@ -1,6 +1,7 @@
 import asyncHandler from "../utils/asyncHandler.js";
 import ApiError from "../../utils/ApiError.js";
 import ApiResponse from "../../utils/ApiResponse.js";
+import User from "../models/user.model.js";
 import Class from "../models/class.model.js";
 import Session from "../models/session.model.js";
 import Attendance from "../models/attendance.model.js";
@@ -307,6 +308,81 @@ export const removeStudent = asyncHandler(async (req, res) => {
   res
     .status(200)
     .json(new ApiResponse(200, null, "Student removed successfully"));
+});
+
+/**
+ * Promote Class Students to the Next Semester
+ * POST /api/v1/class/:id/promote-semester
+ */
+export const promoteClassStudents = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { targetSemester } = req.body;
+
+  const classDoc = await Class.findById(id)
+    .select("teacher students semester name")
+    .lean();
+
+  if (!classDoc) {
+    throw ApiError.notFound("Class not found");
+  }
+
+  if (
+    req.user.role !== "admin" &&
+    classDoc.teacher.toString() !== req.user._id.toString()
+  ) {
+    throw ApiError.forbidden(
+      "Only the class teacher or admin can promote students",
+    );
+  }
+
+  const currentSemester = Number(classDoc.semester);
+  const parsedTargetSemester =
+    targetSemester !== undefined && targetSemester !== ""
+      ? Number.parseInt(targetSemester, 10)
+      : currentSemester + 1;
+
+  if (
+    !Number.isInteger(parsedTargetSemester) ||
+    parsedTargetSemester < 1 ||
+    parsedTargetSemester > 8
+  ) {
+    throw ApiError.badRequest("Target semester must be between 1 and 8");
+  }
+
+  if (parsedTargetSemester <= currentSemester) {
+    throw ApiError.badRequest(
+      "Target semester must be greater than the current class semester",
+    );
+  }
+
+  if (!classDoc.students.length) {
+    throw ApiError.badRequest("No students are enrolled in this class");
+  }
+
+  const updateResult = await User.updateMany(
+    { _id: { $in: classDoc.students }, role: "student" },
+    { $set: { "info.semester": parsedTargetSemester } },
+  );
+
+  const updatedClass = await Class.findByIdAndUpdate(
+    id,
+    { $set: { semester: parsedTargetSemester } },
+    { new: true },
+  )
+    .populate("teacher", "name email role")
+    .populate("students", "name email info");
+
+  res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        class: updatedClass,
+        promotedStudents: updateResult.modifiedCount,
+        targetSemester: parsedTargetSemester,
+      },
+      `Promoted ${updateResult.modifiedCount} student(s) to semester ${parsedTargetSemester}`,
+    ),
+  );
 });
 
 /**

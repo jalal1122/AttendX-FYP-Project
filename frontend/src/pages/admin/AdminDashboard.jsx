@@ -12,12 +12,15 @@ const AdminDashboard = () => {
   const user = useSelector(selectCurrentUser);
   const navigate = useNavigate();
   const [stats, setStats] = useState({
+    totalUsers: 0,
     totalClasses: 0,
     totalStudents: 0,
     totalTeachers: 0,
+    totalAdmins: 0,
     activeSessions: 0,
   });
   const [recentClasses, setRecentClasses] = useState([]);
+  const [batchStats, setBatchStats] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -37,11 +40,15 @@ const AdminDashboard = () => {
       const userStats = userStatsResponse.data;
 
       setStats({
+        totalUsers: userStats.totalUsers || 0,
         totalClasses: classes.length,
         totalStudents: userStats.totalStudents || 0,
         totalTeachers: userStats.totalTeachers || 0,
+        totalAdmins: userStats.totalAdmins || 0,
         activeSessions: 0, // Will be updated when session API is integrated
       });
+
+      setBatchStats(userStats.batchStats || []);
 
       // Get recent classes (last 5)
       setRecentClasses(classes.slice(0, 5));
@@ -73,26 +80,50 @@ const AdminDashboard = () => {
         ) : (
           <>
             {/* Stats Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-6 sm:mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6 mb-6 sm:mb-8">
+              <div className="mobile-card bg-gradient-to-br from-slate-600 to-slate-700 text-white">
+                <h3 className="text-slate-100 text-sm font-medium">
+                  Total Users
+                </h3>
+                <p className="text-3xl sm:text-4xl font-bold mt-2">
+                  {stats.totalUsers}
+                </p>
+              </div>
+
               <div className="mobile-card bg-gradient-to-br from-sky-500 to-sky-600 text-white">
                 <h3 className="text-sky-100 text-sm font-medium">
                   Total Classes
                 </h3>
-                <p className="text-3xl sm:text-4xl font-bold mt-2">{stats.totalClasses}</p>
+                <p className="text-3xl sm:text-4xl font-bold mt-2">
+                  {stats.totalClasses}
+                </p>
               </div>
 
               <div className="mobile-card bg-gradient-to-br from-emerald-500 to-emerald-600 text-white">
                 <h3 className="text-emerald-100 text-sm font-medium">
                   Total Students
                 </h3>
-                <p className="text-3xl sm:text-4xl font-bold mt-2">{stats.totalStudents}</p>
+                <p className="text-3xl sm:text-4xl font-bold mt-2">
+                  {stats.totalStudents}
+                </p>
               </div>
 
               <div className="mobile-card bg-gradient-to-br from-violet-500 to-violet-600 text-white">
                 <h3 className="text-violet-100 text-sm font-medium">
                   Total Teachers
                 </h3>
-                <p className="text-3xl sm:text-4xl font-bold mt-2">{stats.totalTeachers}</p>
+                <p className="text-3xl sm:text-4xl font-bold mt-2">
+                  {stats.totalTeachers}
+                </p>
+              </div>
+
+              <div className="mobile-card bg-gradient-to-br from-fuchsia-500 to-fuchsia-600 text-white">
+                <h3 className="text-fuchsia-100 text-sm font-medium">
+                  Total Admins
+                </h3>
+                <p className="text-3xl sm:text-4xl font-bold mt-2">
+                  {stats.totalAdmins}
+                </p>
               </div>
 
               <div className="mobile-card bg-gradient-to-br from-amber-500 to-amber-600 text-white">
@@ -103,6 +134,45 @@ const AdminDashboard = () => {
                   {stats.activeSessions}
                 </p>
               </div>
+            </div>
+
+            <div className="mb-6 sm:mb-8">
+              <Card>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-lg sm:text-xl font-semibold text-gray-900">
+                    Students by Batch
+                  </h2>
+                  <span className="text-sm text-gray-500">
+                    {batchStats.length} batch{batchStats.length === 1 ? "" : "es"}
+                  </span>
+                </div>
+
+                {batchStats.length === 0 ? (
+                  <p className="text-sm text-gray-500">
+                    No batch data available.
+                  </p>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+                    {batchStats.map((batch) => (
+                      <div
+                        key={batch.batch}
+                        className="rounded-lg border border-gray-200 bg-slate-50 p-4"
+                      >
+                        <p className="text-xs uppercase tracking-wide text-gray-500">
+                          Batch
+                        </p>
+                        <p className="mt-1 text-lg font-semibold text-gray-900">
+                          {batch.batch}
+                        </p>
+                        <p className="mt-2 text-3xl font-bold text-primary-600">
+                          {batch.students}
+                        </p>
+                        <p className="text-sm text-gray-500">students</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Card>
             </div>
 
             {/* System Health Widget */}

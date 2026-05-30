@@ -41,6 +41,14 @@ export const classAPI = {
     return response.data;
   },
 
+  // Promote all students in a class to the selected semester (Teacher/Admin only)
+  promoteClassStudents: async (classId, targetSemester) => {
+    const response = await api.post(`/class/${classId}/promote-semester`, {
+      targetSemester,
+    });
+    return response.data;
+  },
+
   // Update class details (Teacher/Admin only)
   updateClass: async (classId, classData) => {
     const response = await api.put(`/class/${classId}`, classData);

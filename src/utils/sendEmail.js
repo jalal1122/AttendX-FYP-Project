@@ -18,11 +18,11 @@ const sendEmail = async ({ to, subject, text, html }) => {
 
     if (!isEmailConfigured) {
       // Development mode - just log to console
-      console.log("\n📧 ========== MOCK EMAIL ==========");
-      console.log(`To: ${to}`);
-      console.log(`Subject: ${subject}`);
-      console.log(`Message:\n${text}`);
-      console.log("===================================\n");
+      ("\n📧 ========== MOCK EMAIL ==========");
+      `To: ${to}`;
+      `Subject: ${subject}`;
+      `Message:\n${text}`;
+      ("===================================\n");
       return { success: true, mode: "mock" };
     }
 
@@ -49,7 +49,7 @@ const sendEmail = async ({ to, subject, text, html }) => {
 
     const info = await transporter.sendMail(mailOptions);
 
-    console.log(`✅ Email sent successfully to ${to}: ${info.messageId}`);
+    `✅ Email sent successfully to ${to}: ${info.messageId}`;
     return { success: true, mode: "real", messageId: info.messageId };
   } catch (error) {
     console.error("❌ Error sending email:", error);

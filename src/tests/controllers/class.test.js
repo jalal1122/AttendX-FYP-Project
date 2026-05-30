@@ -189,7 +189,7 @@ describe("POST /api/v1/class/create", () => {
       .post("/api/v1/class/create")
       .set("Authorization", `Bearer ${teacherToken}`)
       .send({
-        name: "Operating Systems",
+        name: "Operating Systems Section A",
         department: "Computer Science",
         semester: 4,
         batch: "2023",
@@ -199,7 +199,7 @@ describe("POST /api/v1/class/create", () => {
     expect(response.statusCode).toBe(201);
     expect(response.body.success).toBe(true);
     expect(response.body.data).toMatchObject({
-      name: "Operating Systems",
+      name: "Operating Systems Section A",
       department: "Computer Science",
       semester: 4,
       batch: "2023",
@@ -213,7 +213,9 @@ describe("POST /api/v1/class/create", () => {
     });
     expect(response.body.data.code).toMatch(/^[A-F0-9]{6}$/);
 
-    const storedClass = await Class.findOne({ name: "Operating Systems" });
+    const storedClass = await Class.findOne({
+      name: "Operating Systems Section A",
+    });
     expect(storedClass).toBeTruthy();
   });
 
@@ -521,6 +523,49 @@ describe("POST /api/v1/class/remove-student", () => {
       });
 
     expectForbidden(response);
+  });
+});
+
+describe("POST /api/v1/class/:id/promote-semester", () => {
+  test("promotes all enrolled students to the target semester for the class teacher", async () => {
+    const response = await api()
+      .post(`/api/v1/class/${teacherClass._id}/promote-semester`)
+      .set("Authorization", `Bearer ${teacherToken}`)
+      .send({ targetSemester: 7 });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.body.success).toBe(true);
+    expect(response.body.data.promotedStudents).toBe(1);
+    expect(response.body.data.targetSemester).toBe(7);
+    expect(response.body.data.class.semester).toBe(7);
+
+    const updatedStudent = await User.findById(studentUser._id);
+    expect(updatedStudent.info.semester).toBe(7);
+  });
+
+  test("allows an admin to promote students in any class", async () => {
+    const response = await api()
+      .post(`/api/v1/class/${studentClass._id}/promote-semester`)
+      .set("Authorization", `Bearer ${adminToken}`)
+      .send({ targetSemester: 6 });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.body.success).toBe(true);
+    expect(response.body.data.promotedStudents).toBe(1);
+    expect(response.body.data.targetSemester).toBe(6);
+
+    const updatedStudent = await User.findById(studentUser._id);
+    expect(updatedStudent.info.semester).toBe(6);
+  });
+
+  test("returns 403 when a student tries to promote a class", async () => {
+    const response = await api()
+      .post(`/api/v1/class/${teacherClass._id}/promote-semester`)
+      .set("Authorization", `Bearer ${studentToken}`)
+      .send({ targetSemester: 7 });
+
+    expectForbidden(response);
+    expect(response.body.message).toContain("Required roles: teacher, admin");
   });
 });
 

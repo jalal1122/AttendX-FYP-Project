@@ -346,8 +346,8 @@ const Reports = () => {
         dateRange.startDate,
         dateRange.endDate,
       );
-      console.log("Analytics response:", analyticsResponse);
-      console.log("Analytics data:", analyticsResponse?.data);
+      ("Analytics response:", analyticsResponse);
+      ("Analytics data:", analyticsResponse?.data);
       setAnalytics(analyticsResponse?.data || analyticsResponse);
 
       // Fetch defaulters

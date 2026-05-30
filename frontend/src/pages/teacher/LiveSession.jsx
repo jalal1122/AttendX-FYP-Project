@@ -7,7 +7,11 @@ import attendanceAPI from "../../services/attendanceAPI";
 import Button from "../../components/ui/Button";
 import Card from "../../components/ui/Card";
 import StartSessionModal from "../../components/modals/StartSessionModal";
-import { connectSocket, joinSessionRoom, leaveSessionRoom } from "../../services/socket";
+import {
+  connectSocket,
+  joinSessionRoom,
+  leaveSessionRoom,
+} from "../../services/socket";
 
 const LiveSession = () => {
   const { classId } = useParams();
@@ -52,7 +56,7 @@ const LiveSession = () => {
 
       if (activeSession) {
         // Resume existing session
-        console.log("📋 Resuming existing session:", activeSession._id);
+        ("📋 Resuming existing session:", activeSession._id);
         setSessionId(activeSession._id);
         setIsActive(true);
         continueSessionSetup(activeSession._id);
@@ -152,7 +156,7 @@ const LiveSession = () => {
 
     if (err.response?.status === 409) {
       setError(
-        "⚠️ There's already an active session for this class. Please end it first or refresh to resume it."
+        "⚠️ There's already an active session for this class. Please end it first or refresh to resume it.",
       );
     } else {
       setError(err.response?.data?.message || "Failed to start session");
@@ -208,7 +212,7 @@ const LiveSession = () => {
       // If there's already an active session, show helpful error
       if (error.response?.status === 409) {
         setError(
-          "⚠️ This class already has an active session. Please end the previous session first or wait for it to expire."
+          "⚠️ This class already has an active session. Please end the previous session first or wait for it to expire.",
         );
       } else {
         setError(errorMsg);
@@ -225,7 +229,7 @@ const LiveSession = () => {
       setTimeRemaining(refreshRate || 20); // Reset timer
 
       // Log token for dev testing
-      console.log("🔑 NEW QR TOKEN:", response.data.token);
+      ("🔑 NEW QR TOKEN:", response.data.token);
     } catch (error) {
       console.error("Failed to fetch QR token:", error);
     }
@@ -404,8 +408,8 @@ const LiveSession = () => {
                           window.innerWidth < 640
                             ? 200
                             : window.innerWidth < 1024
-                            ? 250
-                            : 300
+                              ? 250
+                              : 300
                         }
                         level="H"
                       />
@@ -461,11 +465,17 @@ const LiveSession = () => {
                       </div>
                       <div className="flex items-center">
                         <span className="mr-1">🌐</span>
-                        <span>IP Match: {sessionConfig.ipMatchEnabled ? "On" : "Off"}</span>
+                        <span>
+                          IP Match:{" "}
+                          {sessionConfig.ipMatchEnabled ? "On" : "Off"}
+                        </span>
                       </div>
                       <div className="flex items-center">
                         <span className="mr-1">✋</span>
-                        <span>Manual Approval: {sessionConfig.manualApproval ? "On" : "Off"}</span>
+                        <span>
+                          Manual Approval:{" "}
+                          {sessionConfig.manualApproval ? "On" : "Off"}
+                        </span>
                       </div>
                     </div>
                   </div>

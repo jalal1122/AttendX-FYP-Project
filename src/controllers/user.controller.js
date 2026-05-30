@@ -147,7 +147,15 @@ export const getAllUsers = asyncHandler(async (req, res) => {
 
   if (semester) {
     query.$and = query.$and || [];
-    query.$and.push({ "info.semester": String(semester) });
+    const semesterValue = String(semester).trim();
+    const semesterNumber = Number.parseInt(semesterValue, 10);
+    const semesterConditions = [{ "info.semester": semesterValue }];
+
+    if (Number.isInteger(semesterNumber)) {
+      semesterConditions.push({ "info.semester": semesterNumber });
+    }
+
+    query.$and.push({ $or: semesterConditions });
   }
 
   if (batch) {
@@ -198,6 +206,31 @@ export const getUserStats = asyncHandler(async (req, res) => {
       }),
     ]);
 
+  const batchStats = await User.aggregate([
+    {
+      $match: {
+        role: "student",
+        "info.batch": { $exists: true, $nin: [null, ""] },
+      },
+    },
+    {
+      $group: {
+        _id: "$info.batch",
+        students: { $sum: 1 },
+      },
+    },
+    {
+      $project: {
+        _id: 0,
+        batch: "$_id",
+        students: 1,
+      },
+    },
+    {
+      $sort: { students: -1, batch: 1 },
+    },
+  ]);
+
   res.status(200).json(
     new ApiResponse(
       200,
@@ -207,6 +240,7 @@ export const getUserStats = asyncHandler(async (req, res) => {
         totalTeachers,
         totalAdmins,
         recentUsers,
+        batchStats,
       },
       "User statistics retrieved successfully",
     ),
@@ -324,7 +358,7 @@ export const createUser = asyncHandler(async (req, res) => {
         fs.unlinkSync(req.file.path);
       } catch (unlinkError) {
         // Ignore unlink errors in serverless environments
-        console.log("Temp file cleanup skipped (serverless environment)");
+        ("Temp file cleanup skipped (serverless environment)");
       }
     } catch (error) {
       console.error("Avatar upload error:", error);

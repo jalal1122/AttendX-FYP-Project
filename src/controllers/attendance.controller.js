@@ -98,10 +98,10 @@ export const markAttendance = asyncHandler(async (req, res) => {
     const allowedRadius = securityConfig.radius || 50;
 
     // Log coordinates for debugging
-    console.log("📍 Geofence Check:");
-    console.log(`   Teacher Location: (${sessionLat}, ${sessionLon})`);
-    console.log(`   Student Location: (${studentLat}, ${studentLon})`);
-    console.log(`   Allowed Radius: ${allowedRadius}m`);
+    ("📍 Geofence Check:");
+    (`   Teacher Location: (${sessionLat}, ${sessionLon})`);
+    (`   Student Location: (${studentLat}, ${studentLon})`);
+    (`   Allowed Radius: ${allowedRadius}m`);
 
     const distance = calculateDistance(
       sessionLat,
@@ -110,7 +110,7 @@ export const markAttendance = asyncHandler(async (req, res) => {
       studentLon,
     );
 
-    console.log(`   Calculated Distance: ${Math.round(distance)}m`);
+    (`   Calculated Distance: ${Math.round(distance)}m`);
 
     // Check for GPS accuracy issues (large distances often indicate GPS problems)
     if (distance > 500 && allowedRadius < 100) {
@@ -143,7 +143,7 @@ export const markAttendance = asyncHandler(async (req, res) => {
       throw ApiError.securityError(errorMsg, ApiError.GEOFENCE_OUTSIDE);
     }
 
-    console.log(
+    (
       `✓ Geofencing passed: Student is ${distance}m away (within ${allowedRadius}m radius)`,
     );
   }
@@ -168,10 +168,10 @@ export const markAttendance = asyncHandler(async (req, res) => {
 
   if (securityConfig.ipMatchEnabled) {
     if (studentIP !== teacherIP) {
-      console.log("⚠️  IP Mismatch Warning:");
-      console.log(`   Teacher IP: ${teacherIP}`);
-      console.log(`   Student IP: ${studentIP}`);
-      console.log(
+      ("⚠️  IP Mismatch Warning:");
+      (`   Teacher IP: ${teacherIP}`);
+      (`   Student IP: ${studentIP}`);
+      (
         "   IP matching is enabled but IPs don't match. (Normal on localhost)",
       );
       ipMatch = false;

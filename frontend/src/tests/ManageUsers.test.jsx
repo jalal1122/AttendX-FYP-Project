@@ -154,6 +154,34 @@ describe("ManageUsers", () => {
     expect(screen.queryByText("Alice Johnson")).not.toBeInTheDocument();
   });
 
+  it("forwards the semester filter to the API and narrows student results", async () => {
+    const user = userEvent.setup();
+
+    mockGetAllUsers.mockImplementation(async (filters = {}) => {
+      if (filters.semester === "5") {
+        return { data: { users: [users[0]] } };
+      }
+
+      return { data: { users } };
+    });
+
+    renderWithProviders(<ManageUsers />);
+
+    await screen.findByText("Alice Johnson");
+
+    const comboboxes = screen.getAllByRole("combobox");
+    await user.selectOptions(comboboxes[1], "5");
+
+    await waitFor(() => {
+      expect(mockGetAllUsers).toHaveBeenLastCalledWith(
+        expect.objectContaining({ semester: "5" }),
+      );
+    });
+
+    expect(await screen.findByText("Alice Johnson")).toBeVisible();
+    expect(screen.queryByText("Bob Smith")).not.toBeInTheDocument();
+  });
+
   it("shows an error when an invalid role is entered in the role prompt", async () => {
     const user = userEvent.setup();
     vi.mocked(window.prompt).mockReturnValue("janitor");

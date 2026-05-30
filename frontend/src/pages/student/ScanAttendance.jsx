@@ -28,9 +28,9 @@ const ScanAttendance = () => {
           // Generate new UUID for this device
           uuid = crypto.randomUUID();
           localStorage.setItem("device_uuid", uuid);
-          console.log("🔐 Generated new device UUID:", uuid);
+          ("🔐 Generated new device UUID:", uuid);
         } else {
-          console.log("🔐 Retrieved existing device UUID:", uuid);
+          ("🔐 Retrieved existing device UUID:", uuid);
         }
 
         setDeviceId(uuid);
@@ -60,7 +60,7 @@ const ScanAttendance = () => {
           scanner
             .stop()
             .then(() => scanner.clear())
-            .catch((err) => console.log("Cleanup error:", err));
+            .catch((err) => ("Cleanup error:", err));
         }
       }
     };
@@ -79,7 +79,8 @@ const ScanAttendance = () => {
 
       // Responsive QR box size
       const screenWidth = window.innerWidth;
-      const qrBoxSize = screenWidth < 640 ? Math.min(250, screenWidth - 80) : 250;
+      const qrBoxSize =
+        screenWidth < 640 ? Math.min(250, screenWidth - 80) : 250;
 
       const config = {
         fps: 10,
@@ -91,7 +92,7 @@ const ScanAttendance = () => {
         { facingMode: "environment" }, // Use back camera on mobile
         config,
         onScanSuccess,
-        onScanError
+        onScanError,
       );
 
       setMessage({
@@ -148,7 +149,7 @@ const ScanAttendance = () => {
   };
 
   const onScanSuccess = async (decodedText) => {
-    console.log("QR Scanned:", decodedText);
+    ("QR Scanned:", decodedText);
 
     // Pause scanning immediately
     if (html5QrCodeRef.current) {
@@ -172,14 +173,14 @@ const ScanAttendance = () => {
       navigator.geolocation.getCurrentPosition(
         async (position) => {
           const { latitude, longitude } = position.coords;
-          console.log("📍 Student location captured:", { latitude, longitude });
+          ("📍 Student location captured:", { latitude, longitude });
 
           try {
             const response = await attendanceAPI.markAttendance(
               token,
               latitude,
               longitude,
-              deviceId
+              deviceId,
             );
 
             // Check if manual approval is required
@@ -195,8 +196,7 @@ const ScanAttendance = () => {
               });
             } else {
               // Success!
-              const studentName =
-                attendance.studentId?.name || "Student";
+              const studentName = attendance.studentId?.name || "Student";
               setMessage({
                 type: "success",
                 text: `✓ Attendance marked successfully! Welcome, ${studentName}!`,
@@ -234,7 +234,7 @@ const ScanAttendance = () => {
               });
             }
           }, 3000);
-        }
+        },
       );
     } else {
       // Browser doesn't support geolocation - try without location
@@ -243,7 +243,7 @@ const ScanAttendance = () => {
           token,
           null,
           null,
-          deviceId
+          deviceId,
         );
 
         // Check if manual approval is required
@@ -259,8 +259,7 @@ const ScanAttendance = () => {
           });
         } else {
           // Success!
-          const studentName =
-            attendance.studentId?.name || "Student";
+          const studentName = attendance.studentId?.name || "Student";
           setMessage({
             type: "success",
             text: `✓ Attendance marked successfully! Welcome, ${studentName}!`,
@@ -288,7 +287,7 @@ const ScanAttendance = () => {
     const errorMessage =
       error.response?.data?.message ||
       "Failed to mark attendance. Invalid or expired token.";
-    
+
     const errorCode = error.response?.data?.errorCode;
 
     // Enhanced error handling with icons and specific guidance
@@ -352,15 +351,12 @@ const ScanAttendance = () => {
     setProcessing(false);
 
     // Resume scanning after appropriate delay
-    setTimeout(
-      () => {
-        if (html5QrCodeRef.current && isScanning) {
-          html5QrCodeRef.current.resume();
-          setMessage({ type: "info", text: "Scanner active. Try again." });
-        }
-      },
-      resumeDelay
-    );
+    setTimeout(() => {
+      if (html5QrCodeRef.current && isScanning) {
+        html5QrCodeRef.current.resume();
+        setMessage({ type: "info", text: "Scanner active. Try again." });
+      }
+    }, resumeDelay);
   };
 
   const handleDevSubmit = async (e) => {
@@ -404,8 +400,8 @@ const ScanAttendance = () => {
               message.type === "success"
                 ? "bg-success-50 border-success-200 text-success-700"
                 : message.type === "error"
-                ? "bg-error-50 border-error-200 text-error-700"
-                : "bg-blue-50 border-blue-200 text-blue-700"
+                  ? "bg-error-50 border-error-200 text-error-700"
+                  : "bg-blue-50 border-blue-200 text-blue-700"
             }`}
           >
             <p className="font-medium">{message.text}</p>
@@ -497,7 +493,10 @@ const ScanAttendance = () => {
                 For testing: Copy the token from the teacher's screen console
                 and paste it here.
               </p>
-              <form onSubmit={handleDevSubmit} className="flex flex-col sm:flex-row gap-3">
+              <form
+                onSubmit={handleDevSubmit}
+                className="flex flex-col sm:flex-row gap-3"
+              >
                 <Input
                   placeholder="Paste QR token here..."
                   value={devToken}
@@ -519,7 +518,9 @@ const ScanAttendance = () => {
 
         {/* Instructions */}
         <div className="mobile-card mt-4 sm:mt-6 bg-blue-50 border-blue-200">
-          <h3 className="text-blue-900 font-semibold mb-3 text-base sm:text-lg">📱 Scanning Tips</h3>
+          <h3 className="text-blue-900 font-semibold mb-3 text-base sm:text-lg">
+            📱 Scanning Tips
+          </h3>
           <ul className="space-y-2 text-xs sm:text-sm text-blue-800">
             <li>• Make sure you have good lighting</li>
             <li>• Hold your device steady and keep the QR code centered</li>

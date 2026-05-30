@@ -27,7 +27,7 @@ class EmailService {
 
       // Verify connection
       await this.transporter.verify();
-      console.log("✅ Email service ready");
+      ("✅ Email service ready");
       return this.transporter;
     } catch (error) {
       console.error("❌ Email service error:", error);
@@ -213,33 +213,49 @@ class EmailService {
       <span class="info-label">Role:</span>
       <span class="info-value">${user.role.charAt(0).toUpperCase() + user.role.slice(1)}</span>
     </div>
-    ${user.rollNumber ? `
+    ${
+      user.rollNumber
+        ? `
     <div class="info-row">
       <span class="info-label">Roll Number:</span>
       <span class="info-value">${user.rollNumber}</span>
     </div>
-    ` : ''}
-    ${user.department ? `
+    `
+        : ""
+    }
+    ${
+      user.department
+        ? `
     <div class="info-row">
       <span class="info-label">Department:</span>
       <span class="info-value">${user.department}</span>
     </div>
-    ` : ''}
-    ${tempPassword ? `
+    `
+        : ""
+    }
+    ${
+      tempPassword
+        ? `
     <div class="info-row">
       <span class="info-label">Temporary Password:</span>
       <span class="info-value"><code style="background: #e0f2fe; padding: 4px 8px; border-radius: 4px; font-family: monospace;">${tempPassword}</code></span>
     </div>
-    ` : ''}
+    `
+        : ""
+    }
   </div>
 
-  ${tempPassword ? `
+  ${
+    tempPassword
+      ? `
   <p class="message">
     <strong>⚠️ Important:</strong> Please change your password after your first login for security.
   </p>
-  ` : ''}
+  `
+      : ""
+  }
 
-  <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}/login" class="button">
+  <a href="${process.env.CLIENT_URL || "http://localhost:5173"}/login" class="button">
     Login to AttendX
   </a>
 
@@ -249,20 +265,26 @@ class EmailService {
     <strong>Getting Started:</strong>
   </p>
   <ul style="color: #475569; line-height: 1.8;">
-    ${user.role === 'student' ? `
+    ${
+      user.role === "student"
+        ? `
     <li>Join your classes using the class code</li>
     <li>Scan QR codes to mark attendance</li>
     <li>Track your attendance percentage</li>
-    ` : user.role === 'teacher' ? `
+    `
+        : user.role === "teacher"
+          ? `
     <li>Create and manage your classes</li>
     <li>Start live attendance sessions</li>
     <li>View real-time attendance tracking</li>
     <li>Generate attendance reports</li>
-    ` : `
+    `
+          : `
     <li>Manage users and classes</li>
     <li>View system-wide analytics</li>
     <li>Generate comprehensive reports</li>
-    `}
+    `
+    }
   </ul>
 </div>
     `;
@@ -280,7 +302,11 @@ class EmailService {
   /**
    * Send Low Attendance Warning
    */
-  static async sendLowAttendanceWarning(student, classData, attendancePercentage) {
+  static async sendLowAttendanceWarning(
+    student,
+    classData,
+    attendancePercentage,
+  ) {
     const content = `
 <div class="content">
   <h2 class="greeting">⚠️ Low Attendance Alert</h2>
@@ -320,7 +346,7 @@ class EmailService {
     </p>
   </div>
 
-  <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}/student/attendance" class="button">
+  <a href="${process.env.CLIENT_URL || "http://localhost:5173"}/student/attendance" class="button">
     View Attendance Details
   </a>
 </div>
@@ -350,13 +376,14 @@ class EmailService {
     Hello <strong>${user.name}</strong>,
   </p>
   <p class="message">
-    ${isBinding ? 
-      "A new device has been bound to your AttendX account." : 
-      "Your device binding has been reset by an administrator."
+    ${
+      isBinding
+        ? "A new device has been bound to your AttendX account."
+        : "Your device binding has been reset by an administrator."
     }
   </p>
   
-  <div class="info-box ${isBinding ? '' : 'warning'}">
+  <div class="info-box ${isBinding ? "" : "warning"}">
     <div class="info-row">
       <span class="info-label">Action:</span>
       <span class="info-value">${isBinding ? "Device Bound" : "Device Reset"}</span>
@@ -371,30 +398,39 @@ class EmailService {
     </div>
   </div>
 
-  ${isBinding ? `
+  ${
+    isBinding
+      ? `
   <p class="message">
     This device will now be used for marking attendance. You can only use one device at a time for security purposes.
   </p>
-  ` : `
+  `
+      : `
   <p class="message">
     You can now bind a new device when you mark attendance next time. If you didn't request this reset, please contact your administrator immediately.
   </p>
-  `}
+  `
+  }
 
-  <div class="info-box ${isBinding ? 'success' : ''}>
+  <div class="info-box ${isBinding ? "success" : ""}>
     <p style="margin: 0; color: #475569; font-size: 14px;">
-      <strong>🛡️ Security Note:</strong> ${isBinding ? 
-        "Your account is now secured to this device. This prevents unauthorized attendance marking." :
-        "If you didn't request this change, please contact support immediately."
+      <strong>🛡️ Security Note:</strong> ${
+        isBinding
+          ? "Your account is now secured to this device. This prevents unauthorized attendance marking."
+          : "If you didn't request this change, please contact support immediately."
       }
     </p>
   </div>
 
-  ${!isBinding ? `
-  <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}/profile" class="button">
+  ${
+    !isBinding
+      ? `
+  <a href="${process.env.CLIENT_URL || "http://localhost:5173"}/profile" class="button">
     View Account Settings
   </a>
-  ` : ''}
+  `
+      : ""
+  }
 </div>
     `;
 
@@ -438,7 +474,7 @@ class EmailService {
     <span class="highlight">Please scan the QR code displayed by your teacher to mark your attendance.</span>
   </p>
 
-  <a href="${process.env.CLIENT_URL || 'http://localhost:5173'}/student/scan" class="button">
+  <a href="${process.env.CLIENT_URL || "http://localhost:5173"}/student/scan" class="button">
     Open Scanner
   </a>
 </div>
@@ -446,7 +482,7 @@ class EmailService {
 
     const mailOptions = {
       from: `"AttendX Notifications" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
-      to: students.map(s => s.email).join(", "),
+      to: students.map((s) => s.email).join(", "),
       subject: `📱 Attendance Session: ${classData.name}`,
       html: this.getBaseTemplate(content),
     };
@@ -460,14 +496,14 @@ class EmailService {
   static async sendEmail(mailOptions) {
     try {
       const transporter = await this.initTransporter();
-      
+
       if (!transporter) {
         console.warn("⚠️ Email service not configured. Skipping email.");
         return { success: false, message: "Email service not configured" };
       }
 
       const info = await transporter.sendMail(mailOptions);
-      console.log("✅ Email sent:", info.messageId);
+      ("✅ Email sent:", info.messageId);
       return { success: true, messageId: info.messageId };
     } catch (error) {
       console.error("❌ Email error:", error);

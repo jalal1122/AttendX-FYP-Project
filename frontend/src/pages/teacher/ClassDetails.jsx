@@ -7,6 +7,7 @@ import Card from "../../components/ui/Card";
 import Modal from "../../components/ui/Modal";
 import Input from "../../components/ui/Input";
 import ExportModal from "../../components/modals/ExportModal";
+import { SEMESTER_OPTIONS } from "../../constants/academicOptions";
 
 const ClassDetails = () => {
   const { classId } = useParams();
@@ -37,6 +38,8 @@ const ClassDetails = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [removingStudent, setRemovingStudent] = useState(null);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [showPromoteModal, setShowPromoteModal] = useState(false);
+  const [promotionTargetSemester, setPromotionTargetSemester] = useState("");
 
   const fetchClassData = useCallback(async () => {
     try {
@@ -147,6 +150,31 @@ const ClassDetails = () => {
       fetchClassData();
     } catch (error) {
       setError(error.response?.data?.message || "Failed to update class");
+    }
+  };
+
+  const openPromoteModal = () => {
+    const nextSemester = Number(classData?.semester || 0) + 1;
+    setPromotionTargetSemester(nextSemester <= 8 ? String(nextSemester) : "");
+    setShowPromoteModal(true);
+  };
+
+  const handlePromoteStudents = async (e) => {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+
+    try {
+      const response = await classAPI.promoteClassStudents(
+        String(classId),
+        promotionTargetSemester,
+      );
+      setSuccess(response.message || "Students promoted successfully");
+      setShowPromoteModal(false);
+      setPromotionTargetSemester("");
+      fetchClassData();
+    } catch (error) {
+      setError(error.response?.data?.message || "Failed to promote students");
     }
   };
 
@@ -612,6 +640,18 @@ const ClassDetails = () => {
               </form>
             </Card>
 
+            <Card className="mb-6 border-sky-200 bg-sky-50">
+              <h3 className="text-lg font-semibold text-sky-900 mb-2">
+                Semester Promotion
+              </h3>
+              <p className="text-sm text-sky-800 mb-4">
+                Promote all students enrolled in this class to a later semester.
+              </p>
+              <Button variant="primary" onClick={openPromoteModal}>
+                Promote Students
+              </Button>
+            </Card>
+
             {/* Danger Zone */}
             <Card className="border-error-200 bg-error-50">
               <h3 className="text-lg font-semibold text-error-900 mb-2">
@@ -690,6 +730,71 @@ const ClassDetails = () => {
             Delete Forever
           </Button>
         </div>
+      </Modal>
+
+      {/* Semester Promotion Modal */}
+      <Modal
+        isOpen={showPromoteModal}
+        onClose={() => {
+          setShowPromoteModal(false);
+          setPromotionTargetSemester("");
+          setError("");
+        }}
+        title="Promote Students"
+      >
+        <form onSubmit={handlePromoteStudents}>
+          <p className="text-sm text-gray-600 mb-4">
+            Current semester: <strong>{classData?.semester}</strong>
+          </p>
+
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Target Semester
+            </label>
+            <select
+              value={promotionTargetSemester}
+              onChange={(e) => setPromotionTargetSemester(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              required
+            >
+              <option value="">Select target semester</option>
+              {SEMESTER_OPTIONS.map((semester) => (
+                <option key={semester} value={semester}>
+                  Semester {semester}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <p className="text-xs text-gray-500 mb-4">
+            This updates the semester for every student enrolled in the class
+            and moves the class itself to the selected semester.
+          </p>
+
+          {error && (
+            <div className="mb-4 p-3 bg-error-50 border border-error-200 text-error-700 rounded-lg text-sm">
+              {error}
+            </div>
+          )}
+
+          <div className="flex gap-3">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                setShowPromoteModal(false);
+                setPromotionTargetSemester("");
+                setError("");
+              }}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+            <Button type="submit" variant="primary" className="flex-1">
+              Promote
+            </Button>
+          </div>
+        </form>
       </Modal>
 
       {/* Retroactive Session Modal */}

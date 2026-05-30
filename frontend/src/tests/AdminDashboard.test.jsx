@@ -54,6 +54,17 @@ describe("AdminDashboard", () => {
     },
   ];
 
+  const stats = {
+    totalUsers: 200,
+    totalStudents: 120,
+    totalTeachers: 18,
+    totalAdmins: 4,
+    batchStats: [
+      { batch: "2022-2026", students: 80 },
+      { batch: "2023-2027", students: 40 },
+    ],
+  };
+
   beforeEach(() => {
     localStorage.clear();
     mockNavigate.mockReset();
@@ -63,9 +74,7 @@ describe("AdminDashboard", () => {
 
   it("renders the dashboard shell and core controls without crashing", async () => {
     mockGetAllClasses.mockResolvedValueOnce({ data: { classes } });
-    mockGetUserStats.mockResolvedValueOnce({
-      data: { totalStudents: 120, totalTeachers: 18 },
-    });
+    mockGetUserStats.mockResolvedValueOnce({ data: stats });
 
     renderWithProviders(<AdminDashboard />);
 
@@ -86,13 +95,12 @@ describe("AdminDashboard", () => {
     ).toBeVisible();
     expect(screen.getByRole("button", { name: /^view all$/i })).toBeVisible();
     expect(screen.getByText(/system health/i)).toBeVisible();
+    expect(screen.getByText(/students by batch/i)).toBeVisible();
   });
 
   it("loads dashboard data and renders the computed stats and recent classes", async () => {
     mockGetAllClasses.mockResolvedValueOnce({ data: { classes } });
-    mockGetUserStats.mockResolvedValueOnce({
-      data: { totalStudents: 120, totalTeachers: 18 },
-    });
+    mockGetUserStats.mockResolvedValueOnce({ data: stats });
 
     renderWithProviders(<AdminDashboard />);
 
@@ -101,6 +109,9 @@ describe("AdminDashboard", () => {
       expect(mockGetUserStats).toHaveBeenCalledTimes(1);
     });
 
+    expect(screen.getByText(/total users/i).parentElement).toHaveTextContent(
+      "200",
+    );
     expect(screen.getByText(/total classes/i).parentElement).toHaveTextContent(
       "2",
     );
@@ -110,6 +121,12 @@ describe("AdminDashboard", () => {
     expect(screen.getByText(/total teachers/i).parentElement).toHaveTextContent(
       "18",
     );
+    expect(screen.getByText(/total admins/i).parentElement).toHaveTextContent(
+      "4",
+    );
+
+    expect(screen.getByText("2022-2026")).toBeVisible();
+    expect(screen.getByText("2023-2027")).toBeVisible();
 
     expect(screen.getByText(/computer networks/i)).toBeVisible();
     expect(screen.getByText(/operating systems/i)).toBeVisible();
@@ -143,9 +160,7 @@ describe("AdminDashboard", () => {
     const user = userEvent.setup();
 
     mockGetAllClasses.mockResolvedValueOnce({ data: { classes } });
-    mockGetUserStats.mockResolvedValueOnce({
-      data: { totalStudents: 120, totalTeachers: 18 },
-    });
+    mockGetUserStats.mockResolvedValueOnce({ data: stats });
 
     renderWithProviders(<AdminDashboard />);
 

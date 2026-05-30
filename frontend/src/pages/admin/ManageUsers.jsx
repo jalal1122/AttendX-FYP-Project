@@ -68,6 +68,7 @@ const ManageUsers = () => {
 
       const response = await userAPI.getAllUsers(query);
       setUsers(response.data.users || []);
+      response.data.users;
     } catch (error) {
       console.error("Error fetching users:", error);
       setMessage({ type: "error", text: "Failed to load users" });
