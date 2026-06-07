@@ -66,6 +66,14 @@ app.use(express.json({ limit: bodySizeLimit, strict: true }));
 app.use(express.urlencoded({ extended: false, limit: bodySizeLimit }));
 app.use(cookieParser());
 
+// Basic route for testing
+app.get("/", (req, res) => {
+  res.json({
+    success: true,
+    message: "Welcome to AttendX API",
+  });
+});
+
 // Health check route
 app.get("/health", (req, res) => {
   res.status(200).json({
