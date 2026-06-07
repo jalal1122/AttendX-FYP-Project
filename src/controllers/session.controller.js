@@ -4,7 +4,7 @@ import ApiResponse from "../../utils/ApiResponse.js";
 import Session from "../models/session.model.js";
 import Class from "../models/class.model.js";
 import jwt from "jsonwebtoken";
-import { emitToSession } from "../socket/socket.js";
+import { emitToSession } from "../services/pusher.js";
 
 /**
  * Get client IP address (handles proxies and localhost)
