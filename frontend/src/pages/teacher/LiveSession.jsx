@@ -33,7 +33,6 @@ const LiveSession = () => {
   const qrIntervalRef = useRef(null);
   const countIntervalRef = useRef(null);
   const timerIntervalRef = useRef(null);
-  const socketRef = useRef(null);
 
   const fetchClassDetails = async () => {
     try {
@@ -87,9 +86,9 @@ const LiveSession = () => {
   useEffect(() => {
     if (!isActive || !sessionId) return;
 
-    const socket = connectSocket();
-    socketRef.current = socket;
-    joinSessionRoom(sessionId);
+    connectSocket();
+    const channel = joinSessionRoom(sessionId);
+    if (!channel) return;
 
     const handleAttendanceUpdated = () => {
       fetchAttendanceCount(sessionId);
@@ -113,14 +112,14 @@ const LiveSession = () => {
       }
     };
 
-    socket.on("attendance:updated", handleAttendanceUpdated);
-    socket.on("attendance:approved", handleAttendanceApproved);
-    socket.on("session:ended", handleSessionEnded);
+    channel.bind("attendance:updated", handleAttendanceUpdated);
+    channel.bind("attendance:approved", handleAttendanceApproved);
+    channel.bind("session:ended", handleSessionEnded);
 
     return () => {
-      socket.off("attendance:updated", handleAttendanceUpdated);
-      socket.off("attendance:approved", handleAttendanceApproved);
-      socket.off("session:ended", handleSessionEnded);
+      channel.unbind("attendance:updated", handleAttendanceUpdated);
+      channel.unbind("attendance:approved", handleAttendanceApproved);
+      channel.unbind("session:ended", handleSessionEnded);
       leaveSessionRoom(sessionId);
     };
   }, [isActive, navigate, sessionConfig?.manualApproval, sessionId]);
