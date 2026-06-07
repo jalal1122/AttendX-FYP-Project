@@ -16,7 +16,7 @@
     "qr-code",
     "education"
   ],
-  "author": "",
+  "author": "Muhammad Jalal",
   "license": "ISC",
   "dependencies": {
     "bcryptjs": "^2.4.3",

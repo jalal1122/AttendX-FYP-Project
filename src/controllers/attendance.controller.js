@@ -143,9 +143,7 @@ export const markAttendance = asyncHandler(async (req, res) => {
       throw ApiError.securityError(errorMsg, ApiError.GEOFENCE_OUTSIDE);
     }
 
-    (
-      `✓ Geofencing passed: Student is ${distance}m away (within ${allowedRadius}m radius)`,
-    );
+    console.log(`✓ Geofencing passed: Student is ${distance}m away (within ${allowedRadius}m radius)`);
   }
 
   // Find class
@@ -168,10 +166,10 @@ export const markAttendance = asyncHandler(async (req, res) => {
 
   if (securityConfig.ipMatchEnabled) {
     if (studentIP !== teacherIP) {
-      ("⚠️  IP Mismatch Warning:");
-      (`   Teacher IP: ${teacherIP}`);
-      (`   Student IP: ${studentIP}`);
-      (
+      console.log("⚠️  IP Mismatch Warning:");
+      console.log(`   Teacher IP: ${teacherIP}`);
+      console.log(`   Student IP: ${studentIP}`);
+      console.log(
         "   IP matching is enabled but IPs don't match. (Normal on localhost)",
       );
       ipMatch = false;
