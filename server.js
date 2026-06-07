@@ -1,7 +1,7 @@
+import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
-import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
 import compression from "compression";
 import connectDB from "./config/db.js";
@@ -12,9 +12,6 @@ import attendanceRoutes from "./src/routes/attendance.routes.js";
 import analyticsRoutes from "./src/routes/analytics.routes.js";
 import userRoutes from "./src/routes/user.routes.js";
 import pusherRoutes from "./src/routes/pusher.routes.js";
-
-// Load environment variables
-dotenv.config();
 
 // Initialize Express app
 const app = express();
