@@ -1,5 +1,4 @@
 import express from "express";
-import { createServer } from "node:http";
 import cors from "cors";
 import helmet from "helmet";
 import dotenv from "dotenv";
@@ -12,7 +11,7 @@ import sessionRoutes from "./src/routes/session.routes.js";
 import attendanceRoutes from "./src/routes/attendance.routes.js";
 import analyticsRoutes from "./src/routes/analytics.routes.js";
 import userRoutes from "./src/routes/user.routes.js";
-import { initSocketServer } from "./src/socket/socket.js";
+import pusherRoutes from "./src/routes/pusher.routes.js";
 
 // Load environment variables
 dotenv.config();
@@ -22,7 +21,7 @@ const app = express();
 const isProduction = process.env.NODE_ENV === "production";
 const allowedOrigins = new Set([
   process.env.CLIENT_URL || "http://localhost:5173",
-  "http://10.213.94.254:5173",
+  "https://attendx-fyp.vercel.app",
 ]);
 const bodySizeLimit = process.env.BODY_SIZE_LIMIT || "1mb";
 
@@ -90,6 +89,7 @@ app.use("/api/v1/session", sessionRoutes);
 app.use("/api/v1/attendance", attendanceRoutes);
 app.use("/api/v1/analytics", analyticsRoutes);
 app.use("/api/v1/user", userRoutes);
+app.use("/api/v1/pusher", pusherRoutes);
 
 // Global error handler
 app.use((err, req, res, next) => {
@@ -121,14 +121,10 @@ export default app;
 
 // For local development
 if (process.env.NODE_ENV !== "production" || !process.env.VERCEL) {
-  const httpServer = createServer(app);
-  initSocketServer(httpServer, {
-    allowedOrigins: [...allowedOrigins],
-  });
-
-  const server = httpServer.listen(PORT, () => {
+  const server = app.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
     console.log(`📍 Environment: ${process.env.NODE_ENV || "development"}`);
+    console.log(`📡 Real-time events via Pusher Channels`);
   });
   // Keep connections warm for better local/API gateway throughput
   server.keepAliveTimeout = Number(process.env.KEEP_ALIVE_TIMEOUT || 65000);
