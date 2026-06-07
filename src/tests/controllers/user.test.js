@@ -18,16 +18,14 @@ const mockUploadToCloudinary = jest
   .fn()
   .mockResolvedValue("https://cdn.example.com/avatar.png");
 const mockConnectDB = jest.fn();
-const mockInitSocketServer = jest.fn();
 
 await jest.unstable_mockModule("../../../config/db.js", () => ({
   default: mockConnectDB,
 }));
 
-await jest.unstable_mockModule("../../../src/socket/socket.js", () => ({
-  initSocketServer: mockInitSocketServer,
-  getSocketServer: jest.fn(() => null),
+await jest.unstable_mockModule("../../../src/services/pusher.js", () => ({
   emitToSession: jest.fn(),
+  default: {},
 }));
 
 await jest.unstable_mockModule("../../services/email.service.js", () => ({

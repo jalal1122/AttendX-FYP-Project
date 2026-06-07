@@ -18,7 +18,6 @@ import { clearDatabase } from "../setup/db.js";
 import { generateAuthToken } from "../utils/authHelper.js";
 
 const mockConnectDB = jest.fn();
-const mockInitSocketServer = jest.fn();
 const mockSendLowAttendanceWarning = jest
   .fn()
   .mockResolvedValue({ success: true });
@@ -27,10 +26,9 @@ await jest.unstable_mockModule("../../../config/db.js", () => ({
   default: mockConnectDB,
 }));
 
-await jest.unstable_mockModule("../../../src/socket/socket.js", () => ({
-  initSocketServer: mockInitSocketServer,
-  getSocketServer: jest.fn(() => null),
+await jest.unstable_mockModule("../../../src/services/pusher.js", () => ({
   emitToSession: jest.fn(),
+  default: {},
 }));
 
 await jest.unstable_mockModule(
