@@ -18,7 +18,7 @@ const app = express();
 const isProduction = process.env.NODE_ENV === "production";
 const allowedOrigins = new Set([
   process.env.CLIENT_URL || "http://localhost:5173",
-  "https://attendx-fyp.vercel.app",
+  "https://attendx-fyp.vercel.app","http://192.168.18.25:5173"
 ]);
 const bodySizeLimit = process.env.BODY_SIZE_LIMIT || "1mb";
 
