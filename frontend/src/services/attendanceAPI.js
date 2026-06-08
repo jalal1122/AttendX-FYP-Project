@@ -41,6 +41,15 @@ const attendanceAPI = {
     });
     return response.data;
   },
+
+  // Reject pending attendance (teacher/admin only)
+  rejectAttendance: async (sessionId, studentIds) => {
+    const response = await api.post("/attendance/reject", {
+      sessionId,
+      studentIds,
+    });
+    return response.data;
+  },
 };
 
 export default attendanceAPI;

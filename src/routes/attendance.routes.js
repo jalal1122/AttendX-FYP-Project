@@ -6,6 +6,7 @@ import {
   getStudentAttendance,
   getDetailedClassAttendance,
   approveAttendance,
+  rejectAttendance,
   getMyAttendanceForClass,
 } from "../controllers/attendance.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
@@ -24,6 +25,9 @@ router.post("/mark", hasRole("student"), markAttendance);
 
 // Approve pending attendance (Teacher/Admin only)
 router.post("/approve", hasRole("teacher", "admin"), approveAttendance);
+
+// Reject pending attendance (Teacher/Admin only)
+router.post("/reject", hasRole("teacher", "admin"), rejectAttendance);
 
 // Manual attendance update (Teacher/Admin only)
 router.patch("/update", hasRole("teacher", "admin"), manualUpdate);

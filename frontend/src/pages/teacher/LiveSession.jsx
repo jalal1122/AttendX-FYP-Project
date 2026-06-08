@@ -104,6 +104,13 @@ const LiveSession = () => {
       }
     };
 
+    const handleAttendanceRejected = () => {
+      fetchAttendanceCount(sessionId);
+      if (sessionConfig?.manualApproval) {
+        fetchPendingAttendance(sessionId);
+      }
+    };
+
     const handleSessionEnded = (payload) => {
       if (payload?.sessionId === sessionId) {
         setError("This session was ended from another device.");
@@ -114,11 +121,13 @@ const LiveSession = () => {
 
     channel.bind("attendance:updated", handleAttendanceUpdated);
     channel.bind("attendance:approved", handleAttendanceApproved);
+    channel.bind("attendance:rejected", handleAttendanceRejected);
     channel.bind("session:ended", handleSessionEnded);
 
     return () => {
       channel.unbind("attendance:updated", handleAttendanceUpdated);
       channel.unbind("attendance:approved", handleAttendanceApproved);
+      channel.unbind("attendance:rejected", handleAttendanceRejected);
       channel.unbind("session:ended", handleSessionEnded);
       leaveSessionRoom(sessionId);
     };
@@ -278,9 +287,26 @@ const LiveSession = () => {
     }
   };
 
+  const handleRejectAttendance = async (studentIds) => {
+    try {
+      await attendanceAPI.rejectAttendance(sessionId, studentIds);
+      // Refresh attendance lists
+      fetchAttendanceCount(sessionId);
+      fetchPendingAttendance(sessionId);
+    } catch (error) {
+      console.error("Failed to reject attendance:", error);
+      setError(error.response?.data?.message || "Failed to reject attendance");
+    }
+  };
+
   const handleApproveAll = async () => {
     const allPendingIds = pendingAttendance.map((att) => att.student._id);
     await handleApproveAttendance(allPendingIds);
+  };
+
+  const handleRejectAll = async () => {
+    const allPendingIds = pendingAttendance.map((att) => att.student._id);
+    await handleRejectAttendance(allPendingIds);
   };
 
   const endSession = async () => {
@@ -567,14 +593,24 @@ const LiveSession = () => {
                       <h3 className="text-orange-800 text-sm sm:text-base font-semibold">
                         🕒 Pending Approvals ({pendingAttendance.length})
                       </h3>
-                      <Button
-                        variant="primary"
-                        size="sm"
-                        onClick={handleApproveAll}
-                        className="w-full sm:w-auto"
-                      >
-                        Approve All
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="primary"
+                          size="sm"
+                          onClick={handleApproveAll}
+                          className="w-full sm:w-auto"
+                        >
+                          ✓ Approve All
+                        </Button>
+                        <Button
+                          variant="error"
+                          size="sm"
+                          onClick={handleRejectAll}
+                          className="w-full sm:w-auto"
+                        >
+                          ✗ Reject All
+                        </Button>
+                      </div>
                     </div>
                     <div className="space-y-2 max-h-48 sm:max-h-64 overflow-y-auto">
                       {pendingAttendance.map((att) => (
@@ -590,16 +626,26 @@ const LiveSession = () => {
                               {att.student?.info?.rollNo || "N/A"}
                             </p>
                           </div>
-                          <Button
-                            variant="success"
-                            size="sm"
-                            onClick={() =>
-                              handleApproveAttendance([att.student._id])
-                            }
-                            className="flex-shrink-0"
-                          >
-                            ✓
-                          </Button>
+                          <div className="flex gap-1 flex-shrink-0">
+                            <Button
+                              variant="success"
+                              size="sm"
+                              onClick={() =>
+                                handleApproveAttendance([att.student._id])
+                              }
+                            >
+                              ✓
+                            </Button>
+                            <Button
+                              variant="error"
+                              size="sm"
+                              onClick={() =>
+                                handleRejectAttendance([att.student._id])
+                              }
+                            >
+                              ✗
+                            </Button>
+                          </div>
                         </div>
                       ))}
                     </div>

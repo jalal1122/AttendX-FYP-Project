@@ -744,3 +744,55 @@ export const approveAttendance = asyncHandler(async (req, res) => {
     ),
   );
 });
+
+/**
+ * Reject Pending Attendance (Teacher only)
+ * POST /api/v1/attendance/reject
+ * Deletes the pending attendance record so the student is treated as absent
+ */
+export const rejectAttendance = asyncHandler(async (req, res) => {
+  const { sessionId, studentIds } = req.body;
+
+  if (!sessionId || !studentIds || !Array.isArray(studentIds)) {
+    throw ApiError.badRequest("Session ID and student IDs array are required");
+  }
+
+  // Find session and verify teacher ownership
+  const session = await Session.findById(sessionId);
+  if (!session) {
+    throw ApiError.notFound("Session not found");
+  }
+
+  const isTeacher = session.teacherId.toString() === req.user._id.toString();
+  const isAdmin = req.user.role === "admin";
+
+  if (!isTeacher && !isAdmin) {
+    throw ApiError.forbidden(
+      "Only the session teacher or admin can reject attendance",
+    );
+  }
+
+  // Delete pending attendance records for these students
+  const result = await Attendance.deleteMany({
+    sessionId,
+    studentId: { $in: studentIds },
+    status: "Pending",
+  });
+
+  emitToSession(sessionId, "attendance:rejected", {
+    sessionId,
+    rejectedCount: result.deletedCount,
+    studentIds,
+    rejectedAt: new Date(),
+  });
+
+  res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        rejectedCount: result.deletedCount,
+      },
+      `${result.deletedCount} attendance record(s) rejected successfully`,
+    ),
+  );
+});
