@@ -14,7 +14,7 @@ import {
   getBatchOptions,
 } from "../../constants/academicOptions";
 
-const classNamePattern = /^.+\sSection\s[A-Z]$/i;
+const classNamePattern = /^[A-Za-z0-9][A-Za-z0-9 ]*\sSection\s[A-Z]$/i;
 
 const TeacherDashboard = () => {
   const navigate = useNavigate();
@@ -85,7 +85,7 @@ const TeacherDashboard = () => {
 
     const trimmedName = formData.name.trim();
     if (!classNamePattern.test(trimmedName)) {
-      setError("Class name must end with 'Section A' through 'Section Z'.");
+      setError("Class name must follow the format: 'Name Section A' through 'Section Z'. Example: Web Dev Section B");
       return;
     }
 
@@ -265,13 +265,12 @@ const TeacherDashboard = () => {
             name="name"
             value={formData.name}
             onChange={handleInputChange}
-            placeholder="Web Engineering Section A"
+            placeholder="Web Dev Section B"
             required
-            pattern="^.+\\sSection\\s[A-Z]$"
-            title="Use the format: Class Name Section A to Z"
+            title="Use the format: Class Name Section A to Z (e.g. Web Dev Section B)"
           />
           <p className="-mt-2 mb-4 text-xs text-gray-500">
-            Example: Web Engineering Section A
+            Example: Web Dev Section B
           </p>
 
           <div className="mb-4">
