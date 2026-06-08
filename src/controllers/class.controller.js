@@ -14,7 +14,7 @@ const generateClassCode = () => {
   return crypto.randomBytes(3).toString("hex").toUpperCase();
 };
 
-const classNamePattern = /^.+\sSection\s[A-Z]$/i;
+const classNamePattern = /^[A-Za-z0-9][A-Za-z0-9 ]*\sSection\s[A-Z]$/i;
 
 /**
  * Create Class (Teacher/Admin only)
@@ -127,27 +127,38 @@ export const joinClass = asyncHandler(async (req, res) => {
     throw ApiError.conflict("You are already enrolled in this class");
   }
 
-  // Validate semester match (optional warning)
-  const studentSemester = req.user.info?.semester;
-  if (studentSemester && studentSemester !== classDoc.semester) {
-    // Return warning but allow joining
-    const updatedClass = await Class.findByIdAndUpdate(
-      classDoc._id,
-      { $addToSet: { students: req.user._id } },
-      { new: true },
-    )
-      .populate("teacher", "name email")
-      .populate("students", "name email info");
+  // --- Strict Validation: Semester, Department, Batch ---
+  const studentInfo = req.user.info || {};
 
-    return res.status(200).json(
-      new ApiResponse(
-        200,
-        {
-          class: updatedClass,
-          warning: `Your semester (${studentSemester}) does not match the class semester (${classDoc.semester})`,
-        },
-        "Joined class successfully with semester mismatch warning",
-      ),
+  // 1. Semester validation
+  const studentSemester = studentInfo.semester;
+  if (studentSemester && studentSemester !== classDoc.semester) {
+    throw ApiError.badRequest(
+      `Your semester (${studentSemester}) does not match the class requirement (Semester ${classDoc.semester}). You cannot join this class.`,
+    );
+  }
+
+  // 2. Department validation
+  const studentDepartment = studentInfo.department;
+  if (
+    studentDepartment &&
+    classDoc.department &&
+    studentDepartment.toLowerCase() !== classDoc.department.toLowerCase()
+  ) {
+    throw ApiError.badRequest(
+      `Your department (${studentDepartment}) does not match the class department (${classDoc.department}). You cannot join this class.`,
+    );
+  }
+
+  // 3. Batch validation (only if the class has a batch set)
+  const studentBatch = studentInfo.batch;
+  if (
+    classDoc.batch &&
+    studentBatch &&
+    studentBatch.toLowerCase() !== classDoc.batch.toLowerCase()
+  ) {
+    throw ApiError.badRequest(
+      `Your batch (${studentBatch}) does not match the class batch (${classDoc.batch}). You cannot join this class.`,
     );
   }
 
