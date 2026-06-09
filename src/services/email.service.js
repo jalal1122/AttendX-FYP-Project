@@ -45,7 +45,7 @@ class EmailService {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AttendX Notification</title>
+  <title>CSIT Attendance System Notification</title>
   <style>
     body {
       margin: 0;
@@ -172,13 +172,13 @@ class EmailService {
 <body>
   <div class="container">
     <div class="header">
-      <h1 class="logo">AttendX</h1>
+      <h1 class="logo">CSIT AMS</h1>
       <p class="tagline">Smart Attendance Management</p>
     </div>
     ${content}
     <div class="footer">
-      <p class="footer-text">This is an automated message from AttendX</p>
-      <p class="footer-text">© ${new Date().getFullYear()} AttendX. All rights reserved.</p>
+      <p class="footer-text">This is an automated message from CSIT Attendance System</p>
+      <p class="footer-text">© ${new Date().getFullYear()} CSIT Attendance System. All rights reserved.</p>
       <p class="footer-text">
         <a href="#" style="color: #0ea5e9; text-decoration: none;">Privacy Policy</a> •
         <a href="#" style="color: #0ea5e9; text-decoration: none;">Terms of Service</a>
@@ -196,12 +196,12 @@ class EmailService {
   static async sendWelcomeEmail(user, tempPassword) {
     const content = `
 <div class="content">
-  <h2 class="greeting">Welcome to AttendX! 👋</h2>
+  <h2 class="greeting">Welcome to CSIT Attendance System! 👋</h2>
   <p class="message">
     Hello <strong>${user.name}</strong>,
   </p>
   <p class="message">
-    Your account has been successfully created. You can now access the AttendX attendance management system.
+    Your account has been successfully created. You can now access the CSIT Attendance System.
   </p>
   
   <div class="info-box success">
@@ -256,7 +256,7 @@ class EmailService {
   }
 
   <a href="${process.env.CLIENT_URL || "http://localhost:5173"}/login" class="button">
-    Login to AttendX
+    Login to CSIT AMS
   </a>
 
   <div class="divider"></div>
@@ -290,9 +290,9 @@ class EmailService {
     `;
 
     const mailOptions = {
-      from: `"AttendX" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
+      from: `"CSIT AMS" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
       to: user.email,
-      subject: "Welcome to AttendX! 🎉",
+      subject: "Welcome to CSIT Attendance System! 🎉",
       html: this.getBaseTemplate(content),
     };
 
@@ -353,7 +353,7 @@ class EmailService {
     `;
 
     const mailOptions = {
-      from: `"AttendX Alerts" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
+      from: `"CSIT AMS Alerts" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
       to: student.email,
       subject: `⚠️ Low Attendance Alert: ${classData.name}`,
       html: this.getBaseTemplate(content),
@@ -378,7 +378,7 @@ class EmailService {
   <p class="message">
     ${
       isBinding
-        ? "A new device has been bound to your AttendX account."
+        ? "A new device has been bound to your CSIT Attendance System account."
         : "Your device binding has been reset by an administrator."
     }
   </p>
@@ -435,7 +435,7 @@ class EmailService {
     `;
 
     const mailOptions = {
-      from: `"AttendX Security" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
+      from: `"CSIT AMS Security" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
       to: user.email,
       subject: `🔒 Device Security Alert - ${isBinding ? "New Device Bound" : "Device Reset"}`,
       html: this.getBaseTemplate(content),
@@ -481,7 +481,7 @@ class EmailService {
     `;
 
     const mailOptions = {
-      from: `"AttendX Notifications" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
+      from: `"CSIT AMS Notifications" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
       to: students.map((s) => s.email).join(", "),
       subject: `📱 Attendance Session: ${classData.name}`,
       html: this.getBaseTemplate(content),

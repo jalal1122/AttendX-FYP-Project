@@ -38,7 +38,7 @@ const sendEmail = async ({ to, subject, text, html }) => {
     });
 
     const mailOptions = {
-      from: `"${process.env.EMAIL_FROM_NAME || "AttendX"}" <${
+      from: `"${process.env.EMAIL_FROM_NAME || "CSIT AMS"}" <${
         process.env.EMAIL_USER
       }>`,
       to,

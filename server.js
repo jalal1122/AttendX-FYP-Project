@@ -66,7 +66,7 @@ app.use(cookieParser());
 app.get("/", (req, res) => {
   res.json({
     success: true,
-    message: "Welcome to AttendX API",
+    message: "Welcome to CSIT Attendance System API",
   });
 });
 
@@ -74,7 +74,7 @@ app.get("/", (req, res) => {
 app.get("/health", (req, res) => {
   res.status(200).json({
     success: true,
-    message: "AttendX Server is running",
+    message: "CSIT Attendance System Server is running",
     timestamp: new Date().toISOString(),
   });
 });

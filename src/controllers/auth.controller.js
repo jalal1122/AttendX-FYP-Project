@@ -361,7 +361,7 @@ export const enable2FA = asyncHandler(async (req, res) => {
   const secret = authenticator.generateSecret();
 
   // Generate OTP Auth URL for QR Code
-  const otpauth = authenticator.keyuri(user.email, "AttendX", secret);
+  const otpauth = authenticator.keyuri(user.email, "CSIT Attendance System", secret);
 
   // Generate QR Code as Data URL
   const qrCodeDataUrl = await QRCode.toDataURL(otpauth);
@@ -569,12 +569,12 @@ export const forgotPassword = asyncHandler(async (req, res) => {
   try {
     await sendEmail({
       to: email,
-      subject: "Password Reset OTP - AttendX",
+      subject: "Password Reset OTP - CSIT Attendance System",
       text: `Your OTP for password reset is: ${otp}\n\nThis OTP will expire in 10 minutes.\n\nIf you didn't request this, please ignore this email.`,
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #4F46E5;">Password Reset Request</h2>
-          <p>You have requested to reset your password for AttendX.</p>
+          <p>You have requested to reset your password for CSIT Attendance System.</p>
           <div style="background-color: #f3f4f6; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0;">
             <p style="margin: 0; color: #6b7280; font-size: 14px;">Your OTP Code:</p>
             <h1 style="margin: 10px 0; color: #4F46E5; font-size: 36px; letter-spacing: 5px;">${otp}</h1>
