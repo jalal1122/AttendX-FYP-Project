@@ -13,6 +13,7 @@ import {
   SEMESTER_OPTIONS,
   getBatchOptions,
 } from "../../constants/academicOptions";
+import ClassFilters from "../../components/ui/ClassFilters";
 
 const classNamePattern = /^[A-Za-z0-9][A-Za-z0-9 ]*\sSection\s[A-Z]$/i;
 
@@ -23,6 +24,15 @@ const TeacherDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [activeSessionCount, setActiveSessionCount] = useState(0);
+  
+  // Backend Filters
+  const [filters, setFilters] = useState({
+    name: "",
+    department: "",
+    semester: "",
+    batch: ""
+  });
+
   const [formData, setFormData] = useState({
     name: "",
     department: "",
@@ -39,10 +49,14 @@ const TeacherDashboard = () => {
     getAllActiveSessions();
   }, []);
 
-  const fetchClasses = async () => {
+  const fetchClasses = async (currentFilters = filters) => {
     try {
       setLoading(true);
-      const response = await classAPI.getAllClasses();
+      // Clean empty filters before sending
+      const activeFilters = Object.fromEntries(
+        Object.entries(currentFilters).filter(([_, v]) => v !== "")
+      );
+      const response = await classAPI.getAllClasses(activeFilters);
       const classes =
         response?.data?.classes || response?.data?.data?.classes || [];
       setClasses(classes);
@@ -52,6 +66,16 @@ const TeacherDashboard = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleFilter = () => {
+    fetchClasses(filters);
+  };
+
+  const handleClearFilter = () => {
+    const emptyFilters = { name: "", department: "", semester: "", batch: "" };
+    setFilters(emptyFilters);
+    fetchClasses(emptyFilters);
   };
 
   const getAllActiveSessions = async () => {
@@ -186,6 +210,14 @@ const TeacherDashboard = () => {
           <h2 className="text-xl font-semibold text-gray-900 mb-4">
             My Classes
           </h2>
+          
+          <ClassFilters 
+            filters={filters} 
+            setFilters={setFilters} 
+            onFilter={handleFilter}
+            onClear={handleClearFilter}
+            isAdmin={false} 
+          />
 
           {loading ? (
             <div className="text-center py-12">

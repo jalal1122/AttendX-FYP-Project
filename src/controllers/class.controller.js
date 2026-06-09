@@ -189,6 +189,26 @@ export const getAllClasses = asyncHandler(async (req, res) => {
   } else if (req.user.role !== "admin") {
     throw ApiError.forbidden("Invalid role");
   }
+
+  // Handle Query Parameters for Filtering
+  const { name, semester, batch, department, teacher } = req.query;
+
+  if (name) {
+    query.name = { $regex: name, $options: "i" };
+  }
+  if (semester) {
+    query.semester = Number(semester);
+  }
+  if (batch) {
+    query.batch = { $regex: batch, $options: "i" };
+  }
+  if (department) {
+    query.department = { $regex: department, $options: "i" };
+  }
+  if (teacher && req.user.role === "admin") {
+    query.teacher = teacher;
+  }
+
   const classes = await Class.find(query)
     .populate("teacher", "name email role")
     .populate("students", "name email info")
@@ -403,7 +423,7 @@ export const promoteClassStudents = asyncHandler(async (req, res) => {
  */
 export const updateClassDetails = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const { name, room, semester, department, batch, academicYear, sections } =
+  const { name, room, semester, department, batch, academicYear, sections, allowRetroactiveSessions } =
     req.body;
 
   // Validate semester if provided
@@ -431,6 +451,9 @@ export const updateClassDetails = asyncHandler(async (req, res) => {
   if (department) updates.department = department;
   if (batch) updates.batch = batch;
   if (academicYear) updates.academicYear = academicYear;
+  if (allowRetroactiveSessions !== undefined && req.user.role === "admin") {
+    updates.allowRetroactiveSessions = Boolean(allowRetroactiveSessions);
+  }
   if (sections) {
     try {
       const parsed =

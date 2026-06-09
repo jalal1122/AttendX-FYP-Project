@@ -57,6 +57,10 @@ const classSchema = new mongoose.Schema(
         ],
       },
     ],
+    allowRetroactiveSessions: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,

@@ -8,10 +8,13 @@ import Modal from "../../components/ui/Modal";
 import Input from "../../components/ui/Input";
 import ExportModal from "../../components/modals/ExportModal";
 import { SEMESTER_OPTIONS } from "../../constants/academicOptions";
+import { useSelector } from "react-redux";
 
 const ClassDetails = () => {
   const { classId } = useParams();
   const navigate = useNavigate();
+  const user = useSelector((state) => state.auth.user);
+  const isAdmin = user?.role === "admin";
 
   const [classData, setClassData] = useState(null);
   const [sessions, setSessions] = useState([]);
@@ -33,6 +36,7 @@ const ClassDetails = () => {
     room: "",
     batch: "",
     academicYear: "",
+    allowRetroactiveSessions: false,
   });
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -56,6 +60,7 @@ const ClassDetails = () => {
         room: response.data.room || "",
         batch: response.data.batch || "",
         academicYear: response.data.academicYear || "",
+        allowRetroactiveSessions: response.data.allowRetroactiveSessions || false,
       });
 
       setLoading(false);
@@ -353,9 +358,11 @@ const ClassDetails = () => {
               <h2 className="text-xl font-semibold text-gray-900">
                 Session History
               </h2>
-              <Button variant="success" onClick={() => setShowRetroModal(true)}>
-                + Add Past Session
-              </Button>
+              {(isAdmin || classData?.allowRetroactiveSessions) && (
+                <Button variant="success" onClick={() => setShowRetroModal(true)}>
+                  + Add Past Session
+                </Button>
+              )}
             </div>
 
             {sessions.length === 0 ? (
@@ -631,6 +638,28 @@ const ClassDetails = () => {
                       })
                     }
                   />
+                  {isAdmin && (
+                    <div className="flex items-center mt-6">
+                      <input
+                        type="checkbox"
+                        id="allowRetroactiveSessions"
+                        checked={editFormData.allowRetroactiveSessions}
+                        onChange={(e) =>
+                          setEditFormData({
+                            ...editFormData,
+                            allowRetroactiveSessions: e.target.checked,
+                          })
+                        }
+                        className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                      />
+                      <label
+                        htmlFor="allowRetroactiveSessions"
+                        className="ml-2 block text-sm text-gray-900"
+                      >
+                        Allow Teacher to create Retroactive (Past) Sessions
+                      </label>
+                    </div>
+                  )}
                 </div>
                 <div className="mt-4">
                   <Button type="submit" variant="primary">

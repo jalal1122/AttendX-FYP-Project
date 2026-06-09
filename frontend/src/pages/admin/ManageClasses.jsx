@@ -3,22 +3,34 @@ import { useNavigate } from "react-router-dom";
 import classAPI from "../../services/classAPI";
 import Card from "../../components/ui/Card";
 import Button from "../../components/ui/Button";
+import ClassFilters from "../../components/ui/ClassFilters";
 
 const ManageClasses = () => {
   const navigate = useNavigate();
   const [classes, setClasses] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [filterDepartment, setFilterDepartment] = useState("all");
+  
+  // Backend Filters
+  const [filters, setFilters] = useState({
+    name: "",
+    department: "",
+    semester: "",
+    batch: "",
+    teacher: ""
+  });
 
   useEffect(() => {
     fetchClasses();
   }, []);
 
-  const fetchClasses = async () => {
+  const fetchClasses = async (currentFilters = filters) => {
     try {
       setLoading(true);
-      const response = await classAPI.getAllClasses();
+      // Clean empty filters before sending
+      const activeFilters = Object.fromEntries(
+        Object.entries(currentFilters).filter(([_, v]) => v !== "")
+      );
+      const response = await classAPI.getAllClasses(activeFilters);
       setClasses(response.data.classes || []);
     } catch (error) {
       console.error("Error fetching classes:", error);
@@ -27,20 +39,18 @@ const ManageClasses = () => {
     }
   };
 
-  // Get unique departments
-  const departments = [...new Set(classes.map((cls) => cls.department))].filter(
-    Boolean,
-  );
+  const handleFilter = () => {
+    fetchClasses(filters);
+  };
 
-  // Filter classes
-  const filteredClasses = classes.filter((cls) => {
-    const matchesSearch =
-      cls.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      cls.code.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesDepartment =
-      filterDepartment === "all" || cls.department === filterDepartment;
-    return matchesSearch && matchesDepartment;
-  });
+  const handleClearFilter = () => {
+    const emptyFilters = { name: "", department: "", semester: "", batch: "", teacher: "" };
+    setFilters(emptyFilters);
+    fetchClasses(emptyFilters);
+  };
+
+  // Get unique departments (for stats only now)
+  const departments = [...new Set(classes.map((cls) => cls.department))].filter(Boolean);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -69,52 +79,26 @@ const ManageClasses = () => {
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Filters */}
-        <Card className="mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Search
-              </label>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by name or code..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Filter by Department
-              </label>
-              <select
-                value={filterDepartment}
-                onChange={(e) => setFilterDepartment(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
-              >
-                <option value="all">All Departments</option>
-                {departments.map((dept) => (
-                  <option key={dept} value={dept}>
-                    {dept}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </Card>
+        <ClassFilters 
+          filters={filters} 
+          setFilters={setFilters} 
+          onFilter={handleFilter}
+          onClear={handleClearFilter}
+          isAdmin={true} 
+        />
 
         {/* Classes Grid */}
         {loading ? (
           <Card>
             <p className="text-center text-gray-500 py-8">Loading classes...</p>
           </Card>
-        ) : filteredClasses.length === 0 ? (
+        ) : classes.length === 0 ? (
           <Card>
             <p className="text-center text-gray-500 py-8">No classes found</p>
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredClasses.map((cls) => (
+            {classes.map((cls) => (
               <Card key={cls._id} className="hover:shadow-lg transition-shadow">
                 <div className="flex justify-between items-start mb-3">
                   <div>
@@ -186,13 +170,13 @@ const ManageClasses = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
             <div>
               <p className="text-2xl font-bold text-primary-600">
-                {filteredClasses.length}
+                {classes.length}
               </p>
               <p className="text-sm text-gray-600">Total Classes</p>
             </div>
             <div>
               <p className="text-2xl font-bold text-green-600">
-                {filteredClasses.reduce(
+                {classes.reduce(
                   (sum, cls) => sum + (cls.students?.length || 0),
                   0,
                 )}

@@ -7,6 +7,7 @@ import Button from "../../components/ui/Button";
 import Card from "../../components/ui/Card";
 import Input from "../../components/ui/Input";
 import ExportModal from "../../components/modals/ExportModal";
+import ClassFilters from "../../components/ui/ClassFilters";
 
 const StudentDashboard = () => {
   const navigate = useNavigate();
@@ -19,14 +20,26 @@ const StudentDashboard = () => {
   const [joiningClass, setJoiningClass] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
 
+  // Backend Filters
+  const [filters, setFilters] = useState({
+    name: "",
+    department: "",
+    semester: "",
+    batch: ""
+  });
+
   useEffect(() => {
     fetchClasses();
   }, []);
 
-  const fetchClasses = async () => {
+  const fetchClasses = async (currentFilters = filters) => {
     try {
       setLoading(true);
-      const response = await classAPI.getAllClasses();
+      // Clean empty filters before sending
+      const activeFilters = Object.fromEntries(
+        Object.entries(currentFilters).filter(([_, v]) => v !== "")
+      );
+      const response = await classAPI.getAllClasses(activeFilters);
       setClasses(response.data.classes || []);
     } catch (error) {
       console.error("Error fetching classes:", error);
@@ -34,6 +47,16 @@ const StudentDashboard = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleFilter = () => {
+    fetchClasses(filters);
+  };
+
+  const handleClearFilter = () => {
+    const emptyFilters = { name: "", department: "", semester: "", batch: "" };
+    setFilters(emptyFilters);
+    fetchClasses(emptyFilters);
   };
 
   const handleJoinClass = async (e) => {
@@ -187,6 +210,14 @@ const StudentDashboard = () => {
           <h2 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4">
             My Classes
           </h2>
+          
+          <ClassFilters 
+            filters={filters} 
+            setFilters={setFilters} 
+            onFilter={handleFilter}
+            onClear={handleClearFilter}
+            isAdmin={false} 
+          />
 
           {loading ? (
             <div className="text-center py-12">

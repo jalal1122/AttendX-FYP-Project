@@ -3,8 +3,8 @@ import api from "./api";
 // Class API endpoints
 export const classAPI = {
   // Get all classes (teacher's created classes or student's joined classes)
-  getAllClasses: async () => {
-    const response = await api.get("/class");
+  getAllClasses: async (params = {}) => {
+    const response = await api.get("/class", { params });
     return response.data;
   },
 
