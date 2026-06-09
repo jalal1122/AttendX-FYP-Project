@@ -1,5 +1,6 @@
 import "dotenv/config";
 import express from "express";
+import http from "http";
 import cors from "cors";
 import helmet from "helmet";
 import cookieParser from "cookie-parser";
@@ -11,7 +12,7 @@ import sessionRoutes from "./src/routes/session.routes.js";
 import attendanceRoutes from "./src/routes/attendance.routes.js";
 import analyticsRoutes from "./src/routes/analytics.routes.js";
 import userRoutes from "./src/routes/user.routes.js";
-import pusherRoutes from "./src/routes/pusher.routes.js";
+import { initSocket } from "./src/services/socket.js";
 
 // Initialize Express app
 const app = express();
@@ -21,6 +22,12 @@ const allowedOrigins = new Set([
   "https://attendx-fyp.vercel.app","http://192.168.18.25:5173"
 ]);
 const bodySizeLimit = process.env.BODY_SIZE_LIMIT || "1mb";
+
+// Create HTTP server for Express and Socket.io
+const httpServer = http.createServer(app);
+
+// Initialize Socket.io
+initSocket(httpServer);
 
 // Slightly reduce runtime overhead + fingerprinting surface
 app.disable("x-powered-by");
@@ -86,7 +93,6 @@ app.use("/api/v1/session", sessionRoutes);
 app.use("/api/v1/attendance", attendanceRoutes);
 app.use("/api/v1/analytics", analyticsRoutes);
 app.use("/api/v1/user", userRoutes);
-app.use("/api/v1/pusher", pusherRoutes);
 
 // Global error handler
 app.use((err, req, res, next) => {
@@ -110,18 +116,19 @@ app.use((req, res) => {
   });
 });
 
-// Start server (only if not in serverless environment)
+// Start server
 const PORT = process.env.PORT || 5000;
 
-// For Vercel serverless deployment
-export default app;
+// Export app and httpServer (useful for some serverless environments)
+export { app, httpServer };
+export default httpServer;
 
-// For local development
+// For Vercel or local dev (or cPanel Passenger which intercepts listen)
 if (process.env.NODE_ENV !== "production" || !process.env.VERCEL) {
-  const server = app.listen(PORT, () => {
+  const server = httpServer.listen(PORT, () => {
     console.log(`🚀 Server running on port ${PORT}`);
     console.log(`📍 Environment: ${process.env.NODE_ENV || "development"}`);
-    console.log(`📡 Real-time events via Pusher Channels`);
+    console.log(`📡 Real-time events via Socket.io`);
   });
   // Keep connections warm for better local/API gateway throughput
   server.keepAliveTimeout = Number(process.env.KEEP_ALIVE_TIMEOUT || 65000);

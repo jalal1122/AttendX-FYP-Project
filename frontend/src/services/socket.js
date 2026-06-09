@@ -1,81 +1,81 @@
-import Pusher from "pusher-js";
+import { io } from "socket.io-client";
 import { API_BASE_URL } from "./api";
 
-let pusherInstance = null;
+let socketInstance = null;
 
 /**
- * Get or create the Pusher client instance.
- * Returns null if Pusher environment variables are missing to avoid crash.
+ * Get or create the Socket.io client instance.
  */
-const getPusher = () => {
-  const key = import.meta.env.VITE_PUSHER_KEY;
-  const cluster = import.meta.env.VITE_PUSHER_CLUSTER;
-
-  if (!key) {
-    console.error(
-      "❌ Pusher client key (VITE_PUSHER_KEY) is missing. Real-time updates will not be active. " +
-      "If this is in production, please configure VITE_PUSHER_KEY and VITE_PUSHER_CLUSTER in your deployment environment variables."
-    );
-    return null;
-  }
-
-  if (!pusherInstance) {
+const getSocket = () => {
+  if (!socketInstance) {
     const token = localStorage.getItem("accessToken");
 
-    pusherInstance = new Pusher(key, {
-      cluster: cluster,
-      channelAuthorization: {
-        endpoint: `${API_BASE_URL.replace(/\/api\/v1\/?$/, "")}/api/v1/pusher/auth`,
-        transport: "ajax",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+    socketInstance = io(API_BASE_URL.replace(/\/api\/v1\/?$/, ""), {
+      auth: {
+        token: token,
       },
+      transports: ["websocket", "polling"],
+      reconnection: true,
+      reconnectionAttempts: 5,
+    });
+
+    socketInstance.on("connect_error", (err) => {
+      console.warn("Socket.io connection error:", err.message);
     });
   }
-  return pusherInstance;
+  return socketInstance;
 };
 
 /**
- * Connect to Pusher (initialises the instance if needed).
- * Kept for API compatibility with the old socket service.
+ * Connect to Socket.io (initializes the instance if needed).
  */
 export const connectSocket = () => {
-  return getPusher();
+  return getSocket();
 };
 
 /**
- * Disconnect Pusher entirely and clear the instance.
+ * Disconnect Socket.io entirely and clear the instance.
  */
 export const disconnectSocket = () => {
-  if (pusherInstance) {
-    pusherInstance.disconnect();
-    pusherInstance = null;
+  if (socketInstance) {
+    socketInstance.disconnect();
+    socketInstance = null;
   }
 };
 
 /**
  * Subscribe to a session's private channel.
- * Returns a Pusher Channel object or a mock fallback so page binding does not crash.
+ * Returns an object with `bind` and `unbind` methods so existing React code works.
  *
  * @param {string} sessionId
- * @returns {import("pusher-js").Channel | { bind: Function, unbind: Function }}
+ * @returns {{ bind: Function, unbind: Function }}
  */
 export const joinSessionRoom = (sessionId) => {
   if (!sessionId) return null;
-  const pusher = getPusher();
-  if (!pusher) {
-    // Return mock channel object so binding doesn't throw errors
+  const socket = getSocket();
+  
+  if (!socket) {
     return {
-      bind: (event, callback) => {
-        console.warn(`[Pusher Mock] bind skipped for "${event}" (Pusher key is missing)`);
-      },
-      unbind: (event, callback) => {
-        console.warn(`[Pusher Mock] unbind skipped for "${event}"`);
-      },
+      bind: () => console.warn(`[Socket Mock] bind skipped for missing socket`),
+      unbind: () => console.warn(`[Socket Mock] unbind skipped for missing socket`),
     };
   }
-  return pusher.subscribe(`private-session-${sessionId}`);
+
+  // Join the server-side room
+  socket.emit("subscribe_session", sessionId);
+
+  return {
+    bind: (event, callback) => {
+      socket.on(event, callback);
+    },
+    unbind: (event, callback) => {
+      if (callback) {
+        socket.off(event, callback);
+      } else {
+        socket.off(event);
+      }
+    },
+  };
 };
 
 /**
@@ -85,21 +85,32 @@ export const joinSessionRoom = (sessionId) => {
  */
 export const leaveSessionRoom = (sessionId) => {
   if (!sessionId) return;
-  const pusher = getPusher();
-  if (!pusher) return;
-  pusher.unsubscribe(`private-session-${sessionId}`);
+  const socket = getSocket();
+  if (!socket) return;
+  socket.emit("unsubscribe_session", sessionId);
 };
 
 /**
- * Get an already-subscribed session channel.
+ * Get an already-subscribed session channel wrapper.
  *
  * @param {string} sessionId
- * @returns {import("pusher-js").Channel | undefined}
+ * @returns {{ bind: Function, unbind: Function } | undefined}
  */
 export const getSessionChannel = (sessionId) => {
   if (!sessionId) return undefined;
-  const pusher = getPusher();
-  if (!pusher) return undefined;
-  return pusher.channel(`private-session-${sessionId}`);
+  const socket = getSocket();
+  if (!socket) return undefined;
+  
+  return {
+    bind: (event, callback) => {
+      socket.on(event, callback);
+    },
+    unbind: (event, callback) => {
+      if (callback) {
+        socket.off(event, callback);
+      } else {
+        socket.off(event);
+      }
+    },
+  };
 };
-

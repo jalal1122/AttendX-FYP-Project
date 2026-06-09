@@ -23,7 +23,7 @@ await jest.unstable_mockModule("../../../config/db.js", () => ({
   default: mockConnectDB,
 }));
 
-await jest.unstable_mockModule("../../../src/services/pusher.js", () => ({
+await jest.unstable_mockModule("../../../src/services/socket.js", () => ({
   emitToSession: jest.fn(),
   default: {},
 }));

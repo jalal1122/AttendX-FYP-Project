@@ -8,7 +8,7 @@ import User from "../models/user.model.js";
 import EmailService from "../services/email.service.js";
 import jwt from "jsonwebtoken";
 import { calculateDistance, isWithinRadius } from "../utils/geolocation.js";
-import { emitToSession } from "../services/pusher.js";
+import { emitToSession } from "../services/socket.js";
 
 /**
  * Get client IP address (handles proxies and localhost)

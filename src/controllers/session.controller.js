@@ -4,7 +4,7 @@ import ApiResponse from "../../utils/ApiResponse.js";
 import Session from "../models/session.model.js";
 import Class from "../models/class.model.js";
 import jwt from "jsonwebtoken";
-import { emitToSession } from "../services/pusher.js";
+import { emitToSession } from "../services/socket.js";
 
 /**
  * Get client IP address (handles proxies and localhost)
@@ -246,9 +246,16 @@ export const createRetroactiveSession = asyncHandler(async (req, res) => {
   }
 
   // Check if class exists
-  const classDoc = await Class.findById(classId).select("teacher").lean();
+  const classDoc = await Class.findById(classId).select("teacher allowRetroactiveSessions").lean();
   if (!classDoc) {
     throw ApiError.notFound("Class not found");
+  }
+
+  // Verify class allows retroactive sessions
+  if (classDoc.allowRetroactiveSessions !== true) {
+    throw ApiError.forbidden(
+      "Retroactive sessions are not allowed for this class. Please contact an admin.",
+    );
   }
 
   // Verify teacher owns this class
