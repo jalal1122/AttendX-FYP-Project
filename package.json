@@ -1,7 +1,7 @@
 {
-  "name": "attendx",
+  "name": "csit-attendance-system",
   "version": "1.0.0",
-  "description": "AttendX - Advanced Attendance Management System",
+  "description": "CSIT Attendance System - Advanced Attendance Management System",
   "main": "server.js",
   "type": "module",
   "scripts": {
