@@ -1,0 +1,11 @@
+# Phusion Passenger App Node.js integration
+<IfModule mod_passenger.c>
+  PassengerAppType node
+  PassengerStartupFile server.js
+  PassengerAppRoot /home/username/public_html/attendx-backend # Change to actual path
+</IfModule>
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteRule ^(.*)$ http://127.0.0.1:5000/$1 [P,L]
+</IfModule>
