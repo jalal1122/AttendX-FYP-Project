@@ -13,7 +13,7 @@ const NotificationCenter = () => {
 
   // Load notifications from localStorage on mount
   useEffect(() => {
-    const stored = localStorage.getItem("attendx_notifications");
+    const stored = localStorage.getItem("csit_attendance_notifications");
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
@@ -27,7 +27,7 @@ const NotificationCenter = () => {
 
   // Save notifications to localStorage whenever they change
   useEffect(() => {
-    localStorage.setItem("attendx_notifications", JSON.stringify(notifications));
+    localStorage.setItem("csit_attendance_notifications", JSON.stringify(notifications));
     setUnreadCount(notifications.filter((n) => !n.read).length);
   }, [notifications]);
 
@@ -220,14 +220,14 @@ export const addNotification = (message, type = "info") => {
     read: false,
   };
 
-  const stored = localStorage.getItem("attendx_notifications");
+  const stored = localStorage.getItem("csit_attendance_notifications");
   const existing = stored ? JSON.parse(stored) : [];
   const updated = [notification, ...existing].slice(0, 50); // Keep last 50
 
-  localStorage.setItem("attendx_notifications", JSON.stringify(updated));
+  localStorage.setItem("csit_attendance_notifications", JSON.stringify(updated));
 
   // Dispatch custom event to update UI
-  window.dispatchEvent(new Event("attendx_notification_update"));
+  window.dispatchEvent(new Event("csit_attendance_notification_update"));
 };
 
 export default NotificationCenter;

@@ -114,7 +114,7 @@ const ExportModal = ({ isOpen, onClose, defaultType = null, defaultTargetId = nu
       
       // Extract filename from Content-Disposition header or use default
       const contentDisposition = response.headers["content-disposition"];
-      let filename = `AttendX_Report_${Date.now()}.${format}`;
+      let filename = `CSIT_Attendance_Report_${Date.now()}.${format}`;
       
       if (contentDisposition) {
         const filenameMatch = contentDisposition.match(/filename="?(.+)"?/);

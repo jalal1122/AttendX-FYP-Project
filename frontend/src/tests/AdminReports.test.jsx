@@ -217,7 +217,7 @@ describe("AdminReports", () => {
       data: new Blob(["report-bytes"]),
       headers: {
         "content-disposition":
-          'attachment; filename="AttendX_Class_Report.xlsx"',
+          'attachment; filename="CSIT_Attendance_Class_Report.xlsx"',
       },
     });
 

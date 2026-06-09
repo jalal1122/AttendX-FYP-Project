@@ -32,7 +32,7 @@ const SystemHealthWidget = () => {
       setSystemStats({
         serviceStatus: "online",
         databaseStatus: "connected",
-        emailsSent: parseInt(localStorage.getItem("attendx_emails_sent") || "0"),
+        emailsSent: parseInt(localStorage.getItem("csit_attendance_emails_sent") || "0"),
         systemLoad: "normal",
         uptime: "99.9%",
         lastCheck: new Date().toISOString(),
