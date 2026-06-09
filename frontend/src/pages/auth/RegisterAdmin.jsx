@@ -134,7 +134,7 @@ const RegisterAdmin = () => {
               name="email"
               value={formData.email}
               onChange={handleChange}
-              placeholder="admin@attendx.com"
+              placeholder="admin@csit.edu"
               required
               disabled={loading}
             />

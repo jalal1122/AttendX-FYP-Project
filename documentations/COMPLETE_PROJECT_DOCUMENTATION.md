@@ -1,4 +1,4 @@
-# AttendX - Complete Project Documentation
+# CSIT Attendance System - Complete Project Documentation
 
 ## 📋 Table of Contents
 1. [Project Overview](#project-overview)
@@ -22,7 +22,7 @@
 
 ## 🎯 Project Overview
 
-**AttendX** is a comprehensive, production-ready attendance management system built with the MERN stack. It uses advanced security mechanisms including QR code scanning, geofencing, device locking, and IP matching to ensure attendance integrity while preventing proxy attendance and buddy punching.
+**CSIT Attendance System** is a comprehensive, production-ready attendance management system built with the MERN stack. It uses advanced security mechanisms including QR code scanning, geofencing, device locking, and IP matching to ensure attendance integrity while preventing proxy attendance and buddy punching.
 
 ### Purpose
 - Modernize traditional attendance systems
@@ -153,7 +153,7 @@
 ### Backend Structure
 
 ```
-AttendX/
+CSIT Attendance System/
 ├── server.js                  # Main entry point
 ├── config/
 │   ├── db.js                  # MongoDB connection
@@ -876,7 +876,7 @@ Response: Excel file download
 ## 🎨 Phase 14: Final Polish
 
 ### Overview
-Phase 14 transformed AttendX from a functional application into an **award-winning, enterprise-grade system** with professional UI, smart automation, and comprehensive monitoring.
+Phase 14 transformed CSIT Attendance System from a functional application into an **award-winning, enterprise-grade system** with professional UI, smart automation, and comprehensive monitoring.
 
 ### 1. Sky Blue Minimalist UI
 
@@ -1024,7 +1024,7 @@ addNotification("Session started", "info");
 #### Storage Format
 
 ```javascript
-localStorage.setItem('attendx_notifications', JSON.stringify([
+localStorage.setItem('CSIT Attendance System_notifications', JSON.stringify([
   {
     id: 1234567890,
     message: "Attendance marked successfully!",
@@ -1293,7 +1293,7 @@ Response: {
 ```bash
 # Clone repository
 git clone <repository-url>
-cd AttendX
+cd CSIT Attendance System
 
 # Install dependencies
 npm install
@@ -1372,9 +1372,9 @@ PORT=5000
 NODE_ENV=development
 
 # Database
-MONGODB_URI=mongodb://localhost:27017/attendx
+MONGODB_URI=mongodb://localhost:27017/CSIT Attendance System
 # OR MongoDB Atlas:
-# MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/attendx
+# MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/CSIT Attendance System
 
 # JWT
 JWT_SECRET=your-super-secret-jwt-key-change-in-production
@@ -1392,7 +1392,7 @@ EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
 EMAIL_USER=your-email@gmail.com
 EMAIL_PASSWORD=your-app-password  # NOT your regular password
-EMAIL_FROM=AttendX <noreply@attendx.com>
+EMAIL_FROM=CSIT Attendance System <noreply@CSIT Attendance System.com>
 
 # Client URL (for email links)
 CLIENT_URL=http://localhost:5173
@@ -1709,7 +1709,7 @@ For more detailed information, refer to these documents:
 
 ## 🎉 Conclusion
 
-AttendX is now a **production-ready, enterprise-grade attendance management system** with:
+CSIT Attendance System is now a **production-ready, enterprise-grade attendance management system** with:
 
 ✅ **Professional UI** - Sky Blue minimalist design
 ✅ **Smart Automation** - Email notifications and alerts
@@ -1728,4 +1728,4 @@ AttendX is now a **production-ready, enterprise-grade attendance management syst
 
 **Last Updated**: February 12, 2026
 **Version**: 2.0 (Phase 14 Complete)
-**Made with ❤️ by the AttendX Team**
+**Made with ❤️ by the CSIT Attendance System Team**

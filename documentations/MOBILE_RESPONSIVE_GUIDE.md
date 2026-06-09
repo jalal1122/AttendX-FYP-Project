@@ -1,8 +1,8 @@
-# AttendX - Mobile Responsive Design Guide
+# CSIT Attendance System - Mobile Responsive Design Guide
 
 ## 📱 Overview
 
-This document provides comprehensive guidelines for making AttendX fully mobile-responsive, ensuring an optimal experience for students who primarily use mobile devices to mark attendance.
+This document provides comprehensive guidelines for making CSIT Attendance System fully mobile-responsive, ensuring an optimal experience for students who primarily use mobile devices to mark attendance.
 
 ---
 
@@ -531,4 +531,4 @@ const BottomNav = () => {
 **Priority**: Test on real mobile devices
 **Next**: Roll out to all pages following established patterns
 
-Made with ❤️ by the AttendX Team
+Made with ❤️ by the CSIT Attendance System Team

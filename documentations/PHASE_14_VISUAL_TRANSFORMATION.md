@@ -186,7 +186,7 @@ Text: Slate-900 (#0F172A)
 ```jsx
 <nav className="bg-white shadow-sm border-b border-gray-200">
   <div className="flex justify-between items-center h-16">
-    <h1 className="text-2xl font-bold text-primary-600">AttendX</h1>
+    <h1 className="text-2xl font-bold text-primary-600">CSIT Attendance System</h1>
   </div>
 </nav>
 ```
@@ -292,12 +292,12 @@ Text: Slate-900 (#0F172A)
 ┌─────────────────────────────────────────┐
 │                                         │
 │  ╔═══════════════════════════════════╗ │
-│  ║   AttendX                         ║ │
+│  ║   CSIT Attendance System                         ║ │
 │  ║   Smart Attendance Management     ║ │
 │  ╚═══════════════════════════════════╝ │
 │  ← Sky Blue gradient header            │
 │                                         │
-│  Welcome to AttendX! 👋                │
+│  Welcome to CSIT Attendance System! 👋                │
 │                                         │
 │  Hello John Doe,                        │
 │                                         │
@@ -312,11 +312,11 @@ Text: Slate-900 (#0F172A)
 │  ← Styled info box                     │
 │                                         │
 │  ┌─────────────────────────────────┐  │
-│  │    Login to AttendX             │  │
+│  │    Login to CSIT Attendance System             │  │
 │  └─────────────────────────────────┘  │
 │  ← Sky Blue button                     │
 │                                         │
-│  © 2026 AttendX. All rights reserved.  │
+│  © 2026 CSIT Attendance System. All rights reserved.  │
 └─────────────────────────────────────────┘
 ```
 
@@ -451,7 +451,7 @@ p { color: gray-600; }
 
 ### vs Other Attendance Systems:
 
-| Feature | Competitors | AttendX Phase 14 |
+| Feature | Competitors | CSIT Attendance System Phase 14 |
 |---------|-------------|------------------|
 | **Modern UI** | ❌ Generic | ✅ Sky Blue Minimalist |
 | **Email Notifications** | ⚠️ Basic | ✅ Beautiful HTML |
@@ -519,7 +519,7 @@ When taking screenshots for your FYP report:
 
 ## 🏆 Conclusion
 
-Phase 14 transformed AttendX from a **functional application** into an **award-winning, enterprise-grade system** with:
+Phase 14 transformed CSIT Attendance System from a **functional application** into an **award-winning, enterprise-grade system** with:
 
 ✅ **Unique Brand Identity** (Sky Blue)
 ✅ **Professional Design Language**
@@ -540,4 +540,4 @@ Phase 14 transformed AttendX from a **functional application** into an **award-w
 **Quality:** Enterprise-Level 🏆
 **Design:** Award-Winning 🎨
 
-Made with ❤️ by the AttendX Team
+Made with ❤️ by the CSIT Attendance System Team

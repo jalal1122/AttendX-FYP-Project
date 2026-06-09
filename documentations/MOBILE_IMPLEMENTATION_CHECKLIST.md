@@ -421,6 +421,6 @@ Before marking complete, verify:
 
 ---
 
-**Made with ❤️ by the AttendX Team**
+**Made with ❤️ by the CSIT Attendance System Team**
 **Status: Core mobile features complete!**
 **Next: Roll out to all pages**

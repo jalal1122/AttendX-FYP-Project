@@ -134,7 +134,7 @@ const Login = () => {
       <div className="max-w-md w-full mx-4">
         {/* Logo/Title */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-primary-600 mb-2">AttendX</h1>
+          <h1 className="text-4xl font-bold text-primary-600 mb-2">CSIT AMS</h1>
           <p className="text-gray-600">Smart Attendance Management System</p>
         </div>
 

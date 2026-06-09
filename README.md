@@ -1,6 +1,6 @@
-# 🚀 AttendX: Advanced Attendance Management System
+# 🚀 CSIT Attendance System: Advanced Attendance Management System
 
-**AttendX** is a production-ready, enterprise-grade attendance management system designed to eliminate attendance fraud (such as proxy attendance or "buddy punching"), automate record keeping, and deliver real-time data insights. Developed using the MERN (MongoDB, Express, React, Node) stack, AttendX combines geolocation verification, device fingerprinting, and dynamic rotating QR codes to guarantee physical presence and attendance integrity.
+**CSIT Attendance System** is a production-ready, enterprise-grade attendance management system designed to eliminate attendance fraud (such as proxy attendance or "buddy punching"), automate record keeping, and deliver real-time data insights. Developed using the MERN (MongoDB, Express, React, Node) stack, CSIT Attendance System combines geolocation verification, device fingerprinting, and dynamic rotating QR codes to guarantee physical presence and attendance integrity.
 
 ---
 
@@ -17,7 +17,7 @@
 
 ## 🎯 Overview
 
-Traditional classroom and seminar attendance procedures are prone to manual errors, proxies, and significant time wastage. AttendX introduces a **Triple-Layer Security Protocol** to solve these issues:
+Traditional classroom and seminar attendance procedures are prone to manual errors, proxies, and significant time wastage. CSIT Attendance System introduces a **Triple-Layer Security Protocol** to solve these issues:
 1. **Device Fingerprinting:** Locks each student account to a single registered browser/device.
 2. **Geofencing:** Uses the **Haversine Formula** to compute the physical distance between the student and the teacher's coordinates, enforcing attendance within a strict radius.
 3. **Rotating QR Engine:** The classroom QR code is generated using encrypted JSON Web Tokens (JWT) that rotate automatically at a configurable rate (default: 20 seconds) to prevent photo sharing and static copying.
@@ -28,7 +28,7 @@ This platform provides dedicated portals for system administrators, teachers, an
 
 ## 🛠 Architecture & Tech Stack
 
-AttendX is built using a decoupled architecture, with an Express API backend and a single-page React client frontend.
+CSIT Attendance System is built using a decoupled architecture, with an Express API backend and a single-page React client frontend.
 
 ### 💻 Frontend
 * **Core Library:** React 19 / React 18
@@ -93,7 +93,7 @@ AttendX is built using a decoupled architecture, with an Express API backend and
 ## 📁 Project Structure
 
 ```text
-AttendX/
+CSIT Attendance System/
 ├── config/                         # Server integrations
 │   ├── db.js                       # MongoDB Mongoose connection handler
 │   └── cloudinary.js               # Cloudinary API storage config
@@ -150,7 +150,7 @@ Create a file named `.env` in the root folder using the following schema:
 | :--- | :--- | :--- | :--- |
 | `PORT` | No | `5000` | Port number on which the Express server listens. |
 | `NODE_ENV` | Yes | `development` | Runtime mode: `development` (displays stack traces) or `production`. |
-| `MONGODB_URI` | Yes | `mongodb://localhost:27017/attendx_db` | MongoDB connection URI. |
+| `MONGODB_URI` | Yes | `mongodb://localhost:27017/CSIT Attendance System_db` | MongoDB connection URI. |
 | `CLIENT_URL` | Yes | `http://localhost:5173` | Address of the client frontend (used for CORS and email links). |
 | `JWT_ACCESS_SECRET` | Yes | `your_access_token_secret_string` | Signing secret for access JWT tokens. |
 | `JWT_REFRESH_SECRET` | Yes | `your_refresh_token_secret_string`| Signing secret for refresh JWT tokens. |
@@ -167,7 +167,7 @@ Create a file named `.env` in the root folder using the following schema:
 | `EMAIL_PORT` | Yes | `587` | SMTP port (typically `587` for TLS or `465` for SSL). |
 | `EMAIL_USER` | Yes | `your-email@gmail.com` | Account username for sending system emails. |
 | `EMAIL_PASS` | Yes | `your-app-password` | SMTP password / Gmail App-Specific Password (*Note: code looks for EMAIL_PASS*). |
-| `EMAIL_FROM` | Yes | `AttendX <noreply@attendx.com>`| Header email address appearing as the sender. |
+| `EMAIL_FROM` | Yes | `CSIT Attendance System <noreply@CSIT Attendance System.com>`| Header email address appearing as the sender. |
 | `KEEP_ALIVE_TIMEOUT` | No | `65000` | HTTP keep-alive timeout in milliseconds. |
 | `HEADERS_TIMEOUT` | No | `66000` | HTTP headers parsing timeout in milliseconds. |
 | `REQUEST_TIMEOUT` | No | `15000` | HTTP request execution timeout in milliseconds. |
@@ -185,13 +185,13 @@ Create a file named `.env` in the `frontend` folder:
 
 ## 🚀 Local Development & Installation
 
-Follow these steps to run AttendX locally for development or testing purposes.
+Follow these steps to run CSIT Attendance System locally for development or testing purposes.
 
 ### 1. Repository Setup
 Clone the codebase and navigate to the directory:
 ```bash
-git clone https://github.com/jalal1122/AttendX-FYP-Project.git
-cd AttendX-FYP-Project
+git clone https://github.com/jalal1122/CSIT Attendance System-FYP-Project.git
+cd CSIT Attendance System-FYP-Project
 ```
 
 ### 2. Backend Installation & Startup

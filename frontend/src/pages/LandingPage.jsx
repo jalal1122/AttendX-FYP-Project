@@ -30,7 +30,7 @@ const LandingPage = () => {
               <div className="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center mr-3">
                 <span className="text-white text-xl font-bold">A</span>
               </div>
-              <h1 className="text-2xl font-bold text-gray-900">AttendX</h1>
+              <h1 className="text-2xl font-bold text-gray-900">CSIT Attendance System</h1>
             </div>
             <Button variant="primary" onClick={() => navigate("/login")}>
               Login
@@ -240,7 +240,7 @@ const LandingPage = () => {
             Ready to modernize your attendance system?
           </h3>
           <p className="text-lg text-gray-600 mb-8">
-            Join educational institutions using AttendX for secure, efficient
+            Join educational institutions using CSIT Attendance System for secure, efficient
             attendance management.
           </p>
           <Button
@@ -249,7 +249,7 @@ const LandingPage = () => {
             onClick={() => navigate("/login")}
             className="px-10 py-4 text-lg"
           >
-            Start Using AttendX
+            Start Using CSIT AMS
           </Button>
         </div>
       </main>
@@ -258,7 +258,7 @@ const LandingPage = () => {
       <footer className="bg-white border-t border-gray-200 mt-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="text-center text-gray-600">
-            <p>© 2026 AttendX. Built for modern education.</p>
+            <p>© 2026 CSIT Attendance System. Built for modern education.</p>
           </div>
         </div>
       </footer>

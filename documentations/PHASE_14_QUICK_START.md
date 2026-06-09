@@ -37,7 +37,7 @@ EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
 EMAIL_USER=your-email@gmail.com
 EMAIL_PASSWORD=abcd efgh ijkl mnop
-EMAIL_FROM=AttendX <noreply@attendx.com>
+EMAIL_FROM=CSIT Attendance System <noreply@CSIT Attendance System.com>
 CLIENT_URL=http://localhost:5173
 ```
 
@@ -77,7 +77,7 @@ npm run dev
 2. You'll see a dropdown (might be empty first time)
 3. Open browser console and run:
 ```javascript
-localStorage.setItem('attendx_notifications', JSON.stringify([
+localStorage.setItem('CSIT Attendance System_notifications', JSON.stringify([
   {
     id: 1,
     message: "Welcome to the new notification system!",
@@ -333,4 +333,4 @@ addNotification("Your message", "success");
 
 **Need Help?** Check the documentation files or open an issue!
 
-**Made with ❤️ by the AttendX Team**
+**Made with ❤️ by the CSIT Attendance System Team**

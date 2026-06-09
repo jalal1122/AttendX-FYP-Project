@@ -1,6 +1,6 @@
 # Environment Variables Configuration
 
-This document lists all required environment variables for AttendX.
+This document lists all required environment variables for CSIT Attendance System.
 
 ## Backend (.env)
 
@@ -10,9 +10,9 @@ PORT=5000
 NODE_ENV=development
 
 # Database
-MONGODB_URI=mongodb://localhost:27017/attendx
+MONGODB_URI=mongodb://localhost:27017/CSIT Attendance System
 # OR for MongoDB Atlas:
-# MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/attendx
+# MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/CSIT Attendance System
 
 # JWT Authentication
 JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
@@ -30,7 +30,7 @@ EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
 EMAIL_USER=your-email@gmail.com
 EMAIL_PASSWORD=your-app-specific-password
-EMAIL_FROM=AttendX <noreply@attendx.com>
+EMAIL_FROM=CSIT Attendance System <noreply@CSIT Attendance System.com>
 
 # Client URL (for email links)
 CLIENT_URL=http://localhost:5173

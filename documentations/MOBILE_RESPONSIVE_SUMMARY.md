@@ -423,7 +423,7 @@ Ideal: 56px x 56px (for primary actions)
 
 ### The Result
 
-**AttendX is now a mobile-first attendance system** that students can use confidently on their phones. The foundation is solid, the patterns are established, and rolling out to remaining pages is straightforward.
+**CSIT Attendance System is now a mobile-first attendance system** that students can use confidently on their phones. The foundation is solid, the patterns are established, and rolling out to remaining pages is straightforward.
 
 ---
 
@@ -432,4 +432,4 @@ Ideal: 56px x 56px (for primary actions)
 **Time**: ~2 hours for full rollout
 **Impact**: **Massive** for student UX
 
-**Made with ❤️ by the AttendX Team**
+**Made with ❤️ by the CSIT Attendance System Team**

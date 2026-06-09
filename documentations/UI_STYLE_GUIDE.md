@@ -1,8 +1,8 @@
-# AttendX UI Style Guide
+# CSIT Attendance System UI Style Guide
 
 ## 🎨 Design Philosophy
 
-AttendX follows a **Sky Blue Minimalist** design philosophy:
+CSIT Attendance System follows a **Sky Blue Minimalist** design philosophy:
 - Clean, uncluttered interfaces
 - Consistent use of Sky Blue as the primary accent color
 - Subtle shadows and smooth transitions
@@ -420,4 +420,4 @@ xl: 1280px  /* Desktops */
 
 **Last Updated:** Phase 14 (February 2026)
 
-**Maintained By:** AttendX Development Team
+**Maintained By:** CSIT Attendance System Development Team

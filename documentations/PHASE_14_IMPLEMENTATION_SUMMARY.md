@@ -155,7 +155,7 @@ EMAIL_HOST=smtp.gmail.com
 EMAIL_PORT=587
 EMAIL_USER=your-email@gmail.com
 EMAIL_PASSWORD=your-app-password
-EMAIL_FROM=AttendX <noreply@attendx.com>
+EMAIL_FROM=CSIT Attendance System <noreply@CSIT Attendance System.com>
 CLIENT_URL=http://localhost:5173
 ```
 
@@ -296,7 +296,7 @@ Students with < 75% attendance will receive email warnings.
 ## 📊 File Structure
 
 ```
-AttendX/
+CSIT Attendance System/
 ├── src/
 │   ├── services/
 │   │   └── email.service.js          ✨ NEW
@@ -394,7 +394,7 @@ If you encounter any issues:
 
 **Phase 14 is COMPLETE!** 🎉
 
-AttendX now has:
+CSIT Attendance System now has:
 - ✅ Award-winning Sky Blue UI
 - ✅ Professional email notification system
 - ✅ Real-time notification center
@@ -411,4 +411,4 @@ The application is now **production-ready** and can compete with commercial atte
 **Quality:** Production-Ready
 **Documentation:** Comprehensive
 
-Made with ❤️ by the AttendX Team
+Made with ❤️ by the CSIT Attendance System Team

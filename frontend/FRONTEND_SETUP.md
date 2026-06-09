@@ -1,4 +1,4 @@
-# AttendX Frontend - Setup Complete ✅
+# CSIT Attendance System Frontend - Setup Complete ✅
 
 ## 🎉 Frontend Skeleton is Ready!
 
