@@ -1,8 +1,8 @@
 # Phusion Passenger App Node.js integration
 <IfModule mod_passenger.c>
   PassengerAppType node
-  PassengerStartupFile server.js
-  PassengerAppRoot /home/username/public_html/attendx-backend # Change to actual path
+  PassengerStartupFile loader.cjs
+  PassengerAppRoot /home/csitfmcs/backend-csitattendance # Change to actual path
 </IfModule>
 
 <IfModule mod_rewrite.c>

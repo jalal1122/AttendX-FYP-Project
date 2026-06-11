@@ -59,7 +59,7 @@ const Navbar = () => {
               onClick={() => navigate(getDashboardLink())}
               className="text-xl sm:text-2xl font-bold text-sky-500 hover:text-sky-600 transition-colors"
             >
-              Attend<span className="text-slate-900">X</span>
+              CSIT <span className="text-slate-900">AMS</span>
             </button>
           </div>
 
