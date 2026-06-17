@@ -5,6 +5,7 @@ import Session from "../models/session.model.js";
 import Class from "../models/class.model.js";
 import jwt from "jsonwebtoken";
 import { emitToSession } from "../services/socket.js";
+import EmailService from "../services/email.service.js";
 
 /**
  * Get client IP address (handles proxies and localhost)
@@ -121,8 +122,25 @@ export const startSession = asyncHandler(async (req, res) => {
   });
 
   // Populate class and teacher info
-  await session.populate("classId", "name code department semester");
+  await session.populate({
+    path: "classId",
+    select: "name code department semester students",
+    populate: { path: "students", select: "name email" }
+  });
   await session.populate("teacherId", "name email");
+
+  // Send session started email notification
+  if (session.classId?.students?.length > 0) {
+    try {
+      await EmailService.sendSessionStartedNotification(
+        session.classId.students,
+        session.classId,
+        session.teacherId
+      );
+    } catch (error) {
+      console.error("Failed to send session started email:", error);
+    }
+  }
 
   emitToSession(session._id.toString(), "session:started", {
     sessionId: session._id.toString(),
