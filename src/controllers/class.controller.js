@@ -67,10 +67,12 @@ export const createClass = asyncHandler(async (req, res) => {
   let parsedSections = [];
   if (sections) {
     try {
-      parsedSections =
-        typeof sections === "string" ? JSON.parse(sections) : sections;
+      const parsed = typeof sections === "string" ? JSON.parse(sections) : sections;
+      if (Array.isArray(parsed)) {
+        parsedSections = parsed.filter(s => typeof s === 'object' && s !== null && !Array.isArray(s));
+      }
     } catch (err) {
-      parsedSections = sections;
+      parsedSections = [];
     }
   }
 
@@ -456,17 +458,19 @@ export const updateClassDetails = asyncHandler(async (req, res) => {
   }
   if (sections) {
     try {
-      const parsed =
-        typeof sections === "string" ? JSON.parse(sections) : sections;
-      updates.sections = parsed;
-      // Also update class-level students to include students from sections
-      const sectionStudentIds = new Set();
-      parsed.forEach((s) =>
-        (s.students || []).forEach((st) => sectionStudentIds.add(st)),
-      );
-      updates.students = Array.from(sectionStudentIds);
+      const parsed = typeof sections === "string" ? JSON.parse(sections) : sections;
+      if (Array.isArray(parsed)) {
+        const validSections = parsed.filter(s => typeof s === 'object' && s !== null && !Array.isArray(s));
+        updates.sections = validSections;
+        // Also update class-level students to include students from sections
+        const sectionStudentIds = new Set();
+        validSections.forEach((s) =>
+          (s.students || []).forEach((st) => sectionStudentIds.add(st)),
+        );
+        updates.students = Array.from(sectionStudentIds);
+      }
     } catch (err) {
-      updates.sections = sections;
+      // Ignored, don't update sections if parsing fails and it isn't an array
     }
   }
 
