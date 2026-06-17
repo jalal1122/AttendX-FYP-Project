@@ -193,7 +193,7 @@ class EmailService {
   /**
    * Send Welcome Email
    */
-  static async sendWelcomeEmail(user, tempPassword) {
+  static async sendWelcomeEmail(user, tempPassword = "password123") {
     const content = `
 <div class="content">
   <h2 class="greeting">Welcome to CSIT Attendance System! 👋</h2>
