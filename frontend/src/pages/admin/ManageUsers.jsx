@@ -36,6 +36,9 @@ const ManageUsers = () => {
     mobileNumber: "",
     info: {},
   });
+  const [showRoleModal, setShowRoleModal] = useState(false);
+  const [roleModalUser, setRoleModalUser] = useState(null);
+  const [roleModalNewRole, setRoleModalNewRole] = useState("student");
 
   const updateFilter = (field, value) => {
     setFilters((current) => ({
@@ -158,23 +161,23 @@ const ManageUsers = () => {
     }
   };
 
-  const handleRoleChange = async (userId, currentRole) => {
-    const roles = ["student", "teacher", "admin"];
-    const newRole = window.prompt(
-      `Change role for this user.\nCurrent: ${currentRole}\nEnter new role (student/teacher/admin):`,
-      currentRole,
-    );
+  const handleRoleChangeClick = (user) => {
+    setRoleModalUser(user);
+    setRoleModalNewRole(user.role);
+    setShowRoleModal(true);
+  };
 
-    if (!newRole || newRole === currentRole) return;
-
-    if (!roles.includes(newRole.toLowerCase())) {
-      setMessage({ type: "error", text: "Invalid role" });
+  const handleRoleSubmit = async (e) => {
+    e.preventDefault();
+    if (!roleModalUser || roleModalNewRole === roleModalUser.role) {
+      setShowRoleModal(false);
       return;
     }
 
     try {
-      await userAPI.updateUserRole(userId, newRole.toLowerCase());
+      await userAPI.updateUserRole(roleModalUser._id, roleModalNewRole);
       setMessage({ type: "success", text: "User role updated successfully" });
+      setShowRoleModal(false);
       fetchUsers();
     } catch (error) {
       console.error("Error updating role:", error);
@@ -516,7 +519,7 @@ const ManageUsers = () => {
                         </svg>
                       </button>
                       <button
-                        onClick={() => handleRoleChange(user._id, user.role)}
+                        onClick={() => handleRoleChangeClick(user)}
                         className="text-blue-600 hover:text-blue-900"
                       >
                         Role
@@ -670,6 +673,54 @@ const ManageUsers = () => {
               </Button>
               <Button type="submit" variant="primary" className="flex-1">
                 Save Changes
+              </Button>
+            </div>
+          </form>
+        </Modal>
+
+        {/* Role Change Modal */}
+        <Modal
+          isOpen={showRoleModal}
+          onClose={() => {
+            setShowRoleModal(false);
+            setRoleModalUser(null);
+          }}
+          title="Change User Role"
+        >
+          <form onSubmit={handleRoleSubmit}>
+            <div className="space-y-4">
+              <p className="text-sm text-gray-600">
+                Change role for <strong>{roleModalUser?.name}</strong>. Current role is <strong>{roleModalUser?.role}</strong>.
+              </p>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  New Role
+                </label>
+                <select
+                  value={roleModalNewRole}
+                  onChange={(e) => setRoleModalNewRole(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                >
+                  <option value="student">Student</option>
+                  <option value="teacher">Teacher</option>
+                  <option value="admin">Admin</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex gap-3 mt-6">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  setShowRoleModal(false);
+                  setRoleModalUser(null);
+                }}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button type="submit" variant="primary" className="flex-1">
+                Update Role
               </Button>
             </div>
           </form>
