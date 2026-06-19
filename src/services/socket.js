@@ -4,10 +4,10 @@ let pusherInstance;
 
 export const initSocket = () => {
   pusherInstance = new Pusher({
-    appId: process.env.PUSHER_APP_ID.trim(),
-    key: process.env.PUSHER_KEY.trim(),
-    secret: process.env.PUSHER_SECRET.trim(),
-    cluster: process.env.PUSHER_CLUSTER.trim(),
+    appId: process.env.PUSHER_APP_ID?.trim() || "",
+    key: process.env.PUSHER_KEY?.trim() || "",
+    secret: process.env.PUSHER_SECRET?.trim() || "",
+    cluster: process.env.PUSHER_CLUSTER?.trim() || "",
     useTLS: true,
   });
   console.log("🔌 Pusher initialized");
