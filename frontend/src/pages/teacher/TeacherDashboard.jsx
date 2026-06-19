@@ -15,8 +15,6 @@ import {
 } from "../../constants/academicOptions";
 import ClassFilters from "../../components/ui/ClassFilters";
 
-const classNamePattern = /^[A-Za-z0-9][A-Za-z0-9 ]*\sSection\s[A-Z]$/i;
-
 const TeacherDashboard = () => {
   const navigate = useNavigate();
   const user = useSelector(selectCurrentUser);
@@ -34,7 +32,8 @@ const TeacherDashboard = () => {
   });
 
   const [formData, setFormData] = useState({
-    name: "",
+    subjectName: "",
+    section: "",
     department: "",
     semester: "",
     batch: "",
@@ -107,17 +106,22 @@ const TeacherDashboard = () => {
     setError("");
     setSuccess("");
 
-    const trimmedName = formData.name.trim();
-    if (!classNamePattern.test(trimmedName)) {
-      setError("Class name must follow the format: 'Name Section A' through 'Section Z'. Example: Web Dev Section B");
+    if (!formData.subjectName.trim() || !formData.section) {
+      setError("Subject Name and Section are required");
       return;
     }
 
+    const trimmedName = `${formData.subjectName.trim()} Section ${formData.section}`;
+
     try {
-      const response = await classAPI.createClass({
+      const payload = {
         ...formData,
         name: trimmedName,
-      });
+      };
+      delete payload.subjectName;
+      delete payload.section;
+
+      const response = await classAPI.createClass(payload);
       setSuccess("Class created successfully!");
       setShowCreateModal(false);
 
@@ -127,7 +131,8 @@ const TeacherDashboard = () => {
 
       // Reset form
       setFormData({
-        name: "",
+        subjectName: "",
+        section: "",
         department: "",
         semester: "",
         batch: "",
@@ -293,17 +298,33 @@ const TeacherDashboard = () => {
       >
         <form onSubmit={handleCreateClass}>
           <Input
-            label="Class Name"
-            name="name"
-            value={formData.name}
+            label="Subject Name"
+            name="subjectName"
+            value={formData.subjectName}
             onChange={handleInputChange}
-            placeholder="Web Dev Section B"
+            placeholder="e.g. Web Dev"
             required
-            title="Use the format: Class Name Section A to Z (e.g. Web Dev Section B)"
           />
-          <p className="-mt-2 mb-4 text-xs text-gray-500">
-            Example: Web Dev Section B
-          </p>
+
+          <div className="mb-4 mt-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Section
+            </label>
+            <select
+              name="section"
+              value={formData.section}
+              onChange={handleInputChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+              required
+            >
+              <option value="">Select Section</option>
+              {Array.from({ length: 26 }, (_, i) => String.fromCharCode(65 + i)).map((letter) => (
+                <option key={letter} value={letter}>
+                  {letter}
+                </option>
+              ))}
+            </select>
+          </div>
 
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-2">
