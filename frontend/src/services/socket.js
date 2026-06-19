@@ -1,45 +1,47 @@
-import { io } from "socket.io-client";
+import Pusher from "pusher-js";
 import { API_BASE_URL } from "./api";
 
-let socketInstance = null;
+let pusherInstance = null;
 
 /**
- * Get or create the Socket.io client instance.
+ * Get or create the Pusher client instance.
  */
-const getSocket = () => {
-  if (!socketInstance) {
+const getPusher = () => {
+  if (!pusherInstance) {
     const token = localStorage.getItem("accessToken");
 
-    socketInstance = io(API_BASE_URL.replace(/\/api\/v1\/?$/, ""), {
+    // Initialize Pusher
+    pusherInstance = new Pusher(import.meta.env.VITE_PUSHER_KEY, {
+      cluster: import.meta.env.VITE_PUSHER_CLUSTER,
+      authEndpoint: `${API_BASE_URL.replace(/\/$/, "")}/pusher/auth`,
       auth: {
-        token: token,
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       },
-      transports: ["websocket", "polling"],
-      reconnection: true,
-      reconnectionAttempts: 5,
     });
 
-    socketInstance.on("connect_error", (err) => {
-      console.warn("Socket.io connection error:", err.message);
+    pusherInstance.connection.bind("error", (err) => {
+      console.warn("Pusher connection error:", err);
     });
   }
-  return socketInstance;
+  return pusherInstance;
 };
 
 /**
- * Connect to Socket.io (initializes the instance if needed).
+ * Connect to Pusher (initializes the instance if needed).
  */
 export const connectSocket = () => {
-  return getSocket();
+  return getPusher();
 };
 
 /**
- * Disconnect Socket.io entirely and clear the instance.
+ * Disconnect Pusher entirely and clear the instance.
  */
 export const disconnectSocket = () => {
-  if (socketInstance) {
-    socketInstance.disconnect();
-    socketInstance = null;
+  if (pusherInstance) {
+    pusherInstance.disconnect();
+    pusherInstance = null;
   }
 };
 
@@ -52,27 +54,27 @@ export const disconnectSocket = () => {
  */
 export const joinSessionRoom = (sessionId) => {
   if (!sessionId) return null;
-  const socket = getSocket();
+  const pusher = getPusher();
   
-  if (!socket) {
+  if (!pusher) {
     return {
-      bind: () => console.warn(`[Socket Mock] bind skipped for missing socket`),
-      unbind: () => console.warn(`[Socket Mock] unbind skipped for missing socket`),
+      bind: () => console.warn(`[Pusher Mock] bind skipped for missing pusher`),
+      unbind: () => console.warn(`[Pusher Mock] unbind skipped for missing pusher`),
     };
   }
 
-  // Join the server-side room
-  socket.emit("subscribe_session", sessionId);
+  const channelName = `private-session-${sessionId}`;
+  const channel = pusher.subscribe(channelName);
 
   return {
     bind: (event, callback) => {
-      socket.on(event, callback);
+      channel.bind(event, callback);
     },
     unbind: (event, callback) => {
       if (callback) {
-        socket.off(event, callback);
+        channel.unbind(event, callback);
       } else {
-        socket.off(event);
+        channel.unbind(event);
       }
     },
   };
@@ -85,9 +87,10 @@ export const joinSessionRoom = (sessionId) => {
  */
 export const leaveSessionRoom = (sessionId) => {
   if (!sessionId) return;
-  const socket = getSocket();
-  if (!socket) return;
-  socket.emit("unsubscribe_session", sessionId);
+  const pusher = getPusher();
+  if (!pusher) return;
+  const channelName = `private-session-${sessionId}`;
+  pusher.unsubscribe(channelName);
 };
 
 /**
@@ -98,18 +101,23 @@ export const leaveSessionRoom = (sessionId) => {
  */
 export const getSessionChannel = (sessionId) => {
   if (!sessionId) return undefined;
-  const socket = getSocket();
-  if (!socket) return undefined;
+  const pusher = getPusher();
+  if (!pusher) return undefined;
   
+  const channelName = `private-session-${sessionId}`;
+  const channel = pusher.channel(channelName);
+
+  if (!channel) return undefined;
+
   return {
     bind: (event, callback) => {
-      socket.on(event, callback);
+      channel.bind(event, callback);
     },
     unbind: (event, callback) => {
       if (callback) {
-        socket.off(event, callback);
+        channel.unbind(event, callback);
       } else {
-        socket.off(event);
+        channel.unbind(event);
       }
     },
   };
