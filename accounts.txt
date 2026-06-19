@@ -1,59 +1,112 @@
-{
-  "name": "Admin User",
-  "email": "admin@attendx.com",
-  "password": "password123",
-  "role": "admin"
-}
-
-{
-  "name": "John Teacher",
-  "email": "teacher@attendx.com",
-  "password": "password123",
-  "role": "teacher",
-  "info": {
-    "department": "Computer Science",
-    "designation": "Assistant Professor"
-  }
-}
-
-{
-  "name": "Jane Student",
-  "email": "student@attendx.com",
-  "password": "password123",
-  "role": "student",
-  "info": {
-    "rollNo": "CS-2021-001",
-    "semester": 6,
-    "department": "Computer Science",
-    "batch": "2021-2025",
-    "year": "2025"
-  }
-}
-
-{
-  "name": "Ahmed Ali",
-  "email": "ahmed.ali@attendx.com",
-  "password": "password123",
-  "role": "student",
-  "info": {
-    "rollNo": "CS-2021-042",
-    "semester": 6,
-    "department": "Computer Science",
-    "batch": "2021-2025",
-    "year": "2025"
-  }
-}
-
-{
-  "name": "anas",
-  "email": "anas@gmail.com",
-  "password": "password123",
-  "role": "student",
-  "info": {
-    "rollNo": "35",
-    "semester": 7,
-    "department": "IT",
-    "batch": "2022-2026",
-    "year": "2025"
-  }
-}
+ADMIN | Name: Mrs. Margarita Hilll | Email: vickie_lueilwitz@yahoo.com | Password: password123
+ADMIN | Name: Guiseppe Quitzon | Email: evangeline.funk89@yahoo.com | Password: password123
+TEACHER | Name: Terence Luettgen | Email: tillman49@yahoo.com | Password: password123
+TEACHER | Name: Velda Spencer | Email: kathleen.gorczany90@gmail.com | Password: password123
+TEACHER | Name: Ms. Samantha Heidenreich | Email: nelda_von63@gmail.com | Password: password123
+TEACHER | Name: Essie Bernier | Email: miranda_pfeffer@gmail.com | Password: password123
+TEACHER | Name: Dolores Brekke | Email: jarrett_ritchie-quigley@yahoo.com | Password: password123
+TEACHER | Name: Bryant Fadel | Email: eleazar_kunde@yahoo.com | Password: password123
+TEACHER | Name: Dino Cole DVM | Email: bernie.lockman@yahoo.com | Password: password123
+TEACHER | Name: Kari Stracke | Email: ole.rolfson@yahoo.com | Password: password123
+TEACHER | Name: Skye Torp | Email: cordie92@gmail.com | Password: password123
+TEACHER | Name: Elva Ferry | Email: marques.wiegand71@gmail.com | Password: password123
+STUDENT | Name: Rosa Spencer | Email: golden.williamson@yahoo.com | Password: password123
+STUDENT | Name: Luciano Kuhn | Email: krystal18@gmail.com | Password: password123
+STUDENT | Name: Eliseo Dickinson DVM | Email: margarette42@hotmail.com | Password: password123
+STUDENT | Name: Winona Ebert | Email: raymundo49@yahoo.com | Password: password123
+STUDENT | Name: Linda Stamm | Email: simone.tremblay22@hotmail.com | Password: password123
+STUDENT | Name: Bill Heaney V | Email: leda53@yahoo.com | Password: password123
+STUDENT | Name: Scott Corkery | Email: shawna7@gmail.com | Password: password123
+STUDENT | Name: Ms. Darlene Champlin | Email: leonard.bode@hotmail.com | Password: password123
+STUDENT | Name: Sylvester Rice DVM | Email: veronica.koelpin@hotmail.com | Password: password123
+STUDENT | Name: Loyal Schmitt | Email: laron.bechtelar@gmail.com | Password: password123
+STUDENT | Name: Adonis Gutmann | Email: stephen_greenfelder28@gmail.com | Password: password123
+STUDENT | Name: Charlene Wunsch-Altenwerth | Email: camylle_cremin@gmail.com | Password: password123
+STUDENT | Name: Catherine Deckow V | Email: remington_willms12@hotmail.com | Password: password123
+STUDENT | Name: Roosevelt Bernhard | Email: rodolfo.vandervort@hotmail.com | Password: password123
+STUDENT | Name: Mike Daugherty PhD | Email: alejandro_casper@hotmail.com | Password: password123
+STUDENT | Name: Carmen Roob | Email: terri22@yahoo.com | Password: password123
+STUDENT | Name: Mr. Sarina Carroll | Email: billie.reynolds@hotmail.com | Password: password123
+STUDENT | Name: Brain Kemmer | Email: nakia.schneider17@hotmail.com | Password: password123
+STUDENT | Name: Talon Graham | Email: alejandro_bradtke@gmail.com | Password: password123
+STUDENT | Name: Crystel Quitzon | Email: boyd60@yahoo.com | Password: password123
+STUDENT | Name: George Littel | Email: terence_dibbert@gmail.com | Password: password123
+STUDENT | Name: Nedra Barton | Email: johanna_stehr2@yahoo.com | Password: password123
+STUDENT | Name: Beth Padberg | Email: marc.grimes-lowe5@gmail.com | Password: password123
+STUDENT | Name: Dessie Zieme | Email: mavis.deckow46@gmail.com | Password: password123
+STUDENT | Name: Margret Romaguera | Email: queen56@yahoo.com | Password: password123
+STUDENT | Name: Brandt Mraz | Email: virginia_morissette@gmail.com | Password: password123
+STUDENT | Name: Cathy Schmidt | Email: billie.lakin16@hotmail.com | Password: password123
+STUDENT | Name: Sergio Fadel | Email: eva_mante@yahoo.com | Password: password123
+STUDENT | Name: Rogelio Doyle | Email: sean76@gmail.com | Password: password123
+STUDENT | Name: Harry Padberg | Email: orval77@hotmail.com | Password: password123
+STUDENT | Name: Neha Hahn | Email: moshe52@hotmail.com | Password: password123
+STUDENT | Name: Catherine Hermann | Email: cary61@yahoo.com | Password: password123
+STUDENT | Name: Kent Schmitt | Email: shawna.ruecker@yahoo.com | Password: password123
+STUDENT | Name: Arnold Wilderman | Email: estel.feeney@gmail.com | Password: password123
+STUDENT | Name: Harriet Corkery | Email: mateo.morar9@gmail.com | Password: password123
+STUDENT | Name: Don Lemke II | Email: tyreek_pollich@gmail.com | Password: password123
+STUDENT | Name: Lydia Ruecker | Email: kaelyn60@gmail.com | Password: password123
+STUDENT | Name: Leigh Dickens | Email: frank47@hotmail.com | Password: password123
+STUDENT | Name: Elmer Denesik | Email: brent_stark@gmail.com | Password: password123
+STUDENT | Name: Mike Daugherty Sr. | Email: brandi_murphy@gmail.com | Password: password123
+STUDENT | Name: Emmett Kozey | Email: major.johnson61@gmail.com | Password: password123
+STUDENT | Name: Dr. Glenn Hettinger I | Email: marshall_bogisich@yahoo.com | Password: password123
+STUDENT | Name: Mayra Bogan | Email: anita.padberg@yahoo.com | Password: password123
+STUDENT | Name: Monica Kuhic | Email: anne92@hotmail.com | Password: password123
+STUDENT | Name: Nelle Dicki | Email: evans26@yahoo.com | Password: password123
+STUDENT | Name: Nicole Tremblay DVM | Email: amber_monahan@gmail.com | Password: password123
+STUDENT | Name: Price Reichel I | Email: kim_bashirian@hotmail.com | Password: password123
+STUDENT | Name: Johnnie Stanton | Email: ova.wiegand@gmail.com | Password: password123
+STUDENT | Name: Marisol Tremblay Jr. | Email: tina_kuhn@yahoo.com | Password: password123
+STUDENT | Name: Moses Becker | Email: adrain.glover@hotmail.com | Password: password123
+STUDENT | Name: Laverne Ankunding | Email: blair_grant74@yahoo.com | Password: password123
+STUDENT | Name: Dr. Elnora Schuppe | Email: emily11@yahoo.com | Password: password123
+STUDENT | Name: Alvena Hickle PhD | Email: rudy87@yahoo.com | Password: password123
+STUDENT | Name: Dr. Marina Franecki | Email: domenico_morissette@gmail.com | Password: password123
+STUDENT | Name: Orin Schiller-Leuschke | Email: julie_russel33@hotmail.com | Password: password123
+STUDENT | Name: Chanelle Flatley-Rutherford | Email: dashawn_rosenbaum@gmail.com | Password: password123
+STUDENT | Name: Abbigail Green | Email: cindy_kuphal@yahoo.com | Password: password123
+STUDENT | Name: Dr. Gage Kovacek | Email: edmond.jacobi@hotmail.com | Password: password123
+STUDENT | Name: Tanya Gislason-Konopelski | Email: alverta73@hotmail.com | Password: password123
+STUDENT | Name: Clyde Kessler | Email: eladio_mante34@gmail.com | Password: password123
+STUDENT | Name: Peggie Vandervort | Email: delilah_cole53@hotmail.com | Password: password123
+STUDENT | Name: Hassan Harris | Email: betty.mraz@yahoo.com | Password: password123
+STUDENT | Name: Vesta Barton | Email: jasper_raynor80@gmail.com | Password: password123
+STUDENT | Name: Korey Mills | Email: genoveva.price14@hotmail.com | Password: password123
+STUDENT | Name: Alexandrine Bosco | Email: chelsea.feeney@gmail.com | Password: password123
+STUDENT | Name: Darla Bode | Email: clifford8@yahoo.com | Password: password123
+STUDENT | Name: Grady Hermann | Email: sheri61@gmail.com | Password: password123
+STUDENT | Name: Santos Rempel | Email: johnnie.zulauf@yahoo.com | Password: password123
+STUDENT | Name: Sammie Block | Email: aisha20@yahoo.com | Password: password123
+STUDENT | Name: Nellie Harvey | Email: kiley.mayer@hotmail.com | Password: password123
+STUDENT | Name: Adolfo Moore-Hammes MD | Email: grady_schowalter26@gmail.com | Password: password123
+STUDENT | Name: Price Kovacek | Email: darla.crist69@gmail.com | Password: password123
+STUDENT | Name: Darin Hane | Email: tate33@hotmail.com | Password: password123
+STUDENT | Name: Carmen Jast | Email: caden78@gmail.com | Password: password123
+STUDENT | Name: Kadin Schulist | Email: isidro85@hotmail.com | Password: password123
+STUDENT | Name: Eloy Collier Jr. | Email: willis_buckridge@gmail.com | Password: password123
+STUDENT | Name: Claude Vandervort-Bernhard | Email: tommie36@hotmail.com | Password: password123
+STUDENT | Name: Joseph Lehner | Email: jaeden.koss10@hotmail.com | Password: password123
+STUDENT | Name: Doyle Bernier | Email: johann53@gmail.com | Password: password123
+STUDENT | Name: Felton Pollich | Email: domenica_kulas@gmail.com | Password: password123
+STUDENT | Name: Martha Stehr Jr. | Email: gregory20@gmail.com | Password: password123
+STUDENT | Name: Timmy Windler | Email: rickie_glover@yahoo.com | Password: password123
+STUDENT | Name: Joanie Moore | Email: doug_willms@gmail.com | Password: password123
+STUDENT | Name: Rosalia DuBuque | Email: jessika_daniel79@hotmail.com | Password: password123
+STUDENT | Name: Annabell Olson | Email: justin48@hotmail.com | Password: password123
+STUDENT | Name: Kenneth Bednar | Email: jasen_medhurst18@gmail.com | Password: password123
+STUDENT | Name: Vicenta Klein | Email: lindsey_mills@gmail.com | Password: password123
+STUDENT | Name: Elias Hamill-Veum | Email: stuart.wunsch@gmail.com | Password: password123
+STUDENT | Name: Anne Hickle | Email: loren_von@gmail.com | Password: password123
+STUDENT | Name: Lorraine Crist | Email: dayna37@hotmail.com | Password: password123
+STUDENT | Name: Layne Homenick | Email: burnice68@yahoo.com | Password: password123
+STUDENT | Name: Mr. Daryl Oberbrunner-Bartoletti | Email: bradley_johns-corwin@yahoo.com | Password: password123
+STUDENT | Name: Melissa Hegmann | Email: arlene.ullrich@gmail.com | Password: password123
+STUDENT | Name: Asia Schowalter | Email: jace_stokes43@yahoo.com | Password: password123
+STUDENT | Name: Sherri Sporer | Email: jayden.dare@yahoo.com | Password: password123
+STUDENT | Name: Clare Gutmann | Email: laurence.champlin70@yahoo.com | Password: password123
+STUDENT | Name: Katherine Howell | Email: delbert_wunsch10@hotmail.com | Password: password123
+STUDENT | Name: Dr. Raymond Oberbrunner | Email: guadalupe_jacobs@yahoo.com | Password: password123
+STUDENT | Name: Erick Gerhold | Email: brice18@gmail.com | Password: password123
+STUDENT | Name: Dr. Philip Hagenes | Email: fredrick.kris@yahoo.com | Password: password123
