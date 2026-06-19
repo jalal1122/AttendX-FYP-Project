@@ -64,26 +64,31 @@ export const createClass = asyncHandler(async (req, res) => {
   }
 
   // Parse sections if provided (frontend may send JSON string)
-  let parsedSections = [];
+  let parsedSections = undefined;
   if (sections) {
     try {
       const parsed = typeof sections === "string" ? JSON.parse(sections) : sections;
       if (Array.isArray(parsed)) {
-        parsedSections = parsed.filter(s => typeof s === 'object' && s !== null && !Array.isArray(s));
+        const filtered = parsed.filter(s => typeof s === 'object' && s !== null && !Array.isArray(s));
+        if (filtered.length > 0) {
+          parsedSections = filtered;
+        }
       }
     } catch (err) {
-      parsedSections = [];
+      // ignore
     }
   }
 
   // Flatten students from sections into class-level students (unique)
   const sectionStudentIds = new Set();
-  parsedSections.forEach((s) => {
-    (s.students || []).forEach((stu) => sectionStudentIds.add(stu.toString()));
-  });
+  if (parsedSections) {
+    parsedSections.forEach((s) => {
+      (s.students || []).forEach((stu) => sectionStudentIds.add(stu.toString()));
+    });
+  }
 
   // Create class
-  const newClass = await Class.create({
+  const classData = {
     name: trimmedName,
     code,
     teacher: req.user._id,
@@ -92,8 +97,13 @@ export const createClass = asyncHandler(async (req, res) => {
     batch: batch || "",
     academicYear: academicYear || new Date().getFullYear().toString(),
     students: Array.from(sectionStudentIds),
-    sections: parsedSections,
-  });
+  };
+  
+  if (parsedSections) {
+    classData.sections = parsedSections;
+  }
+
+  const newClass = await Class.create(classData);
 
   // Populate teacher info
   await newClass.populate("teacher", "name email role");
