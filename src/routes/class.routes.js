@@ -12,6 +12,7 @@ import {
 } from "../controllers/class.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import { hasRole } from "../middlewares/role.middleware.js";
+import { antigravity } from "../middlewares/antigravity.middleware.js";
 
 const router = express.Router();
 
@@ -19,7 +20,7 @@ const router = express.Router();
 router.use(verifyJWT);
 
 // Create class (Teacher and Admin only)
-router.post("/create", hasRole("teacher", "admin"), createClass);
+router.post("/create", hasRole("teacher", "admin"), antigravity, createClass);
 
 // Join class (Student only)
 router.post("/join", hasRole("student"), joinClass);
@@ -38,7 +39,7 @@ router.post(
 );
 
 // Update class details (Teacher and Admin only)
-router.put("/:id", hasRole("teacher", "admin"), updateClassDetails);
+router.put("/:id", hasRole("teacher", "admin"), antigravity, updateClassDetails);
 
 // Delete class (Teacher and Admin only)
 router.delete("/:id", hasRole("teacher", "admin"), deleteClass);
