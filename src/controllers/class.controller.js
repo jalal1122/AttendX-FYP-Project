@@ -14,8 +14,6 @@ const generateClassCode = () => {
   return crypto.randomBytes(3).toString("hex").toUpperCase();
 };
 
-const classNamePattern = /^[A-Za-z0-9][A-Za-z0-9 ]*\sSection\s[A-Z]$/i;
-
 /**
  * Create Class (Teacher/Admin only)
  * POST /api/v1/class/create
@@ -31,9 +29,15 @@ export const createClass = asyncHandler(async (req, res) => {
     throw ApiError.badRequest("Name, department, and semester are required");
   }
 
-  if (!classNamePattern.test(trimmedName)) {
-    throw ApiError.badRequest(
-      "Class name must end with 'Section A' through 'Section Z'",
+  const duplicate = await Class.findOne({
+    name: trimmedName,
+    department,
+    batch: batch || "",
+  }).lean();
+
+  if (duplicate) {
+    throw ApiError.conflict(
+      "A class with this name already exists in the same department and batch",
     );
   }
 

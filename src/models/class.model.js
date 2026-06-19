@@ -70,6 +70,7 @@ const classSchema = new mongoose.Schema(
 // Index for faster queries
 classSchema.index({ teacher: 1, semester: 1 });
 classSchema.index({ students: 1 });
+classSchema.index({ name: 1, department: 1, batch: 1 }, { unique: true });
 
 const Class = mongoose.model("Class", classSchema);
 
