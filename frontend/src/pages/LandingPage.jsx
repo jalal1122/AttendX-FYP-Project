@@ -26,11 +26,8 @@ const LandingPage = () => {
       <header className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
-            <div className="flex items-center">
-              <div className="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center mr-3">
-                <span className="text-white text-xl font-bold">A</span>
-              </div>
-              <h1 className="text-2xl font-bold text-gray-900">CSIT Attendance System</h1>
+            <div className="flex items-center text-xl sm:text-2xl font-bold text-sky-500 hover:text-sky-600 transition-colors">
+              CSIT <span className="text-slate-900 ml-2">AMS</span>
             </div>
             <Button variant="primary" onClick={() => navigate("/login")}>
               Login
@@ -43,7 +40,7 @@ const LandingPage = () => {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="text-center">
           <h2 className="text-5xl font-extrabold text-gray-900 mb-6">
-            Smart Attendance Management
+            Attendance Management System
           </h2>
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
             Secure, real-time attendance tracking with QR codes, geofencing,
@@ -57,14 +54,6 @@ const LandingPage = () => {
               className="px-8 py-3 text-lg"
             >
               Get Started
-            </Button>
-            <Button
-              variant="secondary"
-              size="lg"
-              onClick={() => navigate("/login")}
-              className="px-8 py-3 text-lg"
-            >
-              Learn More
             </Button>
           </div>
         </div>
