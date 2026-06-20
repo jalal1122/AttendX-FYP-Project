@@ -18,6 +18,8 @@ import analyticsAPI from "../../services/analyticsAPI";
 import classAPI from "../../services/classAPI";
 import Button from "../../components/ui/Button";
 import Card from "../../components/ui/Card";
+import SortableTable from "../../components/ui/SortableTable";
+import Modal from "../../components/ui/Modal";
 
 const COLORS = {
   present: "#10b981",
@@ -29,13 +31,53 @@ const Reports = () => {
   const { classId } = useParams();
   const navigate = useNavigate();
 
+  const [activeTab, setActiveTab] = useState("overview"); // overview, students, defaulters
   const [classData, setClassData] = useState(null);
   const [analytics, setAnalytics] = useState(null);
+  
+  const [allStudents, setAllStudents] = useState([]);
   const [defaulters, setDefaulters] = useState([]);
+  
   const [period, setPeriod] = useState("weekly");
   const [dateRange, setDateRange] = useState({ startDate: "", endDate: "" });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  // Drill-down Modal State
+  const [drillDownModal, setDrillDownModal] = useState({ isOpen: false, student: null, loading: false, records: [] });
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const [classRes, analyticsRes, allStudentsRes, defaultersRes] = await Promise.all([
+        classAPI.getClassById(classId),
+        analyticsAPI.getClassAnalytics(classId, period, dateRange.startDate, dateRange.endDate),
+        analyticsAPI.getDefaulters(classId, 101), // all students
+        analyticsAPI.getDefaulters(classId, 75)   // real defaulters
+      ]);
+
+      setClassData(classRes.data);
+      setAnalytics(analyticsRes.data);
+      
+      // Defaulters API returns array inside "defaulters" key or similar
+      setAllStudents(allStudentsRes.data?.defaulters || allStudentsRes.data || []);
+      setDefaulters(defaultersRes.data?.defaulters || defaultersRes.data || []);
+
+      setLoading(false);
+    } catch (err) {
+      console.error("Failed to fetch analytics:", err);
+      setError("Failed to load analytics data");
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (classId) {
+      fetchData();
+    }
+  }, [classId, period, dateRange]);
 
   const setDatePreset = (preset) => {
     const now = new Date();
@@ -50,18 +92,13 @@ const Reports = () => {
         break;
       }
       case "thisMonth": {
-        startDate = new Date(now.getFullYear(), now.getMonth(), 1)
-          .toISOString()
-          .split("T")[0];
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split("T")[0];
         endDate = now.toISOString().split("T")[0];
         break;
       }
       case "thisSemester": {
         const month = now.getMonth();
-        const semesterStart =
-          month >= 7
-            ? new Date(now.getFullYear(), 7, 1)
-            : new Date(now.getFullYear(), 0, 1);
+        const semesterStart = month >= 7 ? new Date(now.getFullYear(), 7, 1) : new Date(now.getFullYear(), 0, 1);
         startDate = semesterStart.toISOString().split("T")[0];
         endDate = now.toISOString().split("T")[0];
         break;
@@ -70,361 +107,115 @@ const Reports = () => {
         startDate = "";
         endDate = "";
     }
-
     setDateRange({ startDate, endDate });
   };
 
   const exportToExcel = async () => {
     if (!analytics || !classData) return;
-
     const wb = XLSX.utils.book_new();
     const currentDate = new Date().toLocaleString();
 
-    // Fetch detailed attendance data
     let detailedData = null;
     try {
-      const detailedResponse = await analyticsAPI.getDetailedAttendance(
-        classId,
-        dateRange.startDate,
-        dateRange.endDate,
-      );
+      const detailedResponse = await analyticsAPI.getDetailedAttendance(classId, dateRange.startDate, dateRange.endDate);
       detailedData = detailedResponse?.data || detailedResponse;
     } catch (error) {
       console.error("Failed to fetch detailed attendance:", error);
     }
 
-    // Sheet 1: Class Information & Summary
+    const attendanceRate = calculateAttendanceRate();
     const summaryData = [
       ["CLASS ATTENDANCE REPORT"],
       [""],
-      ["Class Information"],
       ["Class Name:", classData.name],
       ["Class Code:", classData.code],
-      ["Section:", classData.section || "N/A"],
-      ["Department:", classData.department || "N/A"],
-      ["Semester:", classData.semester || "N/A"],
-      ["Batch:", classData.batch || "N/A"],
-      ["Academic Year:", classData.academicYear || "N/A"],
-      ["Room:", classData.room || "N/A"],
-      ["Teacher:", analytics.class?.teacher?.name || "N/A"],
-      ["Teacher Email:", analytics.class?.teacher?.email || "N/A"],
-      ["Report Period:", period],
-      [
-        "Date Range:",
-        `${dateRange.startDate || "N/A"} to ${dateRange.endDate || "N/A"}`,
-      ],
-      ["Report Generated:", currentDate],
-      [""],
-      ["Attendance Summary"],
-      ["Total Sessions:", analytics.totalSessions || 0],
       ["Attendance Rate:", `${attendanceRate}%`],
-      ["Total Present:", analytics.overallStats?.totalPresent || 0],
-      ["Total Absent:", analytics.overallStats?.totalAbsent || 0],
-      ["Total Late:", analytics.overallStats?.totalLate || 0],
+      ["Report Generated:", currentDate]
     ];
-
     const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
-
-    // Set column widths
     wsSummary["!cols"] = [{ wch: 20 }, { wch: 30 }];
-
     XLSX.utils.book_append_sheet(wb, wsSummary, "Summary");
 
-    // Sheet 2: Defaulters List (if any)
-    if (defaulters.length > 0) {
-      const defaultersData = [
-        ["STUDENTS BELOW 75% ATTENDANCE"],
+    if (allStudents.length > 0) {
+      const wsStudents = XLSX.utils.aoa_to_sheet([
+        ["ALL STUDENTS"],
         [""],
         ["Name", "Roll No", "Attendance %", "Present", "Total Sessions"],
-        ...defaulters.map((s) => [
-          s.name,
-          s.info?.rollNo || "N/A",
-          s.attendancePercentage.toFixed(1) + "%",
-          s.presentCount,
-          s.totalClasses,
+        ...allStudents.map((s) => [
+          s.name, s.info?.rollNo || "N/A", s.attendancePercentage.toFixed(1) + "%", s.presentCount, s.totalClasses
         ]),
-      ];
-
-      const wsDefaulters = XLSX.utils.aoa_to_sheet(defaultersData);
-      wsDefaulters["!cols"] = [
-        { wch: 25 },
-        { wch: 15 },
-        { wch: 15 },
-        { wch: 10 },
-        { wch: 15 },
-      ];
-      XLSX.utils.book_append_sheet(wb, wsDefaulters, "Defaulters");
+      ]);
+      XLSX.utils.book_append_sheet(wb, wsStudents, "All Students");
     }
 
-    // Sheet 3: Attendance Trends
-    if (analytics.trends && analytics.trends.length > 0) {
-      const trendsData = [
-        ["ATTENDANCE TRENDS"],
-        [""],
-        ["Period", "Present", "Absent", "Late", "Total"],
-        ...analytics.trends.map((t) => [
-          period === "weekly" ? `Week ${t._id}` : `Month ${t._id}`,
-          t.present || 0,
-          t.absent || 0,
-          t.late || 0,
-          (t.present || 0) + (t.absent || 0) + (t.late || 0),
-        ]),
-      ];
-
-      const wsTrends = XLSX.utils.aoa_to_sheet(trendsData);
-      wsTrends["!cols"] = [
-        { wch: 15 },
-        { wch: 12 },
-        { wch: 12 },
-        { wch: 12 },
-        { wch: 12 },
-      ];
-      XLSX.utils.book_append_sheet(wb, wsTrends, "Trends");
-    }
-
-    // Sheet 4: Detailed Student Attendance (if available)
     if (detailedData && detailedData.attendance && detailedData.sessions) {
       const detailedAttendanceData = [
         ["DETAILED STUDENT ATTENDANCE"],
         [""],
         [
-          "Student Name",
-          "Roll No",
-          ...detailedData.sessions.map((s) => {
-            const sessionDate = new Date(s.date);
-            return `${s.type || "Session"} - ${sessionDate.toLocaleDateString()} ${sessionDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
+          "Student Name", "Roll No",
+          ...detailedData.sessions.map(s => {
+            const sd = new Date(s.date);
+            return `${sd.toLocaleDateString()} ${sd.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
           }),
         ],
         ...detailedData.attendance.map((student) => [
-          student.studentName,
-          student.rollNo,
-          ...student.sessions.map((session) => {
-            if (session.status === "Present") return "P";
-            if (session.status === "Absent") return "A";
-            if (session.status === "Late") return "L";
-            return "-";
-          }),
+          student.studentName, student.rollNo,
+          ...student.sessions.map((session) => session.status.charAt(0))
         ]),
       ];
-
       const wsDetailed = XLSX.utils.aoa_to_sheet(detailedAttendanceData);
-      const colWidths = [
-        { wch: 25 },
-        { wch: 15 },
-        ...detailedData.sessions.map(() => ({ wch: 12 })),
-      ];
-      wsDetailed["!cols"] = colWidths;
       XLSX.utils.book_append_sheet(wb, wsDetailed, "Detailed Attendance");
     }
 
-    // Generate filename with date
-    const filename = `${classData.code}_Attendance_Report_${
-      new Date().toISOString().split("T")[0]
-    }.xlsx`;
-    XLSX.writeFile(wb, filename);
+    XLSX.writeFile(wb, `${classData.code}_Report_${new Date().toISOString().split("T")[0]}.xlsx`);
   };
 
-  const exportToCSV = async () => {
-    if (!analytics || !classData) return;
-
-    const currentDate = new Date().toLocaleString();
-
-    // Fetch detailed attendance data
-    let detailedData = null;
-    try {
-      const detailedResponse = await analyticsAPI.getDetailedAttendance(
-        classId,
-        dateRange.startDate,
-        dateRange.endDate,
-      );
-      detailedData = detailedResponse?.data || detailedResponse;
-    } catch (error) {
-      console.error("Failed to fetch detailed attendance:", error);
-    }
-
-    let csvContent = "CLASS ATTENDANCE REPORT\n\n";
-    csvContent += "Class Information\n";
-    csvContent += `Class Name,${classData.name}\n`;
-    csvContent += `Class Code,${classData.code}\n`;
-    csvContent += `Section,${classData.section || "N/A"}\n`;
-    csvContent += `Department,${classData.department || "N/A"}\n`;
-    csvContent += `Semester,${classData.semester || "N/A"}\n`;
-    csvContent += `Batch,${classData.batch || "N/A"}\n`;
-    csvContent += `Academic Year,${classData.academicYear || "N/A"}\n`;
-    csvContent += `Room,${classData.room || "N/A"}\n`;
-    csvContent += `Teacher,${analytics.class?.teacher?.name || "N/A"}\n`;
-    csvContent += `Teacher Email,${analytics.class?.teacher?.email || "N/A"}\n`;
-    csvContent += `Report Period,${period}\n`;
-    csvContent += `Date Range,${dateRange.startDate || "N/A"} to ${dateRange.endDate || "N/A"}\n`;
-    csvContent += `Report Generated,${currentDate}\n\n`;
-
-    csvContent += "Attendance Summary\n";
-    csvContent += `Total Sessions,${analytics.totalSessions || 0}\n`;
-    csvContent += `Attendance Rate,${attendanceRate}%\n`;
-    csvContent += `Total Present,${
-      analytics.overallStats?.totalPresent || 0
-    }\n`;
-    csvContent += `Total Absent,${analytics.overallStats?.totalAbsent || 0}\n`;
-    csvContent += `Total Late,${analytics.overallStats?.totalLate || 0}\n\n`;
-
-    if (defaulters.length > 0) {
-      csvContent += "STUDENTS BELOW 75% ATTENDANCE\n";
-      csvContent += "Name,Roll No,Attendance %,Present,Total Sessions\n";
-      defaulters.forEach((s) => {
-        csvContent += `${s.name},${
-          s.info?.rollNo || "N/A"
-        },${s.attendancePercentage.toFixed(1)}%,${s.presentCount},${
-          s.totalClasses
-        }\n`;
-      });
-      csvContent += "\n";
-    }
-
-    if (analytics.trends && analytics.trends.length > 0) {
-      csvContent += "ATTENDANCE TRENDS\n";
-      csvContent += "Period,Present,Absent,Late,Total\n";
-      analytics.trends.forEach((t) => {
-        const periodLabel =
-          period === "weekly" ? `Week ${t._id}` : `Month ${t._id}`;
-        const total = (t.present || 0) + (t.absent || 0) + (t.late || 0);
-        csvContent += `${periodLabel},${t.present || 0},${t.absent || 0},${
-          t.late || 0
-        },${total}\n`;
-      });
-      csvContent += "\n";
-    }
-
-    // Add detailed student attendance
-    if (detailedData && detailedData.attendance && detailedData.sessions) {
-      csvContent += "DETAILED STUDENT ATTENDANCE\n";
-      csvContent +=
-        "Student Name,Roll No," +
-        detailedData.sessions
-          .map((s) => {
-            const sessionDate = new Date(s.date);
-            return `${s.type || "Session"} - ${sessionDate.toLocaleDateString()} ${sessionDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
-          })
-          .join(",") +
-        "\n";
-
-      detailedData.attendance.forEach((student) => {
-        const statuses = student.sessions.map((session) => {
-          if (session.status === "Present") return "P";
-          if (session.status === "Absent") return "A";
-          if (session.status === "Late") return "L";
-          return "-";
-        });
-        csvContent += `${student.studentName},${student.rollNo},${statuses.join(
-          ",",
-        )}\n`;
-      });
-    }
-
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${classData.code}_Attendance_Report_${
-      new Date().toISOString().split("T")[0]
-    }.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-
-      // Fetch class details
-      const classResponse = await classAPI.getClassDetails(classId);
-      setClassData(classResponse.data);
-
-      // Fetch analytics using the current class id from the route
-      const analyticsResponse = await analyticsAPI.getClassAnalytics(
-        classId,
-        period,
-        dateRange.startDate,
-        dateRange.endDate,
-      );
-      ("Analytics response:", analyticsResponse);
-      ("Analytics data:", analyticsResponse?.data);
-      setAnalytics(analyticsResponse?.data || analyticsResponse);
-
-      // Fetch defaulters
-      const defaultersResponse = await analyticsAPI.getDefaulters(classId, 75);
-      setDefaulters(defaultersResponse.data.defaulters || []);
-
-      setLoading(false);
-    } catch (error) {
-      console.error("Failed to fetch analytics:", error);
-      setError("Failed to load analytics data");
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [classId, period, dateRange]);
-
-  // Prepare pie chart data
   const getPieChartData = () => {
     if (!analytics?.overallStats) return [];
-
-    const { totalPresent, totalAbsent, totalLate } = analytics.overallStats;
-
     return [
-      { name: "Present", value: totalPresent, color: COLORS.present },
-      { name: "Absent", value: totalAbsent, color: COLORS.absent },
-      { name: "Late", value: totalLate, color: COLORS.late },
+      { name: "Present", value: analytics.overallStats.totalPresent, color: COLORS.present },
+      { name: "Absent", value: analytics.overallStats.totalAbsent, color: COLORS.absent },
+      { name: "Late", value: analytics.overallStats.totalLate, color: COLORS.late },
     ].filter((item) => item.value > 0);
   };
 
-  // Prepare bar chart data
   const getBarChartData = () => {
     if (!analytics?.trends) return [];
-
-    return analytics.trends
-      .map((trend) => {
-        const identifier = trend._id || trend.weekNumber || trend.month;
-
-        // Skip entries without valid identifier
-        if (identifier === null || identifier === undefined) {
-          console.warn("Trend data missing identifier:", trend);
-          return null;
-        }
-
-        const name =
-          period === "weekly" ? `Week ${identifier}` : `Month ${identifier}`;
-
-        return {
-          name,
-          Present: trend.present || 0,
-          Absent: trend.absent || 0,
-          Late: trend.late || 0,
-        };
-      })
-      .filter((item) => item !== null); // Remove null entries
+    return analytics.trends.map((trend) => {
+      const identifier = trend._id || trend.weekNumber || trend.month;
+      if (identifier == null) return null;
+      return {
+        name: period === "weekly" ? `Week ${identifier}` : `Month ${identifier}`,
+        Present: trend.present || 0,
+        Absent: trend.absent || 0,
+        Late: trend.late || 0,
+      };
+    }).filter(Boolean);
   };
 
   const calculateAttendanceRate = () => {
     if (!analytics?.overallStats) return 0;
-
     const { totalPresent, totalAbsent, totalLate } = analytics.overallStats;
     const total = totalPresent + totalAbsent + totalLate;
+    return total === 0 ? 0 : Math.round((totalPresent / total) * 100);
+  };
 
-    if (total === 0) return 0;
-    return Math.round((totalPresent / total) * 100);
+  const openDrillDown = async (student) => {
+    setDrillDownModal({ isOpen: true, student, loading: true, records: [] });
+    try {
+      const params = { classId, startDate: dateRange.startDate, endDate: dateRange.endDate };
+      const res = await analyticsAPI.getStudentAttendanceDetail(student.studentId || student._id, params);
+      setDrillDownModal((prev) => ({ ...prev, loading: false, records: res.data.records }));
+    } catch (error) {
+      console.error("Failed to load drill-down", error);
+      setDrillDownModal((prev) => ({ ...prev, loading: false }));
+    }
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <p className="text-gray-500">Loading analytics...</p>
-      </div>
-    );
+    return <div className="min-h-screen bg-gray-50 flex items-center justify-center"><p className="text-gray-500">Loading analytics...</p></div>;
   }
-
   if (error) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -440,283 +231,227 @@ const Reports = () => {
   const barData = getBarChartData();
   const attendanceRate = calculateAttendanceRate();
 
+  const studentColumns = [
+    { key: "name", label: "Name" },
+    { key: "rollNo", label: "Roll No", render: (_, row) => row.info?.rollNo || "N/A" },
+    { key: "totalClasses", label: "Total Sessions" },
+    { key: "presentCount", label: "Present" },
+    { 
+      key: "attendancePercentage", 
+      label: "Attendance %",
+      render: (val) => (
+        <span className={`px-2 py-1 text-xs font-medium rounded ${val >= 75 ? "bg-success-100 text-success-700" : "bg-error-100 text-error-700"}`}>
+          {val.toFixed(1)}%
+        </span>
+      )
+    },
+    {
+      key: "actions",
+      label: "Actions",
+      sortable: false,
+      render: (_, row) => (
+        <button 
+          onClick={() => openDrillDown(row)}
+          className="text-blue-600 hover:text-blue-800 text-xs font-medium"
+        >
+          View Detail
+        </button>
+      )
+    }
+  ];
+
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <div className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex justify-between items-center mb-4">
+          <div className="flex justify-between items-center flex-wrap gap-4 mb-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">
-                Class Analytics
-              </h1>
-              <p className="mt-1 text-sm text-gray-600">
-                {classData?.name} • {classData?.code}
-              </p>
+              <h1 className="text-3xl font-bold text-gray-900">Class Analytics</h1>
+              <p className="mt-1 text-sm text-gray-600">{classData?.name} • {classData?.code}</p>
             </div>
-            <Button
-              variant="secondary"
-              onClick={() => navigate(`/teacher/class/${classId}`)}
-            >
-              Back to Class
-            </Button>
+            <div className="flex gap-3">
+              <Button variant="primary" size="sm" onClick={exportToExcel}>📊 Export Excel</Button>
+              <Button variant="outline" size="sm" onClick={() => navigate(`/teacher/class/${classId}`)}>Back to Class</Button>
+            </div>
           </div>
 
-          {/* Date Filter Controls */}
-          <div className="flex flex-wrap gap-4 items-end">
-            <div className="flex-1 min-w-[200px]">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Start Date
-              </label>
-              <input
-                type="date"
-                value={dateRange.startDate}
-                onChange={(e) =>
-                  setDateRange({ ...dateRange, startDate: e.target.value })
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-              />
+          <div className="mt-6 flex space-x-4 border-b pb-2">
+            {[
+              { id: "overview", label: "Overview" },
+              { id: "students", label: "Students List" },
+              { id: "defaulters", label: "Defaulters" }
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors ${
+                  activeTab === tab.id
+                    ? "text-primary-600 border-b-2 border-primary-600"
+                    : "text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex flex-wrap gap-4 items-end mt-4">
+            <div className="flex-1 min-w-[150px]">
+              <label className="block text-xs font-medium text-gray-500 mb-1">Start Date</label>
+              <input type="date" value={dateRange.startDate} onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })} className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg" />
             </div>
-            <div className="flex-1 min-w-[200px]">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                End Date
-              </label>
-              <input
-                type="date"
-                value={dateRange.endDate}
-                onChange={(e) =>
-                  setDateRange({ ...dateRange, endDate: e.target.value })
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500"
-              />
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setDatePreset("thisWeek")}
-              >
-                This Week
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setDatePreset("thisMonth")}
-              >
-                This Month
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setDatePreset("thisSemester")}
-              >
-                This Semester
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setDateRange({ startDate: "", endDate: "" })}
-              >
-                Clear
-              </Button>
+            <div className="flex-1 min-w-[150px]">
+              <label className="block text-xs font-medium text-gray-500 mb-1">End Date</label>
+              <input type="date" value={dateRange.endDate} onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })} className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg" />
             </div>
             <div className="flex gap-2">
-              <Button variant="primary" size="sm" onClick={exportToExcel}>
-                📊 Export Excel
-              </Button>
-              <Button variant="secondary" size="sm" onClick={exportToCSV}>
-                📄 Export CSV
-              </Button>
+              <Button variant="secondary" size="sm" onClick={() => setDatePreset("thisWeek")}>This Week</Button>
+              <Button variant="secondary" size="sm" onClick={() => setDatePreset("thisMonth")}>This Month</Button>
+              <Button variant="secondary" size="sm" onClick={() => setDateRange({ startDate: "", endDate: "" })}>Clear</Button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white">
-            <h3 className="text-blue-100 text-sm font-medium">
-              Attendance Rate
-            </h3>
-            <p className="text-4xl font-bold mt-2">{attendanceRate}%</p>
-          </Card>
-          <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white">
-            <h3 className="text-green-100 text-sm font-medium">
-              Total Present
-            </h3>
-            <p className="text-4xl font-bold mt-2">
-              {analytics?.overallStats?.totalPresent || 0}
-            </p>
-          </Card>
-          <Card className="bg-gradient-to-br from-red-500 to-red-600 text-white">
-            <h3 className="text-red-100 text-sm font-medium">Total Absent</h3>
-            <p className="text-4xl font-bold mt-2">
-              {analytics?.overallStats?.totalAbsent || 0}
-            </p>
-          </Card>
-          <Card className="bg-gradient-to-br from-yellow-500 to-yellow-600 text-white">
-            <h3 className="text-yellow-100 text-sm font-medium">Total Late</h3>
-            <p className="text-4xl font-bold mt-2">
-              {analytics?.overallStats?.totalLate || 0}
-            </p>
-          </Card>
-        </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+        
+        {activeTab === "overview" && (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+              <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+                <h3 className="text-blue-100 text-sm font-medium">Attendance Rate</h3>
+                <p className="text-4xl font-bold mt-2">{attendanceRate}%</p>
+              </Card>
+              <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white">
+                <h3 className="text-green-100 text-sm font-medium">Total Present</h3>
+                <p className="text-4xl font-bold mt-2">{analytics?.overallStats?.totalPresent || 0}</p>
+              </Card>
+              <Card className="bg-gradient-to-br from-red-500 to-red-600 text-white">
+                <h3 className="text-red-100 text-sm font-medium">Total Absent</h3>
+                <p className="text-4xl font-bold mt-2">{analytics?.overallStats?.totalAbsent || 0}</p>
+              </Card>
+              <Card className="bg-gradient-to-br from-yellow-500 to-yellow-600 text-white">
+                <h3 className="text-yellow-100 text-sm font-medium">Total Late</h3>
+                <p className="text-4xl font-bold mt-2">{analytics?.overallStats?.totalLate || 0}</p>
+              </Card>
+            </div>
 
-        {/* Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-          {/* Pie Chart */}
-          <Card>
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">
-              Overall Attendance Distribution
-            </h2>
-            {pieData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={pieData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, percent }) =>
-                      `${name}: ${(percent * 100).toFixed(0)}%`
-                    }
-                    outerRadius={100}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {pieData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <Card>
+                <h2 className="text-xl font-semibold text-gray-900 mb-4">Overall Distribution</h2>
+                {pieData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie data={pieData} cx="50%" cy="50%" labelLine={false} label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`} outerRadius={100} dataKey="value">
+                        {pieData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : <p className="text-center text-gray-500 py-12">No data available</p>}
+              </Card>
+
+              <Card>
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl font-semibold text-gray-900">Attendance Trends</h2>
+                  <select value={period} onChange={(e) => setPeriod(e.target.value)} className="px-3 py-1 border border-gray-300 rounded-lg text-sm">
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                  </select>
+                </div>
+                {barData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={barData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Bar dataKey="Present" fill={COLORS.present} />
+                      <Bar dataKey="Absent" fill={COLORS.absent} />
+                      <Bar dataKey="Late" fill={COLORS.late} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : <p className="text-center text-gray-500 py-12">No data available</p>}
+              </Card>
+            </div>
+          </>
+        )}
+
+        {activeTab === "students" && (
+          <Card className="p-0 overflow-hidden">
+            <div className="p-4 bg-white border-b flex justify-between items-center">
+              <h2 className="text-lg font-semibold text-gray-900">All Students ({allStudents.length})</h2>
+            </div>
+            <SortableTable 
+              columns={studentColumns} 
+              data={allStudents} 
+              emptyMessage="No students found for the selected period."
+            />
+          </Card>
+        )}
+
+        {activeTab === "defaulters" && (
+          <Card className="p-0 overflow-hidden">
+            <div className="p-4 bg-white border-b flex justify-between items-center">
+              <h2 className="text-lg font-semibold text-gray-900">Students Below 75% Attendance</h2>
+              <span className="px-3 py-1 bg-error-100 text-error-700 rounded-full text-sm font-medium">{defaulters.length} Students</span>
+            </div>
+            {defaulters.length === 0 ? (
+              <div className="text-center py-12"><p className="text-success-600 font-medium text-lg">✓ All students have good attendance!</p></div>
             ) : (
-              <p className="text-center text-gray-500 py-12">
-                No data available
-              </p>
+              <SortableTable 
+                columns={studentColumns} 
+                data={defaulters} 
+              />
             )}
           </Card>
+        )}
+      </div>
 
-          {/* Bar Chart */}
-          <Card>
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold text-gray-900">
-                Attendance Trends
-              </h2>
-              <select
-                value={period}
-                onChange={(e) => setPeriod(e.target.value)}
-                className="px-3 py-1 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-primary-500"
-              >
-                <option value="weekly">Weekly</option>
-                <option value="monthly">Monthly</option>
-              </select>
-            </div>
-            {barData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={barData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip />
-                  <Legend />
-                  <Bar dataKey="Present" fill={COLORS.present} />
-                  <Bar dataKey="Absent" fill={COLORS.absent} />
-                  <Bar dataKey="Late" fill={COLORS.late} />
-                </BarChart>
-              </ResponsiveContainer>
+      <Modal 
+        isOpen={drillDownModal.isOpen} 
+        onClose={() => setDrillDownModal({ ...drillDownModal, isOpen: false })}
+        title={drillDownModal.student ? `Attendance Detail: ${drillDownModal.student.name}` : "Attendance Detail"}
+        size="lg"
+      >
+        {drillDownModal.loading ? (
+          <p className="text-gray-500 py-4">Loading records...</p>
+        ) : (
+          <div className="max-h-[60vh] overflow-y-auto">
+            {drillDownModal.records.length === 0 ? (
+              <p className="text-gray-500 py-4">No attendance records found for the selected period.</p>
             ) : (
-              <p className="text-center text-gray-500 py-12">
-                No data available
-              </p>
-            )}
-          </Card>
-        </div>
-
-        {/* Defaulters List */}
-        <Card>
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-semibold text-gray-900">
-              Students Below 75% Attendance
-            </h2>
-            <span className="px-3 py-1 bg-error-100 text-error-700 rounded-full text-sm font-medium">
-              {defaulters.length} Students
-            </span>
-          </div>
-
-          {defaulters.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-success-600 font-medium text-lg">
-                ✓ All students have good attendance!
-              </p>
-              <p className="text-gray-500 text-sm mt-1">
-                Everyone is above 75% threshold
-              </p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
+              <table className="min-w-full divide-y divide-gray-200 mt-4">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Name
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Roll No
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Attendance
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Sessions
-                    </th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {defaulters.map((student) => (
-                    <tr key={student.studentId} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                        {student.name}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {student.info?.rollNo || "N/A"}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="px-2 py-1 text-xs font-medium bg-error-100 text-error-700 rounded">
-                          {student.attendancePercentage.toFixed(1)}%
+                  {drillDownModal.records.map((rec, idx) => (
+                    <tr key={idx}>
+                      <td className="px-4 py-2 text-sm text-gray-900">{new Date(rec.date).toLocaleDateString()}</td>
+                      <td className="px-4 py-2 text-sm">
+                        <span className={`px-2 py-1 text-xs rounded-full font-medium ${
+                          rec.status === "Present" ? "bg-green-100 text-green-800" :
+                          rec.status === "Absent" ? "bg-red-100 text-red-800" :
+                          rec.status === "Late" ? "bg-warning-100 text-warning-800" :
+                          "bg-gray-100 text-gray-800"
+                        }`}>
+                          {rec.status}
                         </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {student.presentCount}/{student.totalClasses}
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-            </div>
-          )}
-        </Card>
+            )}
+          </div>
+        )}
+      </Modal>
 
-        {/* Info Card */}
-        <Card className="mt-6 bg-blue-50 border-blue-200">
-          <h3 className="text-blue-900 font-semibold mb-2">
-            📊 About These Analytics
-          </h3>
-          <ul className="space-y-1 text-sm text-blue-800">
-            <li>• Attendance rate is calculated from all completed sessions</li>
-            <li>
-              • Trends show attendance patterns over time (weekly or monthly)
-            </li>
-            <li>
-              • Students below 75% attendance are flagged as needing attention
-            </li>
-            <li>• Data updates in real-time as attendance is marked</li>
-          </ul>
-        </Card>
-      </div>
     </div>
   );
 };
