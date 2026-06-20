@@ -138,16 +138,21 @@ export const markAttendance = asyncHandler(async (req, res) => {
   }
 
   // Find class
-  const classExists = await Class.exists({ _id: classId });
-  if (!classExists) {
+  const classDoc = await Class.findById(classId);
+  if (!classDoc) {
     throw ApiError.notFound("Class not found");
   }
-  const isEnrolled = await Class.exists({
-    _id: classId,
-    students: req.user._id,
-  });
+  const isEnrolled = classDoc.students.some(id => id.toString() === req.user._id.toString());
   if (!isEnrolled) {
     throw ApiError.forbidden("You are not enrolled in this class");
+  }
+
+  // Verify section if provided and class has sections
+  if (req.body.section && classDoc.sections && classDoc.sections.length > 0) {
+    const validSection = classDoc.sections.some(s => s.name === req.body.section);
+    if (!validSection) {
+      throw ApiError.badRequest("Invalid section provided for this class");
+    }
   }
 
   // 2. IP CHECK - Only validate if ipMatchEnabled

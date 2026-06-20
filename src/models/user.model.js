@@ -30,7 +30,15 @@ const userSchema = new mongoose.Schema(
       default: "student",
     },
     info: {
-      type: mongoose.Schema.Types.Mixed,
+      type: new mongoose.Schema({
+        rollNo: { type: String, trim: true },
+        semester: { type: Number, min: 1, max: 8 },
+        batch: { type: String, trim: true },
+        enrollmentYear: { type: Number },
+        designation: { type: String, trim: true },
+        department: { type: String, trim: true },
+        phone: { type: String, trim: true },
+      }, { _id: false }),
       default: {},
     },
     avatar: {

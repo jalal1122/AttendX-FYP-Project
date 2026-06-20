@@ -45,6 +45,10 @@ const classSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    room: {
+      type: String,
+      trim: true,
+    },
     sections: [
       {
         name: { type: String, trim: true },
