@@ -59,6 +59,25 @@ const analyticsAPI = {
     const response = await api.get(url);
     return response.data;
   },
+
+  // --- Phase 2: Admin Reports ---
+  getAdminReports: async (type, params = {}) => {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value) query.append(key, value);
+    });
+    const response = await api.get(`/analytics/admin/${type}?${query.toString()}`);
+    return response.data;
+  },
+
+  getStudentAttendanceDetail: async (studentId, params = {}) => {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value) query.append(key, value);
+    });
+    const response = await api.get(`/analytics/admin/students/${studentId}/attendance?${query.toString()}`);
+    return response.data;
+  },
 };
 
 export default analyticsAPI;
