@@ -241,6 +241,7 @@ export const getStudentReport = asyncHandler(async (req, res) => {
           lateCount: totalLateOverall,
           leaveCount: totalLeaveOverall,
           attendancePercentage: parseFloat(overallPercentage),
+          riskLevel: parseFloat(overallPercentage) < 75 ? "Critical" : parseFloat(overallPercentage) < 85 ? "At Risk" : "Safe",
         },
         subjectWise: subjectWiseReport,
         recentSessions,

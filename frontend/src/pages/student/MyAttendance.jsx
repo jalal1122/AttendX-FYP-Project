@@ -220,16 +220,37 @@ const MyAttendance = () => {
           </Card>
         </div>
 
-        {/* Warnings */}
-        {reportData?.warnings?.hasLowAttendance && (
-          <div className="mb-8 p-4 bg-error-50 border border-error-200 rounded-lg">
-            <h3 className="text-error-800 font-semibold mb-2">
-              ⚠️ Low Attendance Warning
+        {/* Warnings / Predictive Risk Assessment */}
+        {reportData?.overall?.riskLevel && reportData.overall.riskLevel !== "Safe" && (
+          <div className={`mb-8 p-4 border rounded-lg ${
+            reportData.overall.riskLevel === "Critical" 
+              ? "bg-error-50 border-error-200" 
+              : "bg-warning-50 border-warning-200"
+          }`}>
+            <h3 className={`font-semibold mb-2 ${
+              reportData.overall.riskLevel === "Critical" ? "text-error-800" : "text-warning-800"
+            }`}>
+              {reportData.overall.riskLevel === "Critical" ? "🚨 Critical: Low Attendance Warning" : "⚠️ At Risk: Predictive Warning"}
             </h3>
-            <p className="text-error-700 text-sm">
-              You have low attendance ({" < "}75%) in{" "}
-              {reportData.warnings.lowAttendanceSubjects.length} subject(s).
-              Please attend classes regularly.
+            <p className={`text-sm ${
+              reportData.overall.riskLevel === "Critical" ? "text-error-700" : "text-warning-700"
+            }`}>
+              {reportData.overall.riskLevel === "Critical" 
+                ? `You have fallen below the 75% threshold overall. You are currently at high risk of debarment. Please contact your coordinator immediately.`
+                : `Your attendance is currently between 75% and 85%. You are at risk of falling into the defaulter category if you miss upcoming classes.`}
+            </p>
+          </div>
+        )}
+
+        {reportData?.warnings?.hasLowAttendance && reportData?.overall?.riskLevel === "Safe" && (
+          <div className="mb-8 p-4 bg-warning-50 border border-warning-200 rounded-lg">
+            <h3 className="text-warning-800 font-semibold mb-2">
+              ⚠️ Subject-Specific Warning
+            </h3>
+            <p className="text-warning-700 text-sm">
+              You are safe overall, but you have low attendance ({" < "}75%) in{" "}
+              {reportData.warnings.lowAttendanceSubjects.length} specific subject(s).
+              Please attend these classes regularly.
             </p>
           </div>
         )}
