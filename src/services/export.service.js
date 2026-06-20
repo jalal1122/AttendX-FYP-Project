@@ -793,6 +793,238 @@ class ExportService {
 
     return csv;
   }
+
+  /**
+   * Generate Defaulters Report (Students below attendance threshold)
+   */
+  static async generateDefaultersReport(
+    classData,
+    defaulters,
+    totalSessions,
+    threshold = 75,
+    format = "xlsx",
+  ) {
+    if (format === "csv") {
+      return this.generateDefaultersReportCSV(
+        classData,
+        defaulters,
+        totalSessions,
+        threshold,
+      );
+    } else {
+      return this.generateDefaultersReportExcel(
+        classData,
+        defaulters,
+        totalSessions,
+        threshold,
+      );
+    }
+  }
+
+  /**
+   * Generate Defaulters Report as Excel
+   */
+  static async generateDefaultersReportExcel(
+    classData,
+    defaulters,
+    totalSessions,
+    threshold,
+  ) {
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet("Defaulters Report");
+
+    const teacherName =
+      typeof classData.teacher === "object"
+        ? classData.teacher?.name || "N/A"
+        : "N/A";
+
+    // Title Row
+    worksheet.mergeCells("A1:I1");
+    const titleCell = worksheet.getCell("A1");
+    titleCell.value = `${classData.name} (${classData.code}) - Defaulters Report`;
+    titleCell.font = {
+      size: 16,
+      bold: true,
+      color: { argb: "FF" + this.COLORS.headerBg },
+    };
+    titleCell.alignment = { horizontal: "center", vertical: "middle" };
+    titleCell.fill = {
+      type: "pattern",
+      pattern: "solid",
+      fgColor: { argb: "FF" + this.COLORS.metadataBg },
+    };
+    worksheet.getRow(1).height = 30;
+
+    // Generated Date
+    worksheet.mergeCells("A2:I2");
+    const dateCell = worksheet.getCell("A2");
+    dateCell.value = `Generated on: ${moment().format("MMMM DD, YYYY [at] HH:mm")}`;
+    dateCell.font = { size: 10, italic: true };
+    dateCell.alignment = { horizontal: "center" };
+    worksheet.getRow(2).height = 20;
+
+    // Metadata
+    worksheet.addRow([
+      "Teacher",
+      teacherName,
+      "Department",
+      classData.department || "N/A",
+    ]);
+    worksheet.addRow([
+      "Class",
+      classData.name || "N/A",
+      "Class Code",
+      classData.code || "N/A",
+    ]);
+    worksheet.addRow([
+      "Semester",
+      classData.semester || "N/A",
+      "Batch",
+      classData.batch || "N/A",
+    ]);
+    worksheet.addRow([
+      "Total Sessions",
+      totalSessions,
+      "Threshold",
+      `${threshold}%`,
+    ]);
+    worksheet.addRow([
+      "Total Defaulters",
+      defaulters.length,
+    ]);
+    worksheet.addRow([]);
+
+    // Header Row
+    const headerRow = worksheet.addRow([
+      "Roll No",
+      "Student Name",
+      "Email",
+      "Department",
+      "Total Classes",
+      "Present",
+      "Absent",
+      "Leave",
+      "Attendance %",
+    ]);
+
+    // Style header
+    headerRow.eachCell((cell) => {
+      cell.font = {
+        bold: true,
+        color: { argb: "FF" + this.COLORS.headerText },
+      };
+      cell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FF" + this.COLORS.headerBg },
+      };
+      cell.alignment = { horizontal: "center", vertical: "middle" };
+      cell.border = {
+        top: { style: "thin" },
+        left: { style: "thin" },
+        bottom: { style: "thin" },
+        right: { style: "thin" },
+      };
+    });
+    headerRow.height = 25;
+
+    // Data Rows
+    defaulters.forEach((student) => {
+      const { rollNo, department } = this.getStudentProfile({
+        ...student,
+        info: student.info,
+      });
+
+      const dataRow = worksheet.addRow([
+        rollNo,
+        student.name,
+        student.email || "N/A",
+        department,
+        student.totalClasses,
+        student.presentCount,
+        student.absentCount,
+        student.leaveCount || 0,
+        student.attendancePercentage + "%",
+      ]);
+
+      // Style data cells
+      dataRow.eachCell((cell, colNumber) => {
+        cell.alignment = { horizontal: "center", vertical: "middle" };
+        cell.border = {
+          top: { style: "thin", color: { argb: "FFE5E7EB" } },
+          left: { style: "thin", color: { argb: "FFE5E7EB" } },
+          bottom: { style: "thin", color: { argb: "FFE5E7EB" } },
+          right: { style: "thin", color: { argb: "FFE5E7EB" } },
+        };
+
+        // Highlight percentage column in red (all defaulters are below threshold)
+        if (colNumber === 9) {
+          cell.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: "FF" + this.COLORS.absentBg },
+          };
+          cell.font = {
+            color: { argb: "FF" + this.COLORS.absentText },
+            bold: true,
+          };
+        }
+      });
+    });
+
+    // Auto-fit columns
+    worksheet.columns.forEach((column) => {
+      let maxLength = 0;
+      column.eachCell({ includeEmpty: true }, (cell) => {
+        const columnLength = cell.value ? cell.value.toString().length : 10;
+        if (columnLength > maxLength) {
+          maxLength = columnLength;
+        }
+      });
+      column.width = Math.min(Math.max(maxLength + 2, 12), 35);
+    });
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    return buffer;
+  }
+
+  /**
+   * Generate Defaulters Report as CSV
+   */
+  static generateDefaultersReportCSV(
+    classData,
+    defaulters,
+    totalSessions,
+    threshold,
+  ) {
+    const teacherName =
+      typeof classData.teacher === "object"
+        ? classData.teacher?.name || "N/A"
+        : "N/A";
+
+    let csv = `${classData.name} (${classData.code}) - Defaulters Report\n`;
+    csv += `Generated on: ${moment().format("MMMM DD, YYYY [at] HH:mm")}\n\n`;
+    csv += `Teacher,${teacherName}\n`;
+    csv += `Department,${classData.department || "N/A"}\n`;
+    csv += `Semester,${classData.semester || "N/A"}\n`;
+    csv += `Batch,${classData.batch || "N/A"}\n`;
+    csv += `Total Sessions,${totalSessions}\n`;
+    csv += `Threshold,${threshold}%\n`;
+    csv += `Total Defaulters,${defaulters.length}\n\n`;
+
+    csv += `Roll No,Student Name,Email,Department,Total Classes,Present,Absent,Leave,Attendance %\n`;
+
+    defaulters.forEach((student) => {
+      const { rollNo, department } = this.getStudentProfile({
+        ...student,
+        info: student.info,
+      });
+
+      csv += `${rollNo},${student.name},${student.email || "N/A"},${department},${student.totalClasses},${student.presentCount},${student.absentCount},${student.leaveCount || 0},${student.attendancePercentage}%\n`;
+    });
+
+    return csv;
+  }
 }
 
 export default ExportService;

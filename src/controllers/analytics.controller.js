@@ -16,7 +16,7 @@ import moment from "moment";
  */
 export const getStudentReport = asyncHandler(async (req, res) => {
   const { studentId } = req.params;
-  const { range = "all" } = req.query; // week, month, semester, all
+  const { range = "all", startDate, endDate } = req.query; // week, month, semester, all, or custom via startDate/endDate
 
   // Validate student exists
   const student = await User.findById(studentId)
@@ -31,32 +31,47 @@ export const getStudentReport = asyncHandler(async (req, res) => {
     throw ApiError.forbidden("You can only view your own attendance report");
   }
 
-  // Build date filter based on range
+  // Build date filter based on range or custom startDate/endDate
   const dateFilter = {};
   const now = new Date();
 
-  switch (range) {
-    case "week":
-      const weekStart = new Date(now);
-      weekStart.setDate(now.getDate() - 7);
-      dateFilter.date = { $gte: weekStart };
-      break;
-    case "month":
-      const monthStart = new Date(now);
-      monthStart.setDate(now.getDate() - 30);
-      dateFilter.date = { $gte: monthStart };
-      break;
-    case "semester":
-      const month = now.getMonth();
-      const semesterStart =
-        month >= 7
-          ? new Date(now.getFullYear(), 7, 1)
-          : new Date(now.getFullYear(), 0, 1);
-      dateFilter.date = { $gte: semesterStart };
-      break;
-    default:
-      // "all" - no date filter
-      break;
+  // Custom date range takes priority over preset range
+  if (startDate || endDate) {
+    dateFilter.date = {};
+    if (startDate) {
+      const start = new Date(startDate);
+      start.setHours(0, 0, 0, 0);
+      dateFilter.date.$gte = start;
+    }
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      dateFilter.date.$lte = end;
+    }
+  } else {
+    switch (range) {
+      case "week":
+        const weekStart = new Date(now);
+        weekStart.setDate(now.getDate() - 7);
+        dateFilter.date = { $gte: weekStart };
+        break;
+      case "month":
+        const monthStart = new Date(now);
+        monthStart.setDate(now.getDate() - 30);
+        dateFilter.date = { $gte: monthStart };
+        break;
+      case "semester":
+        const month = now.getMonth();
+        const semesterStart =
+          month >= 7
+            ? new Date(now.getFullYear(), 7, 1)
+            : new Date(now.getFullYear(), 0, 1);
+        dateFilter.date = { $gte: semesterStart };
+        break;
+      default:
+        // "all" - no date filter
+        break;
+    }
   }
 
   const studentObjectId = new mongoose.Types.ObjectId(studentId);
@@ -139,12 +154,14 @@ export const getStudentReport = asyncHandler(async (req, res) => {
   let totalPresentOverall = 0;
   let totalAbsentOverall = 0;
   let totalLateOverall = 0;
+  let totalLeaveOverall = 0;
 
   subjectWiseReport.forEach((subject) => {
     totalClassesOverall += subject.totalClasses;
     totalPresentOverall += subject.presentCount;
     totalAbsentOverall += subject.absentCount;
     totalLateOverall += subject.lateCount;
+    totalLeaveOverall += subject.leaveCount || 0;
   });
 
   const overallPercentage =
@@ -222,6 +239,7 @@ export const getStudentReport = asyncHandler(async (req, res) => {
           presentCount: totalPresentOverall,
           absentCount: totalAbsentOverall,
           lateCount: totalLateOverall,
+          leaveCount: totalLeaveOverall,
           attendancePercentage: parseFloat(overallPercentage),
         },
         subjectWise: subjectWiseReport,
@@ -1120,13 +1138,14 @@ export const exportReport = asyncHandler(async (req, res) => {
           }
 
           const deptSessions = await Session.find(sessionsQuery).lean();
+          const sessionIds = deptSessions.map((s) => s._id);
 
           // Calculate avg attendance
           const attendanceStats = await Attendance.aggregate([
             {
               $match: {
                 classId: { $in: classIds },
-                sessionId: { $in: deptSessions.map((s) => s._id) },
+                sessionId: { $in: sessionIds },
               },
             },
             {
@@ -1143,12 +1162,48 @@ export const exportReport = asyncHandler(async (req, res) => {
             attendanceStats.reduce((sum, s) => sum + s.count, 0) || 1;
           const avgAttendance = (presentCount / totalRecords) * 100;
 
-          // Count defaulters
-          const defaultersCount = await User.countDocuments({
-            "info.department": dept,
-            role: "student",
-            // This is a simplified count; in reality, you'd need to calculate per-student attendance
-          });
+          // Count actual defaulters by calculating per-student attendance
+          let realDefaultersCount = 0;
+          if (sessionIds.length > 0) {
+            const perStudentAttendance = await Attendance.aggregate([
+              {
+                $match: {
+                  classId: { $in: classIds },
+                  sessionId: { $in: sessionIds },
+                },
+              },
+              {
+                $group: {
+                  _id: "$studentId",
+                  totalClasses: { $sum: 1 },
+                  presentCount: {
+                    $sum: {
+                      $cond: [{ $in: ["$status", ["Present", "Late"]] }, 1, 0],
+                    },
+                  },
+                },
+              },
+              {
+                $project: {
+                  attendancePercentage: {
+                    $multiply: [
+                      { $divide: ["$presentCount", "$totalClasses"] },
+                      100,
+                    ],
+                  },
+                },
+              },
+              {
+                $match: {
+                  attendancePercentage: { $lt: 75 },
+                },
+              },
+              {
+                $count: "count",
+              },
+            ]);
+            realDefaultersCount = perStudentAttendance[0]?.count || 0;
+          }
 
           return {
             department: dept,
@@ -1156,7 +1211,7 @@ export const exportReport = asyncHandler(async (req, res) => {
             totalStudents: deptStudents.length,
             totalSessions: deptSessions.length,
             avgAttendance,
-            defaulters: Math.floor(defaultersCount * 0.2), // Rough estimate
+            defaulters: realDefaultersCount,
           };
         }),
       );
@@ -1173,9 +1228,153 @@ export const exportReport = asyncHandler(async (req, res) => {
         throw ApiError.badRequest("Class ID is required for defaulters report");
       }
 
-      // This would be similar to class_matrix but filtered for students < 75%
-      // Implementation simplified for brevity
-      throw ApiError.badRequest("Defaulters report not yet implemented");
+      // Fetch class with students
+      const defaulterClass = await Class.findById(targetId)
+        .populate("students", "name info")
+        .populate("teacher", "name email")
+        .select("name code department semester batch academicYear section students teacher")
+        .lean();
+
+      if (!defaulterClass) {
+        throw ApiError.notFound("Class not found");
+      }
+
+      // Check authorization
+      if (req.user.role !== "admin" && req.user.role !== "teacher") {
+        throw ApiError.forbidden(
+          "Only admins and teachers can export defaulters reports",
+        );
+      }
+
+      if (
+        req.user.role === "teacher" &&
+        defaulterClass.teacher?._id?.toString() !== req.user._id.toString()
+      ) {
+        throw ApiError.forbidden(
+          "You can only export reports for your own classes",
+        );
+      }
+
+      // Get total sessions for this class
+      const defSessionsQuery = {
+        classId: targetId,
+        active: false,
+      };
+      if (Object.keys(dateFilter).length > 0) {
+        defSessionsQuery.startTime = dateFilter;
+      }
+      const defSessions = await Session.find(defSessionsQuery).lean();
+      const defTotalSessions = defSessions.length;
+
+      if (defTotalSessions === 0) {
+        // Generate empty report
+        buffer = await ExportService.generateDefaultersReport(
+          defaulterClass,
+          [],
+          defTotalSessions,
+          75,
+          format,
+        );
+        filename = `${defaulterClass.code}_Defaulters_${moment().format("YYYY-MM-DD")}.${format}`;
+        break;
+      }
+
+      // Calculate per-student attendance and filter defaulters
+      const defSessionIds = defSessions.map((s) => s._id);
+      const studentAttendanceAgg = await Attendance.aggregate([
+        {
+          $match: {
+            classId: new mongoose.Types.ObjectId(targetId),
+            sessionId: { $in: defSessionIds },
+          },
+        },
+        {
+          $group: {
+            _id: "$studentId",
+            totalClasses: { $sum: 1 },
+            presentCount: {
+              $sum: {
+                $cond: [{ $eq: ["$status", "Present"] }, 1, 0],
+              },
+            },
+            absentCount: {
+              $sum: {
+                $cond: [{ $eq: ["$status", "Absent"] }, 1, 0],
+              },
+            },
+            lateCount: {
+              $sum: {
+                $cond: [{ $eq: ["$status", "Late"] }, 1, 0],
+              },
+            },
+            leaveCount: {
+              $sum: {
+                $cond: [{ $eq: ["$status", "Leave"] }, 1, 0],
+              },
+            },
+          },
+        },
+        {
+          $project: {
+            studentId: "$_id",
+            totalClasses: 1,
+            presentCount: 1,
+            absentCount: 1,
+            lateCount: 1,
+            leaveCount: 1,
+            attendancePercentage: {
+              $multiply: [
+                { $divide: ["$presentCount", "$totalClasses"] },
+                100,
+              ],
+            },
+          },
+        },
+        {
+          $match: {
+            attendancePercentage: { $lt: 75 },
+          },
+        },
+        {
+          $lookup: {
+            from: "users",
+            localField: "studentId",
+            foreignField: "_id",
+            as: "studentDetails",
+          },
+        },
+        {
+          $unwind: "$studentDetails",
+        },
+        {
+          $project: {
+            _id: 0,
+            studentId: "$studentDetails._id",
+            name: "$studentDetails.name",
+            email: "$studentDetails.email",
+            info: "$studentDetails.info",
+            totalClasses: 1,
+            presentCount: 1,
+            absentCount: 1,
+            lateCount: 1,
+            leaveCount: 1,
+            attendancePercentage: { $round: ["$attendancePercentage", 2] },
+          },
+        },
+        {
+          $sort: { attendancePercentage: 1 },
+        },
+      ]);
+
+      buffer = await ExportService.generateDefaultersReport(
+        defaulterClass,
+        studentAttendanceAgg,
+        defTotalSessions,
+        75,
+        format,
+      );
+      filename = `${defaulterClass.code}_Defaulters_${moment().format("YYYY-MM-DD")}.${format}`;
+      break;
 
     default:
       throw ApiError.badRequest("Invalid report type");
