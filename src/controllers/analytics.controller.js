@@ -337,6 +337,16 @@ export const getClassAnalytics = asyncHandler(async (req, res) => {
             $cond: [{ $eq: ["$status", "Leave"] }, 1, 0],
           },
         },
+        qrCount: {
+          $sum: {
+            $cond: [{ $eq: ["$verificationMethod", "QR"] }, 1, 0],
+          },
+        },
+        manualCount: {
+          $sum: {
+            $cond: [{ $eq: ["$verificationMethod", "Manual"] }, 1, 0],
+          },
+        },
       },
     },
     {
@@ -347,6 +357,8 @@ export const getClassAnalytics = asyncHandler(async (req, res) => {
         absentCount: 1,
         lateCount: 1,
         leaveCount: 1,
+        qrCount: 1,
+        manualCount: 1,
         averageAttendance: {
           $cond: [
             { $gt: ["$totalRecords", 0] },
@@ -495,6 +507,8 @@ export const getClassAnalytics = asyncHandler(async (req, res) => {
     totalAbsent: stats.absentCount,
     totalLate: stats.lateCount,
     totalLeave: stats.leaveCount,
+    totalQR: stats.qrCount || 0,
+    totalManual: stats.manualCount || 0,
     averageAttendance: stats.averageAttendance,
   };
 

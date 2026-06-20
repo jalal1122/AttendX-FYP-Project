@@ -13,6 +13,7 @@ import analyticsRoutes from "./src/routes/analytics.routes.js";
 import userRoutes from "./src/routes/user.routes.js";
 import pusherRoutes from "./src/routes/pusher.routes.js";
 import { initSocket } from "./src/services/socket.js";
+import { initCronJobs } from "./src/utils/cronJobs.js";
 
 // Initialize Express app
 const app = express();
@@ -23,8 +24,9 @@ const allowedOrigins = new Set([
 ]);
 const bodySizeLimit = process.env.BODY_SIZE_LIMIT || "1mb";
 
-// Initialize Pusher
+// Initialize Pusher and Cron Jobs
 initSocket();
+initCronJobs();
 
 // Slightly reduce runtime overhead + fingerprinting surface
 app.disable("x-powered-by");

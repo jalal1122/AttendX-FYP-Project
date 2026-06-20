@@ -352,6 +352,29 @@ const Reports = () => {
               </Card>
 
               <Card>
+                <h2 className="text-xl font-semibold text-gray-900 mb-4">Verification Methods</h2>
+                {analytics?.overallStats && (analytics.overallStats.totalQR > 0 || analytics.overallStats.totalManual > 0) ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <PieChart>
+                      <Pie 
+                        data={[
+                          { name: "QR Code", value: analytics.overallStats.totalQR, color: "#8b5cf6" },
+                          { name: "Manual", value: analytics.overallStats.totalManual, color: "#f59e0b" }
+                        ].filter(i => i.value > 0)} 
+                        cx="50%" cy="50%" labelLine={false} label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`} outerRadius={100} dataKey="value"
+                      >
+                        {[
+                          { name: "QR Code", value: analytics.overallStats.totalQR, color: "#8b5cf6" },
+                          { name: "Manual", value: analytics.overallStats.totalManual, color: "#f59e0b" }
+                        ].filter(i => i.value > 0).map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                ) : <p className="text-center text-gray-500 py-12">No data available</p>}
+              </Card>
+
+              <Card className="lg:col-span-2">
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-xl font-semibold text-gray-900">Attendance Trends</h2>
                   <select value={period} onChange={(e) => setPeriod(e.target.value)} className="px-3 py-1 border border-gray-300 rounded-lg text-sm">

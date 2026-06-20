@@ -33,6 +33,7 @@
     "moment": "^2.30.1",
     "mongoose": "^8.0.0",
     "multer": "^2.0.2",
+    "node-cron": "^4.4.1",
     "nodemailer": "^7.0.10",
     "otplib": "^12.0.1",
     "pusher": "^5.3.4",
