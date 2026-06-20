@@ -271,6 +271,9 @@ export const getAdminTeacherReports = asyncHandler(async (req, res) => {
     }),
   );
 
+  // Rank teachers by attendance percentage (performance ranking)
+  result.sort((a, b) => b.attendancePercentage - a.attendancePercentage);
+
   res.status(200).json(
     new ApiResponse(200, {
       teachers: result,

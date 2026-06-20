@@ -481,11 +481,56 @@ export const getClassAnalytics = asyncHandler(async (req, res) => {
     },
   ]);
 
-  const [overallStats, weeklyTrends, monthlyTrends, totalSessions, suspiciousRecords] =
+  // Section-wise breakdown
+  const sectionStatsPromise = Attendance.aggregate([
+    {
+      $match: {
+        classId: classObjectId,
+        section: { $ne: null },
+        ...dateFilter,
+      },
+    },
+    {
+      $group: {
+        _id: "$section",
+        totalRecords: { $sum: 1 },
+        presentCount: {
+          $sum: { $cond: [{ $eq: ["$status", "Present"] }, 1, 0] },
+        },
+        absentCount: {
+          $sum: { $cond: [{ $eq: ["$status", "Absent"] }, 1, 0] },
+        },
+        lateCount: {
+          $sum: { $cond: [{ $eq: ["$status", "Late"] }, 1, 0] },
+        },
+      },
+    },
+    {
+      $project: {
+        _id: 0,
+        section: "$_id",
+        totalRecords: 1,
+        present: "$presentCount",
+        absent: "$absentCount",
+        late: "$lateCount",
+        attendancePercentage: {
+          $cond: [
+            { $gt: ["$totalRecords", 0] },
+            { $multiply: [{ $divide: ["$presentCount", "$totalRecords"] }, 100] },
+            0,
+          ],
+        },
+      },
+    },
+    { $sort: { section: 1 } },
+  ]);
+
+  const [overallStats, weeklyTrends, monthlyTrends, sectionStats, totalSessions, suspiciousRecords] =
     await Promise.all([
       overallStatsPromise,
       weeklyTrendsPromise,
       monthlyTrendsPromise,
+      sectionStatsPromise,
       Session.countDocuments({ classId }),
       Attendance.find({ classId: classObjectId, isSuspicious: true, ...dateFilter })
         .populate("studentId", "name email info.rollNo")
@@ -541,6 +586,7 @@ export const getClassAnalytics = asyncHandler(async (req, res) => {
         trends,
         weeklyTrends,
         monthlyTrends,
+        sectionStats,
         suspiciousRecords,
       },
       "Class analytics retrieved successfully",

@@ -375,6 +375,27 @@ const Reports = () => {
                 ) : <p className="text-center text-gray-500 py-12">No data available</p>}
               </Card>
 
+              {/* Section-wise Breakdown */}
+              <Card className="lg:col-span-2">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl font-semibold text-gray-900">Section-wise Breakdown</h2>
+                </div>
+                {analytics?.sectionStats && analytics.sectionStats.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <BarChart data={analytics.sectionStats}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="section" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Bar dataKey="present" name="Present" fill={COLORS.present} />
+                      <Bar dataKey="absent" name="Absent" fill={COLORS.absent} />
+                      <Bar dataKey="late" name="Late" fill={COLORS.late} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                ) : <p className="text-center text-gray-500 py-12">No section data available</p>}
+              </Card>
+
               <Card className="lg:col-span-2">
                 <div className="flex justify-between items-center mb-4">
                   <h2 className="text-xl font-semibold text-gray-900">Attendance Trends</h2>
