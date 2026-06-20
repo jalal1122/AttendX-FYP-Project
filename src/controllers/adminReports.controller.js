@@ -764,9 +764,15 @@ export const getAdminDefaulters = asyncHandler(async (req, res) => {
         absentCount: 1,
         leaveCount: 1,
         attendancePercentage: {
-          $round: [
-            { $multiply: [{ $divide: ["$presentCount", "$totalClasses"] }, 100] },
-            2,
+          $cond: [
+            { $gt: ["$totalClasses", 0] },
+            {
+              $round: [
+                { $multiply: [{ $divide: ["$presentCount", "$totalClasses"] }, 100] },
+                2,
+              ],
+            },
+            0,
           ],
         },
       },

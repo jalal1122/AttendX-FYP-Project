@@ -45,7 +45,8 @@ const AdminReports = () => {
       // Apply simple text search to whatever is the main field of the tab
       if (search) {
         if (activeTab === "students" || activeTab === "teachers") params.name = search;
-        else if (activeTab === "departments" || activeTab === "batches" || activeTab === "sections") params.department = search; // simple fallback
+        else if (activeTab === "classes" || activeTab === "subjects") params.department = search; // basic fallback
+        else params.department = search; // for departments, batches, sections, defaulters
       }
 
       const res = await analyticsAPI.getAdminReports(activeTab, params);
