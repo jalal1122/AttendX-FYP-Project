@@ -82,6 +82,7 @@ export const markAttendance = asyncHandler(async (req, res) => {
   };
 
   // 1. GEOFENCING CHECK - Use dynamic radius from securityConfig
+  let distanceCalculated = null;
   if (
     session.location &&
     session.location.latitude &&
@@ -97,28 +98,18 @@ export const markAttendance = asyncHandler(async (req, res) => {
     const sessionLon = session.location.longitude;
     const allowedRadius = securityConfig.radius || 50;
 
-    // Log coordinates for debugging
-    ("📍 Geofence Check:");
-    (`   Teacher Location: (${sessionLat}, ${sessionLon})`);
-    (`   Student Location: (${studentLat}, ${studentLon})`);
-    (`   Allowed Radius: ${allowedRadius}m`);
-
     const distance = calculateDistance(
       sessionLat,
       sessionLon,
       studentLat,
       studentLon,
     );
-
-    (`   Calculated Distance: ${Math.round(distance)}m`);
+    distanceCalculated = distance;
 
     // Check for GPS accuracy issues (large distances often indicate GPS problems)
     if (distance > 500 && allowedRadius < 100) {
       console.warn(
         `⚠️ Large distance detected (${Math.round(distance)}m) with small radius (${allowedRadius}m). This may indicate GPS accuracy issues.`,
-      );
-      console.warn(
-        "💡 Consider: 1) Using a mobile device instead of laptop, 2) Enabling high-accuracy GPS, 3) Increasing radius to 100m+",
       );
     }
 
@@ -247,6 +238,12 @@ export const markAttendance = asyncHandler(async (req, res) => {
     verificationMethod: "QR",
     deviceId: deviceId || null,
     section: req.body.section || null,
+    isSuspicious: !ipMatch,
+    metadata: {
+      ipAddress: studentIP,
+      distanceFromTeacher: distanceCalculated,
+      flagReason: !ipMatch ? "IP Mismatch Warning" : undefined,
+    },
     date: new Date(),
   });
 

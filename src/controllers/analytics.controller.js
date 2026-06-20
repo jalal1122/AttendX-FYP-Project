@@ -481,12 +481,17 @@ export const getClassAnalytics = asyncHandler(async (req, res) => {
     },
   ]);
 
-  const [overallStats, weeklyTrends, monthlyTrends, totalSessions] =
+  const [overallStats, weeklyTrends, monthlyTrends, totalSessions, suspiciousRecords] =
     await Promise.all([
       overallStatsPromise,
       weeklyTrendsPromise,
       monthlyTrendsPromise,
       Session.countDocuments({ classId }),
+      Attendance.find({ classId: classObjectId, isSuspicious: true, ...dateFilter })
+        .populate("studentId", "name email info.rollNo")
+        .populate("sessionId", "startTime")
+        .sort({ date: -1 })
+        .lean(),
     ]);
 
   // Get the period parameter from query
@@ -499,6 +504,8 @@ export const getClassAnalytics = asyncHandler(async (req, res) => {
     absentCount: 0,
     lateCount: 0,
     leaveCount: 0,
+    qrCount: 0,
+    manualCount: 0,
     averageAttendance: 0,
   };
 
@@ -510,6 +517,7 @@ export const getClassAnalytics = asyncHandler(async (req, res) => {
     totalLeave: stats.leaveCount,
     totalQR: stats.qrCount || 0,
     totalManual: stats.manualCount || 0,
+    suspiciousCount: suspiciousRecords.length,
     averageAttendance: stats.averageAttendance,
   };
 
@@ -533,6 +541,7 @@ export const getClassAnalytics = asyncHandler(async (req, res) => {
         trends,
         weeklyTrends,
         monthlyTrends,
+        suspiciousRecords,
       },
       "Class analytics retrieved successfully",
     ),

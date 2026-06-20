@@ -40,6 +40,15 @@ const attendanceSchema = new mongoose.Schema(
       trim: true,
       index: true,
     },
+    isSuspicious: {
+      type: Boolean,
+      default: false,
+    },
+    metadata: {
+      ipAddress: String,
+      distanceFromTeacher: Number,
+      flagReason: String,
+    },
     date: {
       type: Date,
       required: [true, "Date is required"],

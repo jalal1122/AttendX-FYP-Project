@@ -279,7 +279,8 @@ const Reports = () => {
             {[
               { id: "overview", label: "Overview" },
               { id: "students", label: "Students List" },
-              { id: "defaulters", label: "Defaulters" }
+              { id: "defaulters", label: "Defaulters" },
+              { id: "suspicious", label: "Suspicious Sessions" }
             ].map(tab => (
               <button
                 key={tab.id}
@@ -426,6 +427,41 @@ const Reports = () => {
               <SortableTable 
                 columns={studentColumns} 
                 data={defaulters} 
+              />
+            )}
+          </Card>
+        )}
+
+        {activeTab === "suspicious" && (
+          <Card className="p-0 overflow-hidden border-warning-200">
+            <div className="p-4 bg-warning-50 border-b border-warning-200 flex justify-between items-center">
+              <div>
+                <h2 className="text-lg font-semibold text-warning-900">Suspicious Sessions</h2>
+                <p className="text-xs text-warning-700 mt-1">Sessions flagged for IP mismatches or geofence anomalies.</p>
+              </div>
+              <span className="px-3 py-1 bg-warning-200 text-warning-800 rounded-full text-sm font-medium">
+                {analytics?.suspiciousRecords?.length || 0} Records
+              </span>
+            </div>
+            {(!analytics?.suspiciousRecords || analytics.suspiciousRecords.length === 0) ? (
+              <div className="text-center py-12">
+                <p className="text-success-600 font-medium text-lg">✓ No suspicious sessions detected!</p>
+              </div>
+            ) : (
+              <SortableTable 
+                columns={[
+                  { key: "studentName", label: "Student", render: (_, row) => row.studentId?.name || "Unknown" },
+                  { key: "rollNo", label: "Roll No", render: (_, row) => row.studentId?.info?.rollNo || "N/A" },
+                  { key: "date", label: "Date", render: (_, row) => new Date(row.date).toLocaleDateString() },
+                  { key: "status", label: "Status", render: (val) => (
+                    <span className="px-2 py-1 text-xs rounded-full bg-gray-100">{val}</span>
+                  )},
+                  { key: "ipAddress", label: "IP Address", render: (_, row) => row.metadata?.ipAddress || "N/A" },
+                  { key: "reason", label: "Flag Reason", render: (_, row) => (
+                    <span className="text-error-600 text-xs font-semibold">{row.metadata?.flagReason || "Unknown"}</span>
+                  )}
+                ]} 
+                data={analytics.suspiciousRecords} 
               />
             )}
           </Card>
