@@ -1029,14 +1029,10 @@ class ExportService {
    * Generic Admin Report Export
    */
   static async generateAdminReport(reportType, data, format = "xlsx") {
-    if (format === "csv") {
-      return this.generateAdminReportCSV(reportType, data);
-    } else {
-      return this.generateAdminReportExcel(reportType, data);
-    }
+    return this.generateAdminReportExcel(reportType, data, format);
   }
 
-  static async generateAdminReportExcel(reportType, data) {
+  static async generateAdminReportExcel(reportType, data, format = "xlsx") {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet(reportType + " Report");
     
@@ -1191,11 +1187,10 @@ class ExportService {
       });
     });
 
+    if (format === "csv") {
+      return await workbook.csv.writeBuffer();
+    }
     return await workbook.xlsx.writeBuffer();
-  }
-
-  static generateAdminReportCSV(reportType, data) {
-    return "CSV Export Not fully implemented yet for Admin Reports. Use XLSX.";
   }
 }
 
