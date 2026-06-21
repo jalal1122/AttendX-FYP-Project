@@ -246,12 +246,7 @@ const ClassDetails = () => {
               >
                 Back to Dashboard
               </Button>
-              <Button
-                variant="success"
-                onClick={() => setShowExportModal(true)}
-              >
-                📊 Export Register
-              </Button>
+
               <Button
                 variant="primary"
                 onClick={() => navigate(`/teacher/session/${classId}`)}
@@ -327,16 +322,7 @@ const ClassDetails = () => {
               >
                 Students ({classData?.students?.length || 0})
               </button>
-              <button
-                onClick={() => setActiveTab("analytics")}
-                className={`${
-                  activeTab === "analytics"
-                    ? "border-primary-500 text-primary-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm transition-colors`}
-              >
-                Analytics
-              </button>
+
               <button
                 onClick={() => setActiveTab("settings")}
                 className={`${
@@ -525,27 +511,7 @@ const ClassDetails = () => {
           </div>
         )}
 
-        {activeTab === "analytics" && (
-          <div>
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold text-gray-900">
-                Class Analytics
-              </h2>
-              <Button
-                variant="primary"
-                onClick={() => navigate(`/reports/${classId}`)}
-              >
-                View Full Report
-              </Button>
-            </div>
-            <Card>
-              <p className="text-center text-gray-500 py-8">
-                Click "View Full Report" to see detailed analytics with charts
-                and trends.
-              </p>
-            </Card>
-          </div>
-        )}
+
 
         {activeTab === "settings" && (
           <div>
