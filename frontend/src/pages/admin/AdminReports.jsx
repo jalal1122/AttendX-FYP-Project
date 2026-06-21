@@ -6,21 +6,22 @@ import Button from "../../components/ui/Button";
 import SortableTable from "../../components/ui/SortableTable";
 import DateRangePicker from "../../components/ui/DateRangePicker";
 import Modal from "../../components/ui/Modal";
+import MultiSelectFilter from "../../components/ui/MultiSelectFilter";
 
 const TABS = [
-  { id: "students", label: "Students" },
-  { id: "teachers", label: "Teachers" },
   { id: "departments", label: "Departments" },
   { id: "batches", label: "Batches" },
   { id: "sections", label: "Sections" },
   { id: "subjects", label: "Subjects" },
+  { id: "teachers", label: "Teachers" },
   { id: "classes", label: "Classes" },
+  { id: "students", label: "Students" },
   { id: "defaulters", label: "Defaulters" },
 ];
 
 const AdminReports = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("students");
+  const [activeTab, setActiveTab] = useState("departments");
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, limit: 50, total: 0, pages: 0 });
@@ -29,8 +30,54 @@ const AdminReports = () => {
   const [dateRange, setDateRange] = useState({ startDate: "", endDate: "" });
   const [search, setSearch] = useState("");
   
+  const [filters, setFilters] = useState({
+    departments: [],
+    batches: [],
+    sections: [],
+    semesters: []
+  });
+
+  const [filterOptions, setFilterOptions] = useState({
+    departments: [],
+    batches: [],
+    sections: [],
+    semesters: [
+      { value: "1", label: "Semester 1" },
+      { value: "2", label: "Semester 2" },
+      { value: "3", label: "Semester 3" },
+      { value: "4", label: "Semester 4" },
+      { value: "5", label: "Semester 5" },
+      { value: "6", label: "Semester 6" },
+      { value: "7", label: "Semester 7" },
+      { value: "8", label: "Semester 8" },
+    ]
+  });
+  
   // Drill-down Modal State
   const [drillDownModal, setDrillDownModal] = useState({ isOpen: false, student: null, loading: false, records: [] });
+
+  // Load Filter Options
+  useEffect(() => {
+    const loadOptions = async () => {
+      try {
+        const [depts, batches, sections] = await Promise.all([
+          analyticsAPI.getAdminReports("departments"),
+          analyticsAPI.getAdminReports("batches"),
+          analyticsAPI.getAdminReports("sections")
+        ]);
+        
+        setFilterOptions(prev => ({
+          ...prev,
+          departments: (depts.data?.departments || []).map(d => ({ value: d.name, label: d.name })),
+          batches: (batches.data?.batches || []).map(b => ({ value: b.name, label: b.name })),
+          sections: (sections.data?.sections || []).map(s => ({ value: s.name, label: s.name })),
+        }));
+      } catch (e) {
+        console.error("Failed to load filter options", e);
+      }
+    };
+    loadOptions();
+  }, []);
 
   const fetchData = useCallback(async () => {
     try {
@@ -40,18 +87,16 @@ const AdminReports = () => {
         limit: pagination.limit,
         startDate: dateRange.startDate,
         endDate: dateRange.endDate,
+        department: filters.departments.join(","),
+        batch: filters.batches.join(","),
+        section: filters.sections.join(","),
+        semester: filters.semesters.join(","),
       };
 
-      // Apply simple text search to whatever is the main field of the tab
-      if (search) {
-        if (activeTab === "students" || activeTab === "teachers") params.name = search;
-        else if (activeTab === "classes" || activeTab === "subjects") params.department = search; // basic fallback
-        else params.department = search; // for departments, batches, sections, defaulters
-      }
+      if (search) params.name = search;
 
       const res = await analyticsAPI.getAdminReports(activeTab, params);
       
-      // Response shape: { students: [], pagination: {} } or similar
       const items = res.data[activeTab] || [];
       setData(items);
       if (res.data.pagination) {
@@ -64,7 +109,7 @@ const AdminReports = () => {
     } finally {
       setLoading(false);
     }
-  }, [activeTab, pagination.page, pagination.limit, dateRange, search]);
+  }, [activeTab, pagination.page, pagination.limit, dateRange, search, filters]);
 
   useEffect(() => {
     fetchData();
@@ -73,8 +118,17 @@ const AdminReports = () => {
   // Handle Tab Change
   const handleTabChange = (tabId) => {
     setActiveTab(tabId);
-    setPagination({ page: 1, limit: 50, total: 0, pages: 0 });
-    setSearch("");
+    setPagination(p => ({ ...p, page: 1 }));
+  };
+
+  const handleFilterChange = (key, val) => {
+    setFilters(prev => ({ ...prev, [key]: val }));
+    setPagination(p => ({ ...p, page: 1 }));
+  };
+
+  const handleDrillDown = (nextTab, filterKey, filterValue) => {
+    setFilters(prev => ({ ...prev, [filterKey]: [filterValue] }));
+    handleTabChange(nextTab);
   };
 
   // Open Student Drill-Down Modal
@@ -90,16 +144,30 @@ const AdminReports = () => {
     }
   };
 
-  // Export Current View
-  const exportData = () => {
-    const dataStr = JSON.stringify(data, null, 2);
-    const dataBlob = new Blob([dataStr], { type: "application/json" });
-    const url = URL.createObjectURL(dataBlob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `admin-${activeTab}-report.json`;
-    link.click();
-    URL.revokeObjectURL(url);
+  // Export Excel
+  const exportExcel = async () => {
+    try {
+      const params = {
+        startDate: dateRange.startDate,
+        endDate: dateRange.endDate,
+        department: filters.departments.join(","),
+        batch: filters.batches.join(","),
+        section: filters.sections.join(","),
+        semester: filters.semesters.join(","),
+      };
+      if (search) params.name = search;
+
+      const blob = await analyticsAPI.getAdminReportsExcel(activeTab, params);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `admin_${activeTab}_report.xlsx`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Export failed", err);
+      alert("Failed to export report. Please try again.");
+    }
   };
 
   // Define table columns based on active tab
@@ -128,6 +196,7 @@ const AdminReports = () => {
           { key: "rollNo", label: "Roll No" },
           { key: "department", label: "Department" },
           { key: "batch", label: "Batch" },
+          { key: "section", label: "Section" },
           { key: "semester", label: "Semester" },
           ...commonCols,
           { 
@@ -155,7 +224,15 @@ const AdminReports = () => {
         ];
       case "departments":
         return [
-          { key: "name", label: "Department" },
+          { 
+            key: "name", 
+            label: "Department",
+            render: (val) => (
+              <button onClick={() => handleDrillDown("batches", "departments", val)} className="text-primary-600 font-medium hover:underline text-left">
+                {val}
+              </button>
+            )
+          },
           { key: "totalTeachers", label: "Teachers" },
           { key: "totalStudents", label: "Students" },
           { key: "totalClasses", label: "Classes" },
@@ -163,7 +240,15 @@ const AdminReports = () => {
         ];
       case "batches":
         return [
-          { key: "name", label: "Batch" },
+          { 
+            key: "name", 
+            label: "Batch",
+            render: (val) => (
+              <button onClick={() => handleDrillDown("sections", "batches", val)} className="text-primary-600 font-medium hover:underline text-left">
+                {val}
+              </button>
+            )
+          },
           { key: "departments", label: "Departments", render: (val) => (val || []).join(", ") },
           { key: "totalStudents", label: "Students" },
           { key: "totalClasses", label: "Classes" },
@@ -171,21 +256,44 @@ const AdminReports = () => {
         ];
       case "sections":
         return [
-          { key: "name", label: "Section" },
+          { 
+            key: "name", 
+            label: "Section",
+            render: (val) => (
+              <button onClick={() => handleDrillDown("subjects", "sections", val)} className="text-primary-600 font-medium hover:underline text-left">
+                {val}
+              </button>
+            )
+          },
           { key: "departments", label: "Departments", render: (val) => (val || []).join(", ") },
+          { key: "batches", label: "Batches", render: (val) => (val || []).join(", ") },
           { key: "totalStudents", label: "Students" },
+          { key: "totalClasses", label: "Classes" },
           { key: "attendancePercentage", label: "Avg Attendance %", render: (val) => `${val}%` }
         ];
       case "subjects":
         return [
-          { key: "name", label: "Subject" },
+          { 
+            key: "name", 
+            label: "Subject",
+            render: (val) => (
+              <button onClick={() => { setSearch(val); handleTabChange("classes"); }} className="text-primary-600 font-medium hover:underline text-left">
+                {val}
+              </button>
+            )
+          },
           { key: "departments", label: "Departments", render: (val) => (val || []).join(", ") },
+          { key: "batches", label: "Batches", render: (val) => (val || []).join(", ") },
           { key: "totalStudents", label: "Students" },
+          { key: "totalClasses", label: "Classes" },
           { key: "attendancePercentage", label: "Avg Attendance %", render: (val) => `${val}%` }
         ];
       case "classes":
         return [
-          { key: "code", label: "Code" },
+          { 
+            key: "code", 
+            label: "Code"
+          },
           { key: "name", label: "Course Name" },
           { key: "teacher", label: "Teacher" },
           { key: "department", label: "Department" },
@@ -207,10 +315,10 @@ const AdminReports = () => {
           <div className="flex justify-between items-center flex-wrap gap-4">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">Admin Report Registrar</h1>
-              <p className="mt-1 text-sm text-gray-600">Comprehensive view across all entities</p>
+              <p className="mt-1 text-sm text-gray-600">Comprehensive view across all entities with Hierarchical Drill-Down</p>
             </div>
             <div className="flex gap-3">
-              <Button variant="secondary" onClick={exportData}>📥 Export JSON</Button>
+              <Button variant="primary" onClick={exportExcel}>📥 Export Excel</Button>
               <Button variant="outline" onClick={() => navigate("/admin/dashboard")}>Back to Dashboard</Button>
             </div>
           </div>
@@ -237,33 +345,82 @@ const AdminReports = () => {
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
         
-        {/* Filters */}
+        {/* Filters Panel */}
         <Card className="bg-white">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-            <div className="flex-1">
+          <h3 className="text-sm font-semibold text-gray-700 mb-4 uppercase tracking-wider">Report Filters</h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            <MultiSelectFilter
+              label="Departments"
+              options={filterOptions.departments}
+              selected={filters.departments}
+              onChange={(val) => handleFilterChange("departments", val)}
+              placeholder="All Departments"
+            />
+            <MultiSelectFilter
+              label="Batches"
+              options={filterOptions.batches}
+              selected={filters.batches}
+              onChange={(val) => handleFilterChange("batches", val)}
+              placeholder="All Batches"
+            />
+            <MultiSelectFilter
+              label="Sections"
+              options={filterOptions.sections}
+              selected={filters.sections}
+              onChange={(val) => handleFilterChange("sections", val)}
+              placeholder="All Sections"
+            />
+            <MultiSelectFilter
+              label="Semesters"
+              options={filterOptions.semesters}
+              selected={filters.semesters}
+              onChange={(val) => handleFilterChange("semesters", val)}
+              placeholder="All Semesters"
+              searchable={false}
+            />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Date Range</label>
               <DateRangePicker 
                 startDate={dateRange.startDate} 
                 endDate={dateRange.endDate} 
                 onChange={setDateRange} 
               />
             </div>
-            <div className="w-full md:w-64">
-              <label className="block text-xs font-medium text-gray-500 mb-1">Search</label>
+          </div>
+          
+          <div className="mt-4 flex items-center gap-4 border-t border-gray-100 pt-4">
+            <div className="w-full md:w-96 relative">
               <input
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search by name/dept..."
-                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                placeholder="Search by name, code..."
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 text-sm"
               />
+              <span className="absolute left-3 top-2.5 text-gray-400">🔍</span>
             </div>
+            
+            <Button 
+              variant="secondary" 
+              onClick={() => {
+                setFilters({ departments: [], batches: [], sections: [], semesters: [] });
+                setSearch("");
+                setDateRange({ startDate: "", endDate: "" });
+              }}
+              className="text-sm"
+            >
+              Clear Filters
+            </Button>
           </div>
         </Card>
 
         {/* Data Table */}
         <Card className="overflow-hidden p-0">
           {loading ? (
-            <div className="p-12 text-center text-gray-500">Loading data...</div>
+            <div className="p-12 text-center text-gray-500 flex flex-col items-center justify-center">
+              <div className="w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+              Loading report data...
+            </div>
           ) : (
             <SortableTable 
               columns={getColumns()} 
@@ -276,20 +433,20 @@ const AdminReports = () => {
           {pagination.pages > 1 && (
             <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
               <span className="text-sm text-gray-500">
-                Showing page {pagination.page} of {pagination.pages} ({pagination.total} total)
+                Showing page <span className="font-medium text-gray-900">{pagination.page}</span> of <span className="font-medium text-gray-900">{pagination.pages}</span> ({pagination.total} total)
               </span>
               <div className="flex gap-2">
                 <button 
                   disabled={pagination.page <= 1}
                   onClick={() => setPagination(p => ({ ...p, page: p.page - 1 }))}
-                  className="px-3 py-1 text-sm border rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-2 text-sm font-medium border border-gray-300 rounded-lg bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 shadow-sm"
                 >
                   Previous
                 </button>
                 <button 
                   disabled={pagination.page >= pagination.pages}
                   onClick={() => setPagination(p => ({ ...p, page: p.page + 1 }))}
-                  className="px-3 py-1 text-sm border rounded hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-2 text-sm font-medium border border-gray-300 rounded-lg bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 shadow-sm"
                 >
                   Next
                 </button>
@@ -308,27 +465,31 @@ const AdminReports = () => {
         size="lg"
       >
         {drillDownModal.loading ? (
-          <p className="text-gray-500 py-4">Loading records...</p>
+          <div className="py-12 flex justify-center">
+             <div className="w-6 h-6 border-2 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
+          </div>
         ) : (
           <div className="max-h-[60vh] overflow-y-auto">
             {drillDownModal.records.length === 0 ? (
-              <p className="text-gray-500 py-4">No attendance records found for the selected period.</p>
+              <div className="text-center py-12 text-gray-500 bg-gray-50 rounded-lg border border-dashed border-gray-200">
+                No attendance records found for the selected period.
+              </div>
             ) : (
-              <table className="min-w-full divide-y divide-gray-200 mt-4">
+              <table className="min-w-full divide-y divide-gray-200 mt-4 border border-gray-200 rounded-lg overflow-hidden">
                 <thead className="bg-gray-50">
                   <tr>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Class</th>
-                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Class</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
                   {drillDownModal.records.map((rec, idx) => (
-                    <tr key={idx}>
-                      <td className="px-4 py-2 text-sm text-gray-900">{new Date(rec.date).toLocaleDateString()}</td>
-                      <td className="px-4 py-2 text-sm text-gray-500">{rec.classCode} - {rec.className}</td>
-                      <td className="px-4 py-2 text-sm">
-                        <span className={`px-2 py-1 text-xs rounded-full font-medium ${
+                    <tr key={idx} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-4 py-3 text-sm font-medium text-gray-900">{new Date(rec.date).toLocaleDateString()}</td>
+                      <td className="px-4 py-3 text-sm text-gray-600">{rec.classCode} - {rec.className}</td>
+                      <td className="px-4 py-3 text-sm">
+                        <span className={`inline-flex px-2.5 py-1 text-xs rounded-full font-medium ${
                           rec.status === "Present" ? "bg-green-100 text-green-800" :
                           rec.status === "Absent" ? "bg-red-100 text-red-800" :
                           rec.status === "Leave" ? "bg-yellow-100 text-yellow-800" :

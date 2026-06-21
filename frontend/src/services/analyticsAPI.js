@@ -78,6 +78,18 @@ const analyticsAPI = {
     const response = await api.get(`/analytics/admin/students/${studentId}/attendance?${query.toString()}`);
     return response.data;
   },
+
+  getAdminReportsExcel: async (type, params = {}) => {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value) query.append(key, value);
+    });
+    query.append("export", "true");
+    const response = await api.get(`/analytics/admin/${type}?${query.toString()}`, {
+      responseType: 'blob'
+    });
+    return response.data;
+  },
 };
 
 export default analyticsAPI;
