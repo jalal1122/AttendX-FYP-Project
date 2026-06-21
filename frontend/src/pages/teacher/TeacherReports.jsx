@@ -30,22 +30,11 @@ const TeacherReports = () => {
   const [search, setSearch] = useState("");
   
   const [filters, setFilters] = useState({
-    sections: [],
-    semesters: []
+    sections: []
   });
 
   const [filterOptions, setFilterOptions] = useState({
-    sections: [],
-    semesters: [
-      { value: "1", label: "Semester 1" },
-      { value: "2", label: "Semester 2" },
-      { value: "3", label: "Semester 3" },
-      { value: "4", label: "Semester 4" },
-      { value: "5", label: "Semester 5" },
-      { value: "6", label: "Semester 6" },
-      { value: "7", label: "Semester 7" },
-      { value: "8", label: "Semester 8" },
-    ]
+    sections: []
   });
   
   // Drill-down Modal State
@@ -78,8 +67,7 @@ const TeacherReports = () => {
         limit: pagination.limit,
         startDate: dateRange.startDate,
         endDate: dateRange.endDate,
-        section: filters.sections.join(","),
-        semester: filters.semesters.join(","),
+        section: filters.sections?.length ? filters.sections.join(",") : "",
       };
 
       if (search) params.name = search;
@@ -140,7 +128,6 @@ const TeacherReports = () => {
         startDate: dateRange.startDate,
         endDate: dateRange.endDate,
         section: filters.sections.join(","),
-        semester: filters.semesters.join(","),
       };
       if (search) params.name = search;
 
@@ -305,14 +292,7 @@ const TeacherReports = () => {
               onChange={(val) => handleFilterChange("sections", val)}
               placeholder="All Assigned Sections"
             />
-            <MultiSelectFilter
-              label="Semesters"
-              options={filterOptions.semesters}
-              selected={filters.semesters}
-              onChange={(val) => handleFilterChange("semesters", val)}
-              placeholder="All Semesters"
-              searchable={false}
-            />
+
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">Date Range</label>
               <DateRangePicker 
@@ -338,7 +318,7 @@ const TeacherReports = () => {
             <Button 
               variant="secondary" 
               onClick={() => {
-                setFilters({ sections: [], semesters: [] });
+                setFilters({ sections: [] });
                 setSearch("");
                 setDateRange({ startDate: "", endDate: "" });
               }}
