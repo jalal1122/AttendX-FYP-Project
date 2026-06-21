@@ -49,14 +49,14 @@ router.get("/export", exportReport);
 router.post("/check-defaulters", hasRole("teacher", "admin"), checkAndNotifyDefaulters);
 
 // --- Phase 2: Admin Reports ---
-router.get("/admin/students", hasRole("admin"), getAdminStudentReports);
+router.get("/admin/students", hasRole("admin", "teacher"), getAdminStudentReports);
 router.get("/admin/teachers", hasRole("admin"), getAdminTeacherReports);
 router.get("/admin/departments", hasRole("admin"), getAdminDepartmentReports);
 router.get("/admin/batches", hasRole("admin"), getAdminBatchReports);
-router.get("/admin/sections", hasRole("admin"), getAdminSectionReports);
-router.get("/admin/subjects", hasRole("admin"), getAdminSubjectReports);
-router.get("/admin/classes", hasRole("admin"), getAdminClassReports);
-router.get("/admin/defaulters", hasRole("admin"), getAdminDefaulters);
+router.get("/admin/sections", hasRole("admin", "teacher"), getAdminSectionReports);
+router.get("/admin/subjects", hasRole("admin", "teacher"), getAdminSubjectReports);
+router.get("/admin/classes", hasRole("admin", "teacher"), getAdminClassReports);
+router.get("/admin/defaulters", hasRole("admin", "teacher"), getAdminDefaulters);
 // Missing sections & subjects from the plan, let's just make sure we add what we wrote.
 // Also drill down for attendance details
 router.get("/admin/students/:studentId/attendance", hasRole("admin", "teacher"), getStudentAttendanceDetail);
