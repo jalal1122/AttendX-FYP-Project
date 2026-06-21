@@ -31,6 +31,7 @@ const MyAttendance = () => {
   const [range, setRange] = useState("month");
   const [reportData, setReportData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [exporting, setExporting] = useState(false);
   const [error, setError] = useState("");
 
   const fetchAttendanceData = async () => {
@@ -54,6 +55,24 @@ const MyAttendance = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?._id, range]);
+
+  const handleExport = async () => {
+    try {
+      setExporting(true);
+      const blob = await analyticsAPI.exportStudentReport(user._id, "xlsx");
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `Student_Transcript_${user._id}.xlsx`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Export failed:", err);
+      alert("Failed to export report. Please try again.");
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const getPieChartData = () => {
     if (!reportData?.overall) return [];
@@ -152,9 +171,18 @@ const MyAttendance = () => {
                 {reportData?.student?._id}
               </p>
             </div>
-            <Button variant="secondary" onClick={() => navigate(-1)}>
-              Back
-            </Button>
+            <div className="flex gap-3">
+              <Button 
+                variant="primary" 
+                onClick={handleExport}
+                disabled={exporting || loading}
+              >
+                {exporting ? "Exporting..." : "📥 Export Excel"}
+              </Button>
+              <Button variant="secondary" onClick={() => navigate(-1)}>
+                Back
+              </Button>
+            </div>
           </div>
 
           {/* Range Filter */}

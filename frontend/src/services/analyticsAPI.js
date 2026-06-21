@@ -35,6 +35,15 @@ const analyticsAPI = {
     return response.data;
   },
 
+  // Export student transcript
+  exportStudentReport: async (studentId, format = "xlsx") => {
+    const response = await api.get(
+      `/analytics/export?type=student_transcript&targetId=${studentId}&format=${format}`,
+      { responseType: "blob" }
+    );
+    return response.data;
+  },
+
   // Get list of defaulters (students below threshold)
   getDefaulters: async (classId, threshold = 75) => {
     const response = await api.get(
