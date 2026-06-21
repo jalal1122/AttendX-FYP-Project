@@ -81,6 +81,15 @@ const Navbar = () => {
                   My Attendance
                 </button>
               )}
+
+              {(user.role === "admin" || user.role === "teacher") && (
+                <button
+                  onClick={() => navigate(`/${user.role}/reports`)}
+                  className="text-sm font-medium text-gray-700 hover:text-sky-600 transition-colors"
+                >
+                  Reports
+                </button>
+              )}
             </div>
           )}
 
@@ -190,6 +199,19 @@ const Navbar = () => {
               >
                 <FileText className="w-5 h-5" />
                 <span className="font-medium">My Attendance</span>
+              </button>
+            )}
+
+            {(user.role === "admin" || user.role === "teacher") && (
+              <button
+                onClick={() => {
+                  navigate(`/${user.role}/reports`);
+                  setIsMobileMenuOpen(false);
+                }}
+                className="flex items-center gap-3 w-full px-3 py-2.5 text-left text-gray-700 hover:bg-sky-50 hover:text-sky-600 rounded-lg transition-colors"
+              >
+                <FileText className="w-5 h-5" />
+                <span className="font-medium">Reports</span>
               </button>
             )}
 
