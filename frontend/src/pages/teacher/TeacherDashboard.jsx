@@ -148,7 +148,7 @@ const TeacherDashboard = () => {
       {/* Header */}
       <div className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex justify-between items-center">
+          <div className="flex justify-between items-center flex-wrap gap-4">
             <div>
               <h1 className="text-3xl font-bold text-gray-900">
                 Teacher Dashboard
@@ -157,9 +157,14 @@ const TeacherDashboard = () => {
                 Welcome back, {user?.name}!
               </p>
             </div>
-            <Button variant="primary" onClick={() => setShowCreateModal(true)}>
-              + Create Class
-            </Button>
+            <div className="flex gap-3">
+              <Button variant="outline" onClick={() => navigate("/teacher/reports")}>
+                📊 Reports Hub
+              </Button>
+              <Button variant="primary" onClick={() => setShowCreateModal(true)}>
+                + Create Class
+              </Button>
+            </div>
           </div>
         </div>
       </div>

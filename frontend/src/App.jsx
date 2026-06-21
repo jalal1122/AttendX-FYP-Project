@@ -35,6 +35,7 @@ const TeacherDashboard = lazy(() => import("./pages/teacher/TeacherDashboard"));
 const LiveSession = lazy(() => import("./pages/teacher/LiveSession"));
 const ClassDetails = lazy(() => import("./pages/teacher/ClassDetails"));
 const SessionHistory = lazy(() => import("./pages/teacher/SessionHistory"));
+const TeacherReports = lazy(() => import("./pages/teacher/TeacherReports"));
 
 // Student Pages
 const StudentDashboard = lazy(() => import("./pages/student/StudentDashboard"));
@@ -171,6 +172,14 @@ function App() {
             element={
               <PrivateRoute allowedRoles={["teacher", "admin"]}>
                 <SessionHistory />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/teacher/reports"
+            element={
+              <PrivateRoute allowedRoles={["teacher", "admin"]}>
+                <TeacherReports />
               </PrivateRoute>
             }
           />

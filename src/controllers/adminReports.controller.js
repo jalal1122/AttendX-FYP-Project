@@ -72,8 +72,8 @@ const buildArrayNumber = (val) => {
  * Returns table data with attendance aggregates per student
  */
 export const getAdminStudentReports = asyncHandler(async (req, res) => {
-  if (req.user.role !== "admin") {
-    throw ApiError.forbidden("Only admins can access admin reports");
+  if (req.user.role !== "admin" && req.user.role !== "teacher") {
+    throw ApiError.forbidden("Not authorized to access reports");
   }
 
   const {
@@ -119,8 +119,22 @@ export const getAdminStudentReports = asyncHandler(async (req, res) => {
 
   // Build attendance match
   const attendanceMatch = { studentId: { $in: studentIds }, ...dateFilter };
-  if (classId) {
-    attendanceMatch.classId = buildArrayObjectId(classId);
+  
+  if (req.user.role === "teacher") {
+    const classes = await Class.find({ teacher: req.user._id }).select("_id").lean();
+    const tClassIds = classes.map(c => c._id);
+    
+    if (classId) {
+      const requestedArr = Array.isArray(classId) ? classId : classId.split(',').map(s => s.trim());
+      const intersected = tClassIds.filter(id => requestedArr.includes(id.toString()));
+      attendanceMatch.classId = { $in: intersected };
+    } else {
+      attendanceMatch.classId = { $in: tClassIds };
+    }
+  } else {
+    if (classId) {
+      attendanceMatch.classId = buildArrayObjectId(classId);
+    }
   }
 
   // Aggregate attendance per student
@@ -511,14 +525,15 @@ export const getAdminBatchReports = asyncHandler(async (req, res) => {
  * GET /api/v1/analytics/admin/sections
  */
 export const getAdminSectionReports = asyncHandler(async (req, res) => {
-  if (req.user.role !== "admin") {
-    throw ApiError.forbidden("Only admins can access admin reports");
+  if (req.user.role !== "admin" && req.user.role !== "teacher") {
+    throw ApiError.forbidden("Not authorized to access reports");
   }
 
   const { department, batch, startDate, endDate, export: isExport } = req.query;
   const dateFilter = buildDateFilter(startDate, endDate);
 
   const classFilter = {};
+  if (req.user.role === "teacher") classFilter.teacher = req.user._id;
   if (department) classFilter.department = buildArrayRegex(department);
   if (batch) classFilter.batch = buildArrayRegex(batch);
 
@@ -597,14 +612,15 @@ export const getAdminSectionReports = asyncHandler(async (req, res) => {
  * GET /api/v1/analytics/admin/subjects
  */
 export const getAdminSubjectReports = asyncHandler(async (req, res) => {
-  if (req.user.role !== "admin") {
-    throw ApiError.forbidden("Only admins can access admin reports");
+  if (req.user.role !== "admin" && req.user.role !== "teacher") {
+    throw ApiError.forbidden("Not authorized to access reports");
   }
 
   const { department, batch, section, startDate, endDate, export: isExport } = req.query;
   const dateFilter = buildDateFilter(startDate, endDate);
 
   const classFilter = {};
+  if (req.user.role === "teacher") classFilter.teacher = req.user._id;
   if (department) classFilter.department = buildArrayRegex(department);
   if (batch) classFilter.batch = buildArrayRegex(batch);
   if (section) classFilter.section = buildArrayRegex(section);
@@ -684,8 +700,8 @@ export const getAdminSubjectReports = asyncHandler(async (req, res) => {
  * GET /api/v1/analytics/admin/classes
  */
 export const getAdminClassReports = asyncHandler(async (req, res) => {
-  if (req.user.role !== "admin") {
-    throw ApiError.forbidden("Only admins can access admin reports");
+  if (req.user.role !== "admin" && req.user.role !== "teacher") {
+    throw ApiError.forbidden("Not authorized to access reports");
   }
 
   const { department, batch, semester, teacher, startDate, endDate, export: isExport } = req.query;
@@ -693,10 +709,11 @@ export const getAdminClassReports = asyncHandler(async (req, res) => {
   const dateFilter = buildDateFilter(startDate, endDate);
 
   const classFilter = {};
+  if (req.user.role === "teacher") classFilter.teacher = req.user._id;
+  else if (teacher) classFilter.teacher = buildArrayObjectId(teacher);
   if (department) classFilter.department = buildArrayRegex(department);
   if (batch) classFilter.batch = buildArrayRegex(batch);
   if (semester) classFilter.semester = buildArrayNumber(semester);
-  if (teacher) classFilter.teacher = buildArrayObjectId(teacher);
 
   const totalCount = await Class.countDocuments(classFilter);
   const query = Class.find(classFilter)
@@ -791,8 +808,8 @@ export const getAdminClassReports = asyncHandler(async (req, res) => {
  * Returns students below threshold across all classes, with filters
  */
 export const getAdminDefaulters = asyncHandler(async (req, res) => {
-  if (req.user.role !== "admin") {
-    throw ApiError.forbidden("Only admins can access admin reports");
+  if (req.user.role !== "admin" && req.user.role !== "teacher") {
+    throw ApiError.forbidden("Not authorized to access reports");
   }
 
   const {
@@ -805,6 +822,7 @@ export const getAdminDefaulters = asyncHandler(async (req, res) => {
 
   // Build class filter
   const classFilter = {};
+  if (req.user.role === "teacher") classFilter.teacher = req.user._id;
   if (department) classFilter.department = buildArrayRegex(department);
   if (batch) classFilter.batch = buildArrayRegex(batch);
   if (semester) classFilter.semester = buildArrayNumber(semester);

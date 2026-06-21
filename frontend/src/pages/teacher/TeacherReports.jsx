@@ -9,19 +9,16 @@ import Modal from "../../components/ui/Modal";
 import MultiSelectFilter from "../../components/ui/MultiSelectFilter";
 
 const TABS = [
-  { id: "departments", label: "Departments" },
-  { id: "batches", label: "Batches" },
   { id: "sections", label: "Sections" },
   { id: "subjects", label: "Subjects" },
-  { id: "teachers", label: "Teachers" },
   { id: "classes", label: "Classes" },
   { id: "students", label: "Students" },
   { id: "defaulters", label: "Defaulters" },
 ];
 
-const AdminReports = () => {
+const TeacherReports = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("departments");
+  const [activeTab, setActiveTab] = useState("sections");
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, limit: 50, total: 0, pages: 0 });
@@ -31,15 +28,11 @@ const AdminReports = () => {
   const [search, setSearch] = useState("");
   
   const [filters, setFilters] = useState({
-    departments: [],
-    batches: [],
     sections: [],
     semesters: []
   });
 
   const [filterOptions, setFilterOptions] = useState({
-    departments: [],
-    batches: [],
     sections: [],
     semesters: [
       { value: "1", label: "Semester 1" },
@@ -60,16 +53,12 @@ const AdminReports = () => {
   useEffect(() => {
     const loadOptions = async () => {
       try {
-        const [depts, batches, sections] = await Promise.all([
-          analyticsAPI.getAdminReports("departments"),
-          analyticsAPI.getAdminReports("batches"),
+        const [sections] = await Promise.all([
           analyticsAPI.getAdminReports("sections")
         ]);
         
         setFilterOptions(prev => ({
           ...prev,
-          departments: (depts.data?.departments || []).map(d => ({ value: d.name, label: d.name })),
-          batches: (batches.data?.batches || []).map(b => ({ value: b.name, label: b.name })),
           sections: (sections.data?.sections || []).map(s => ({ value: s.name, label: s.name })),
         }));
       } catch (e) {
@@ -87,8 +76,6 @@ const AdminReports = () => {
         limit: pagination.limit,
         startDate: dateRange.startDate,
         endDate: dateRange.endDate,
-        department: filters.departments.join(","),
-        batch: filters.batches.join(","),
         section: filters.sections.join(","),
         semester: filters.semesters.join(","),
       };
@@ -150,8 +137,6 @@ const AdminReports = () => {
       const params = {
         startDate: dateRange.startDate,
         endDate: dateRange.endDate,
-        department: filters.departments.join(","),
-        batch: filters.batches.join(","),
         section: filters.sections.join(","),
         semester: filters.semesters.join(","),
       };
@@ -161,7 +146,7 @@ const AdminReports = () => {
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `admin_${activeTab}_report.xlsx`;
+      link.download = `teacher_${activeTab}_report.xlsx`;
       link.click();
       URL.revokeObjectURL(url);
     } catch (err) {
@@ -194,8 +179,6 @@ const AdminReports = () => {
         return [
           { key: "name", label: "Name" },
           { key: "rollNo", label: "Roll No" },
-          { key: "department", label: "Department" },
-          { key: "batch", label: "Batch" },
           { key: "section", label: "Section" },
           { key: "semester", label: "Semester" },
           ...commonCols,
@@ -213,47 +196,6 @@ const AdminReports = () => {
             )
           }
         ];
-      case "teachers":
-        return [
-          { key: "name", label: "Name" },
-          { key: "department", label: "Department" },
-          { key: "totalClasses", label: "Classes Assigned" },
-          { key: "totalStudents", label: "Total Students" },
-          { key: "totalSessions", label: "Sessions Conducted" },
-          { key: "attendancePercentage", label: "Avg Attendance %", render: (val) => `${val}%` }
-        ];
-      case "departments":
-        return [
-          { 
-            key: "name", 
-            label: "Department",
-            render: (val) => (
-              <button onClick={() => handleDrillDown("batches", "departments", val)} className="text-primary-600 font-medium hover:underline text-left">
-                {val}
-              </button>
-            )
-          },
-          { key: "totalTeachers", label: "Teachers" },
-          { key: "totalStudents", label: "Students" },
-          { key: "totalClasses", label: "Classes" },
-          { key: "attendancePercentage", label: "Avg Attendance %", render: (val) => `${val}%` }
-        ];
-      case "batches":
-        return [
-          { 
-            key: "name", 
-            label: "Batch",
-            render: (val) => (
-              <button onClick={() => handleDrillDown("sections", "batches", val)} className="text-primary-600 font-medium hover:underline text-left">
-                {val}
-              </button>
-            )
-          },
-          { key: "departments", label: "Departments", render: (val) => (val || []).join(", ") },
-          { key: "totalStudents", label: "Students" },
-          { key: "totalClasses", label: "Classes" },
-          { key: "attendancePercentage", label: "Avg Attendance %", render: (val) => `${val}%` }
-        ];
       case "sections":
         return [
           { 
@@ -265,8 +207,6 @@ const AdminReports = () => {
               </button>
             )
           },
-          { key: "departments", label: "Departments", render: (val) => (val || []).join(", ") },
-          { key: "batches", label: "Batches", render: (val) => (val || []).join(", ") },
           { key: "totalStudents", label: "Students" },
           { key: "totalClasses", label: "Classes" },
           { key: "attendancePercentage", label: "Avg Attendance %", render: (val) => `${val}%` }
@@ -282,21 +222,14 @@ const AdminReports = () => {
               </button>
             )
           },
-          { key: "departments", label: "Departments", render: (val) => (val || []).join(", ") },
-          { key: "batches", label: "Batches", render: (val) => (val || []).join(", ") },
           { key: "totalStudents", label: "Students" },
           { key: "totalClasses", label: "Classes" },
           { key: "attendancePercentage", label: "Avg Attendance %", render: (val) => `${val}%` }
         ];
       case "classes":
         return [
-          { 
-            key: "code", 
-            label: "Code"
-          },
+          { key: "code", label: "Code" },
           { key: "name", label: "Course Name" },
-          { key: "teacher", label: "Teacher" },
-          { key: "department", label: "Department" },
           { key: "semester", label: "Semester" },
           { key: "totalStudents", label: "Students" },
           { key: "totalSessions", label: "Sessions" },
@@ -314,12 +247,12 @@ const AdminReports = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex justify-between items-center flex-wrap gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Admin Report Registrar</h1>
-              <p className="mt-1 text-sm text-gray-600">Comprehensive view across all entities with Hierarchical Drill-Down</p>
+              <h1 className="text-3xl font-bold text-gray-900">Teacher Report Registrar</h1>
+              <p className="mt-1 text-sm text-gray-600">Reports and analytics for your assigned classes</p>
             </div>
             <div className="flex gap-3">
               <Button variant="primary" onClick={exportExcel}>📥 Export Excel</Button>
-              <Button variant="outline" onClick={() => navigate("/admin/dashboard")}>Back to Dashboard</Button>
+              <Button variant="outline" onClick={() => navigate("/teacher/dashboard")}>Back to Dashboard</Button>
             </div>
           </div>
 
@@ -348,27 +281,13 @@ const AdminReports = () => {
         {/* Filters Panel */}
         <Card className="bg-white">
           <h3 className="text-sm font-semibold text-gray-700 mb-4 uppercase tracking-wider">Report Filters</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-            <MultiSelectFilter
-              label="Departments"
-              options={filterOptions.departments}
-              selected={filters.departments}
-              onChange={(val) => handleFilterChange("departments", val)}
-              placeholder="All Departments"
-            />
-            <MultiSelectFilter
-              label="Batches"
-              options={filterOptions.batches}
-              selected={filters.batches}
-              onChange={(val) => handleFilterChange("batches", val)}
-              placeholder="All Batches"
-            />
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
             <MultiSelectFilter
               label="Sections"
               options={filterOptions.sections}
               selected={filters.sections}
               onChange={(val) => handleFilterChange("sections", val)}
-              placeholder="All Sections"
+              placeholder="All Assigned Sections"
             />
             <MultiSelectFilter
               label="Semesters"
@@ -378,7 +297,7 @@ const AdminReports = () => {
               placeholder="All Semesters"
               searchable={false}
             />
-            <div>
+            <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">Date Range</label>
               <DateRangePicker 
                 startDate={dateRange.startDate} 
@@ -403,7 +322,7 @@ const AdminReports = () => {
             <Button 
               variant="secondary" 
               onClick={() => {
-                setFilters({ departments: [], batches: [], sections: [], semesters: [] });
+                setFilters({ sections: [], semesters: [] });
                 setSearch("");
                 setDateRange({ startDate: "", endDate: "" });
               }}
@@ -425,7 +344,7 @@ const AdminReports = () => {
             <SortableTable 
               columns={getColumns()} 
               data={data} 
-              emptyMessage={`No ${activeTab} found for the selected criteria.`}
+              emptyMessage={`No ${activeTab} found for your assigned classes.`}
             />
           )}
           
@@ -517,4 +436,4 @@ const AdminReports = () => {
   );
 };
 
-export default AdminReports;
+export default TeacherReports;
