@@ -1025,6 +1025,178 @@ class ExportService {
 
     return csv;
   }
+  /**
+   * Generic Admin Report Export
+   */
+  static async generateAdminReport(reportType, data, format = "xlsx") {
+    if (format === "csv") {
+      return this.generateAdminReportCSV(reportType, data);
+    } else {
+      return this.generateAdminReportExcel(reportType, data);
+    }
+  }
+
+  static async generateAdminReportExcel(reportType, data) {
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet(reportType + " Report");
+    
+    // Configs for different report types
+    const columnsConfig = {
+      students: [
+        { header: "Roll No", key: "rollNo", width: 15 },
+        { header: "Student Name", key: "name", width: 25 },
+        { header: "Email", key: "email", width: 30 },
+        { header: "Phone", key: "phone", width: 15 },
+        { header: "Department", key: "department", width: 20 },
+        { header: "Batch", key: "batch", width: 15 },
+        { header: "Section", key: "section", width: 15 },
+        { header: "Semester", key: "semester", width: 10 },
+        { header: "Total Classes", key: "totalClasses", width: 15 },
+        { header: "Present", key: "presentCount", width: 10 },
+        { header: "Absent", key: "absentCount", width: 10 },
+        { header: "Leave", key: "leaveCount", width: 10 },
+        { header: "Attendance %", key: "attendancePercentage", width: 15 },
+      ],
+      teachers: [
+        { header: "Teacher Name", key: "name", width: 25 },
+        { header: "Email", key: "email", width: 30 },
+        { header: "Phone", key: "phone", width: 15 },
+        { header: "Department", key: "department", width: 20 },
+        { header: "Total Classes", key: "totalClasses", width: 15 },
+        { header: "Total Students", key: "totalStudents", width: 15 },
+        { header: "Total Sessions", key: "totalSessions", width: 15 },
+        { header: "Present", key: "totalPresent", width: 10 },
+        { header: "Absent", key: "totalAbsent", width: 10 },
+        { header: "Leave", key: "totalLeave", width: 10 },
+        { header: "Attendance %", key: "attendancePercentage", width: 15 },
+      ],
+      departments: [
+        { header: "Department", key: "name", width: 25 },
+        { header: "Total Classes", key: "totalClasses", width: 15 },
+        { header: "Total Students", key: "totalStudents", width: 15 },
+        { header: "Total Teachers", key: "totalTeachers", width: 15 },
+        { header: "Total Sessions", key: "totalSessions", width: 15 },
+        { header: "Present", key: "totalPresent", width: 10 },
+        { header: "Absent", key: "totalAbsent", width: 10 },
+        { header: "Leave", key: "totalLeave", width: 10 },
+        { header: "Attendance %", key: "attendancePercentage", width: 15 },
+      ],
+      batches: [
+        { header: "Batch", key: "name", width: 20 },
+        { header: "Departments", key: "departments", width: 30 },
+        { header: "Total Classes", key: "totalClasses", width: 15 },
+        { header: "Total Students", key: "totalStudents", width: 15 },
+        { header: "Present", key: "totalPresent", width: 10 },
+        { header: "Absent", key: "totalAbsent", width: 10 },
+        { header: "Leave", key: "totalLeave", width: 10 },
+        { header: "Attendance %", key: "attendancePercentage", width: 15 },
+      ],
+      sections: [
+        { header: "Section", key: "name", width: 15 },
+        { header: "Batches", key: "batches", width: 20 },
+        { header: "Departments", key: "departments", width: 30 },
+        { header: "Total Classes", key: "totalClasses", width: 15 },
+        { header: "Total Students", key: "totalStudents", width: 15 },
+        { header: "Present", key: "totalPresent", width: 10 },
+        { header: "Absent", key: "totalAbsent", width: 10 },
+        { header: "Leave", key: "totalLeave", width: 10 },
+        { header: "Attendance %", key: "attendancePercentage", width: 15 },
+      ],
+      subjects: [
+        { header: "Subject", key: "name", width: 25 },
+        { header: "Batches", key: "batches", width: 20 },
+        { header: "Departments", key: "departments", width: 30 },
+        { header: "Total Classes", key: "totalClasses", width: 15 },
+        { header: "Total Students", key: "totalStudents", width: 15 },
+        { header: "Present", key: "totalPresent", width: 10 },
+        { header: "Absent", key: "totalAbsent", width: 10 },
+        { header: "Leave", key: "totalLeave", width: 10 },
+        { header: "Attendance %", key: "attendancePercentage", width: 15 },
+      ],
+      classes: [
+        { header: "Class Name", key: "name", width: 25 },
+        { header: "Code", key: "code", width: 15 },
+        { header: "Department", key: "department", width: 20 },
+        { header: "Semester", key: "semester", width: 10 },
+        { header: "Batch", key: "batch", width: 15 },
+        { header: "Teacher", key: "teacher", width: 25 },
+        { header: "Total Students", key: "totalStudents", width: 15 },
+        { header: "Total Sessions", key: "totalSessions", width: 15 },
+        { header: "Present", key: "totalPresent", width: 10 },
+        { header: "Absent", key: "totalAbsent", width: 10 },
+        { header: "Leave", key: "totalLeave", width: 10 },
+        { header: "Attendance %", key: "attendancePercentage", width: 15 },
+      ],
+      defaulters: [
+        { header: "Roll No", key: "rollNo", width: 15 },
+        { header: "Student Name", key: "name", width: 25 },
+        { header: "Email", key: "email", width: 30 },
+        { header: "Phone", key: "phone", width: 15 },
+        { header: "Department", key: "department", width: 20 },
+        { header: "Batch", key: "batch", width: 15 },
+        { header: "Section", key: "section", width: 15 },
+        { header: "Semester", key: "semester", width: 10 },
+        { header: "Total Classes", key: "totalClasses", width: 15 },
+        { header: "Present", key: "presentCount", width: 10 },
+        { header: "Absent", key: "absentCount", width: 10 },
+        { header: "Leave", key: "leaveCount", width: 10 },
+        { header: "Attendance %", key: "attendancePercentage", width: 15 },
+      ]
+    };
+
+    const columns = columnsConfig[reportType] || [{ header: "Name", key: "name", width: 20 }];
+    worksheet.columns = columns;
+
+    // Title Row
+    worksheet.insertRow(1, [`AttendX Admin Report: ${reportType.toUpperCase()}`]);
+    worksheet.mergeCells(1, 1, 1, columns.length);
+    const titleCell = worksheet.getCell("A1");
+    titleCell.font = { size: 16, bold: true, color: { argb: "FF" + this.COLORS.headerBg } };
+    titleCell.alignment = { horizontal: "center", vertical: "middle" };
+    worksheet.getRow(1).height = 30;
+
+    worksheet.insertRow(2, [`Generated on: ${moment().format("MMMM DD, YYYY [at] HH:mm")}`]);
+    worksheet.mergeCells(2, 1, 2, columns.length);
+    worksheet.getCell("A2").alignment = { horizontal: "center" };
+    worksheet.insertRow(3, []);
+
+    // Re-assign columns starting from row 4
+    worksheet.getRow(4).values = columns.map(c => c.header);
+    worksheet.getRow(4).eachCell((cell) => {
+      cell.font = { bold: true, color: { argb: "FF" + this.COLORS.headerText } };
+      cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF" + this.COLORS.headerBg } };
+      cell.alignment = { horizontal: "center", vertical: "middle" };
+    });
+
+    data.forEach(item => {
+      const rowData = columns.map(col => {
+        let val = item[col.key];
+        if (Array.isArray(val)) val = val.join(", ");
+        if (col.key === "attendancePercentage") return val + "%";
+        return val;
+      });
+      const row = worksheet.addRow(rowData);
+      
+      row.eachCell((cell, colNumber) => {
+        if (columns[colNumber - 1].key === "attendancePercentage") {
+          const percentage = parseFloat(cell.value);
+          if (percentage < 75) {
+            cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF" + this.COLORS.absentBg } };
+            cell.font = { color: { argb: "FF" + this.COLORS.absentText }, bold: true };
+          } else {
+            cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF" + this.COLORS.presentBg } };
+            cell.font = { color: { argb: "FF" + this.COLORS.presentText }, bold: true };
+          }
+        }
+      });
+    });
+
+    return await workbook.xlsx.writeBuffer();
+  }
+
+  static generateAdminReportCSV(reportType, data) {
+    return "CSV Export Not fully implemented yet for Admin Reports. Use XLSX.";
+  }
 }
 
 export default ExportService;

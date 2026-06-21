@@ -6,6 +6,7 @@ import Session from "../models/session.model.js";
 import Class from "../models/class.model.js";
 import User from "../models/user.model.js";
 import mongoose from "mongoose";
+import ExportService from "../services/export.service.js";
 
 /**
  * Build a date filter object for attendance queries.
@@ -77,7 +78,7 @@ export const getAdminStudentReports = asyncHandler(async (req, res) => {
 
   const {
     name, email, phone, department, batch, section,
-    semester, rollNo, classId, startDate, endDate,
+    semester, rollNo, classId, startDate, endDate, export: isExport
   } = req.query;
   const { page, limit, skip, sortBy, sortOrder } = buildPaginationSort(req.query);
   const dateFilter = buildDateFilter(startDate, endDate);
@@ -95,12 +96,15 @@ export const getAdminStudentReports = asyncHandler(async (req, res) => {
 
   // Find matching students
   const totalCount = await User.countDocuments(userFilter);
-  const students = await User.find(userFilter)
+  const query = User.find(userFilter)
     .select("_id name email mobileNumber info")
-    .skip(skip)
-    .limit(limit)
-    .sort({ [sortBy]: sortOrder })
-    .lean();
+    .sort({ [sortBy]: sortOrder });
+  
+  if (isExport !== "true") {
+    query.skip(skip).limit(limit);
+  }
+  
+  const students = await query.lean();
 
   if (students.length === 0) {
     return res.status(200).json(
@@ -174,6 +178,13 @@ export const getAdminStudentReports = asyncHandler(async (req, res) => {
     };
   });
 
+  if (isExport === "true") {
+    const buffer = await ExportService.generateAdminReport("students", result, "xlsx");
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    res.setHeader("Content-Disposition", `attachment; filename=admin_students_report.xlsx`);
+    return res.status(200).send(buffer);
+  }
+
   res.status(200).json(
     new ApiResponse(200, {
       students: result,
@@ -194,7 +205,7 @@ export const getAdminTeacherReports = asyncHandler(async (req, res) => {
     throw ApiError.forbidden("Only admins can access admin reports");
   }
 
-  const { name, email, phone, department, startDate, endDate } = req.query;
+  const { name, email, phone, department, startDate, endDate, export: isExport } = req.query;
   const { page, limit, skip, sortBy, sortOrder } = buildPaginationSort(req.query);
 
   // Build teacher filter
@@ -205,12 +216,15 @@ export const getAdminTeacherReports = asyncHandler(async (req, res) => {
   if (department) userFilter["info.department"] = buildArrayRegex(department);
 
   const totalCount = await User.countDocuments(userFilter);
-  const teachers = await User.find(userFilter)
+  const query = User.find(userFilter)
     .select("_id name email mobileNumber info")
-    .skip(skip)
-    .limit(limit)
-    .sort({ [sortBy]: sortOrder })
-    .lean();
+    .sort({ [sortBy]: sortOrder });
+  
+  if (isExport !== "true") {
+    query.skip(skip).limit(limit);
+  }
+  
+  const teachers = await query.lean();
 
   if (teachers.length === 0) {
     return res.status(200).json(
@@ -298,6 +312,13 @@ export const getAdminTeacherReports = asyncHandler(async (req, res) => {
   // Rank teachers by attendance percentage (performance ranking)
   result.sort((a, b) => b.attendancePercentage - a.attendancePercentage);
 
+  if (isExport === "true") {
+    const buffer = await ExportService.generateAdminReport("teachers", result, "xlsx");
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    res.setHeader("Content-Disposition", `attachment; filename=admin_teachers_report.xlsx`);
+    return res.status(200).send(buffer);
+  }
+
   res.status(200).json(
     new ApiResponse(200, {
       teachers: result,
@@ -318,7 +339,7 @@ export const getAdminDepartmentReports = asyncHandler(async (req, res) => {
     throw ApiError.forbidden("Only admins can access admin reports");
   }
 
-  const { startDate, endDate } = req.query;
+  const { startDate, endDate, export: isExport } = req.query;
   const dateFilter = buildDateFilter(startDate, endDate);
 
   // Get all unique departments
@@ -390,6 +411,13 @@ export const getAdminDepartmentReports = asyncHandler(async (req, res) => {
     }),
   );
 
+  if (isExport === "true") {
+    const buffer = await ExportService.generateAdminReport("departments", result, "xlsx");
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    res.setHeader("Content-Disposition", `attachment; filename=admin_departments_report.xlsx`);
+    return res.status(200).send(buffer);
+  }
+
   res.status(200).json(
     new ApiResponse(200, { departments: result }, "Admin department reports retrieved"),
   );
@@ -404,7 +432,7 @@ export const getAdminBatchReports = asyncHandler(async (req, res) => {
     throw ApiError.forbidden("Only admins can access admin reports");
   }
 
-  const { department, startDate, endDate } = req.query;
+  const { department, startDate, endDate, export: isExport } = req.query;
   const dateFilter = buildDateFilter(startDate, endDate);
 
   const classFilter = {};
@@ -466,6 +494,13 @@ export const getAdminBatchReports = asyncHandler(async (req, res) => {
     }),
   );
 
+  if (isExport === "true") {
+    const buffer = await ExportService.generateAdminReport("batches", result, "xlsx");
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    res.setHeader("Content-Disposition", `attachment; filename=admin_batches_report.xlsx`);
+    return res.status(200).send(buffer);
+  }
+
   res.status(200).json(
     new ApiResponse(200, { batches: result }, "Admin batch reports retrieved"),
   );
@@ -480,7 +515,7 @@ export const getAdminSectionReports = asyncHandler(async (req, res) => {
     throw ApiError.forbidden("Only admins can access admin reports");
   }
 
-  const { department, batch, startDate, endDate } = req.query;
+  const { department, batch, startDate, endDate, export: isExport } = req.query;
   const dateFilter = buildDateFilter(startDate, endDate);
 
   const classFilter = {};
@@ -545,6 +580,13 @@ export const getAdminSectionReports = asyncHandler(async (req, res) => {
     }),
   );
 
+  if (isExport === "true") {
+    const buffer = await ExportService.generateAdminReport("sections", result, "xlsx");
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    res.setHeader("Content-Disposition", `attachment; filename=admin_sections_report.xlsx`);
+    return res.status(200).send(buffer);
+  }
+
   res.status(200).json(
     new ApiResponse(200, { sections: result }, "Admin section reports retrieved"),
   );
@@ -559,7 +601,7 @@ export const getAdminSubjectReports = asyncHandler(async (req, res) => {
     throw ApiError.forbidden("Only admins can access admin reports");
   }
 
-  const { department, batch, section, startDate, endDate } = req.query;
+  const { department, batch, section, startDate, endDate, export: isExport } = req.query;
   const dateFilter = buildDateFilter(startDate, endDate);
 
   const classFilter = {};
@@ -625,6 +667,13 @@ export const getAdminSubjectReports = asyncHandler(async (req, res) => {
     }),
   );
 
+  if (isExport === "true") {
+    const buffer = await ExportService.generateAdminReport("subjects", result, "xlsx");
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    res.setHeader("Content-Disposition", `attachment; filename=admin_subjects_report.xlsx`);
+    return res.status(200).send(buffer);
+  }
+
   res.status(200).json(
     new ApiResponse(200, { subjects: result }, "Admin subject reports retrieved"),
   );
@@ -639,7 +688,7 @@ export const getAdminClassReports = asyncHandler(async (req, res) => {
     throw ApiError.forbidden("Only admins can access admin reports");
   }
 
-  const { department, batch, semester, teacher, startDate, endDate } = req.query;
+  const { department, batch, semester, teacher, startDate, endDate, export: isExport } = req.query;
   const { page, limit, skip, sortBy, sortOrder } = buildPaginationSort(req.query);
   const dateFilter = buildDateFilter(startDate, endDate);
 
@@ -650,13 +699,16 @@ export const getAdminClassReports = asyncHandler(async (req, res) => {
   if (teacher) classFilter.teacher = buildArrayObjectId(teacher);
 
   const totalCount = await Class.countDocuments(classFilter);
-  const classes = await Class.find(classFilter)
+  const query = Class.find(classFilter)
     .populate("teacher", "name email")
     .select("_id name code department semester batch students teacher")
-    .skip(skip)
-    .limit(limit)
-    .sort({ [sortBy]: sortOrder })
-    .lean();
+    .sort({ [sortBy]: sortOrder });
+  
+  if (isExport !== "true") {
+    query.skip(skip).limit(limit);
+  }
+  
+  const classes = await query.lean();
 
   const result = await Promise.all(
     classes.map(async (cls) => {
@@ -715,6 +767,13 @@ export const getAdminClassReports = asyncHandler(async (req, res) => {
     }),
   );
 
+  if (isExport === "true") {
+    const buffer = await ExportService.generateAdminReport("classes", result, "xlsx");
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    res.setHeader("Content-Disposition", `attachment; filename=admin_classes_report.xlsx`);
+    return res.status(200).send(buffer);
+  }
+
   res.status(200).json(
     new ApiResponse(200, {
       classes: result,
@@ -738,7 +797,7 @@ export const getAdminDefaulters = asyncHandler(async (req, res) => {
 
   const {
     department, batch, semester, classId,
-    startDate, endDate, threshold: thresholdStr,
+    startDate, endDate, threshold: thresholdStr, export: isExport
   } = req.query;
   const { page, limit, skip } = buildPaginationSort(req.query);
   const dateFilter = buildDateFilter(startDate, endDate);
@@ -815,8 +874,8 @@ export const getAdminDefaulters = asyncHandler(async (req, res) => {
   const totalDefaulters = allStudentStats.length;
 
   // Paginate
-  const paginatedStats = allStudentStats.slice(skip, skip + limit);
-  const studentIds = paginatedStats.map((s) => s.studentId);
+  const statsToProcess = isExport === "true" ? allStudentStats : allStudentStats.slice(skip, skip + limit);
+  const studentIds = statsToProcess.map((s) => s.studentId);
 
   // Fetch student details
   const studentDetails = await User.find({ _id: { $in: studentIds } })
@@ -825,7 +884,7 @@ export const getAdminDefaulters = asyncHandler(async (req, res) => {
 
   const studentMap = new Map(studentDetails.map((s) => [s._id.toString(), s]));
 
-  const defaulters = paginatedStats.map((stat) => {
+  const defaulters = statsToProcess.map((stat) => {
     const student = studentMap.get(stat.studentId.toString()) || {};
     return {
       _id: stat.studentId,
@@ -844,6 +903,13 @@ export const getAdminDefaulters = asyncHandler(async (req, res) => {
       attendancePercentage: stat.attendancePercentage,
     };
   });
+
+  if (isExport === "true") {
+    const buffer = await ExportService.generateAdminReport("defaulters", defaulters, "xlsx");
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    res.setHeader("Content-Disposition", `attachment; filename=admin_defaulters_report.xlsx`);
+    return res.status(200).send(buffer);
+  }
 
   res.status(200).json(
     new ApiResponse(200, {
