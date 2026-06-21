@@ -549,20 +549,40 @@ export const getAdminSectionReports = asyncHandler(async (req, res) => {
   if (department) classFilter.department = buildArrayRegex(department);
   if (batch) classFilter.batch = buildArrayRegex(batch);
 
-  const sections = await Class.distinct("section", classFilter);
+  const allClasses = await Class.find(classFilter).select("_id students department batch name").lean();
+  
+  const sectionsMap = new Map();
+  allClasses.forEach((c) => {
+    let sectionName = "Unknown Section";
+    const words = c.name ? c.name.trim().split(/\s+/) : [];
+    if (words.length >= 2) {
+      sectionName = words.slice(-2).join(" ");
+    } else if (c.name) {
+      sectionName = c.name;
+    }
+    
+    if (!sectionsMap.has(sectionName)) {
+      sectionsMap.set(sectionName, {
+        section: sectionName,
+        classIds: [],
+        students: new Set(),
+        deptSet: new Set(),
+        batchSet: new Set()
+      });
+    }
+    const secData = sectionsMap.get(sectionName);
+    secData.classIds.push(c._id);
+    (c.students || []).forEach(s => secData.students.add(s.toString()));
+    if (c.department) secData.deptSet.add(c.department);
+    if (c.batch) secData.batchSet.add(c.batch);
+  });
+
+  const sectionsData = Array.from(sectionsMap.values());
 
   const result = await Promise.all(
-    sections.filter(Boolean).map(async (section) => {
-      const sectionFilter = { section, ...classFilter };
-      const sectionClasses = await Class.find(sectionFilter)
-        .select("_id students department batch")
-        .lean();
-      const classIds = sectionClasses.map((c) => c._id);
-      const totalStudents = new Set(
-        sectionClasses.flatMap((c) => (c.students || []).map((s) => s.toString())),
-      ).size;
-      const deptSet = new Set(sectionClasses.map((c) => c.department));
-      const batchSet = new Set(sectionClasses.map((c) => c.batch));
+    sectionsData.map(async (secData) => {
+      const { section, classIds, students, deptSet, batchSet } = secData;
+      const totalStudents = students.size;
 
       const attendanceMatch = { classId: { $in: classIds }, ...dateFilter };
       const attStats = classIds.length > 0
