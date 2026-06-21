@@ -180,6 +180,7 @@ const AdminReports = () => {
       { key: "totalPresent", label: "Present", render: (val, row) => row.presentCount || val || 0 },
       { key: "totalAbsent", label: "Absent", render: (val, row) => row.absentCount || val || 0 },
       { key: "totalLeave", label: "Leave", render: (val, row) => row.leaveCount || val || 0 },
+      { key: "totalLate", label: "Late", render: (val, row) => row.lateCount || val || 0 },
       { 
         key: "attendancePercentage", 
         label: "Attendance %",
