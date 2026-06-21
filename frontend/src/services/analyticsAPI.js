@@ -44,6 +44,16 @@ const analyticsAPI = {
     return response.data;
   },
 
+  // Export class matrix
+  exportClassMatrix: async (classId, startDate, endDate, format = "xlsx") => {
+    let url = `/analytics/export?type=class_matrix&targetId=${classId}&format=${format}`;
+    if (startDate) url += `&startDate=${startDate}`;
+    if (endDate) url += `&endDate=${endDate}`;
+    
+    const response = await api.get(url, { responseType: "blob" });
+    return response.data;
+  },
+
   // Get list of defaulters (students below threshold)
   getDefaulters: async (classId, threshold = 75) => {
     const response = await api.get(

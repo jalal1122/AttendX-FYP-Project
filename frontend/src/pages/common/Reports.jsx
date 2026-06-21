@@ -110,65 +110,31 @@ const Reports = () => {
     setDateRange({ startDate, endDate });
   };
 
+  const [exporting, setExporting] = useState(false);
+
   const exportToExcel = async () => {
-    if (!analytics || !classData) return;
-    const wb = XLSX.utils.book_new();
-    const currentDate = new Date().toLocaleString();
-
-    let detailedData = null;
+    if (!classData) return;
     try {
-      const detailedResponse = await analyticsAPI.getDetailedAttendance(classId, dateRange.startDate, dateRange.endDate);
-      detailedData = detailedResponse?.data || detailedResponse;
-    } catch (error) {
-      console.error("Failed to fetch detailed attendance:", error);
+      setExporting(true);
+      const blob = await analyticsAPI.exportClassMatrix(
+        classId,
+        dateRange.startDate,
+        dateRange.endDate,
+        "xlsx"
+      );
+      
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `Class_${classData.code || "Report"}_${new Date().toISOString().split("T")[0]}.xlsx`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Export failed:", err);
+      alert("Failed to export report. Please try again.");
+    } finally {
+      setExporting(false);
     }
-
-    const attendanceRate = calculateAttendanceRate();
-    const summaryData = [
-      ["CLASS ATTENDANCE REPORT"],
-      [""],
-      ["Class Name:", classData.name],
-      ["Class Code:", classData.code],
-      ["Attendance Rate:", `${attendanceRate}%`],
-      ["Report Generated:", currentDate]
-    ];
-    const wsSummary = XLSX.utils.aoa_to_sheet(summaryData);
-    wsSummary["!cols"] = [{ wch: 20 }, { wch: 30 }];
-    XLSX.utils.book_append_sheet(wb, wsSummary, "Summary");
-
-    if (allStudents.length > 0) {
-      const wsStudents = XLSX.utils.aoa_to_sheet([
-        ["ALL STUDENTS"],
-        [""],
-        ["Name", "Roll No", "Attendance %", "Present", "Total Sessions"],
-        ...allStudents.map((s) => [
-          s.name, s.info?.rollNo || "N/A", s.attendancePercentage.toFixed(1) + "%", s.presentCount, s.totalClasses
-        ]),
-      ]);
-      XLSX.utils.book_append_sheet(wb, wsStudents, "All Students");
-    }
-
-    if (detailedData && detailedData.attendance && detailedData.sessions) {
-      const detailedAttendanceData = [
-        ["DETAILED STUDENT ATTENDANCE"],
-        [""],
-        [
-          "Student Name", "Roll No",
-          ...detailedData.sessions.map(s => {
-            const sd = new Date(s.date);
-            return `${sd.toLocaleDateString()} ${sd.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`;
-          }),
-        ],
-        ...detailedData.attendance.map((student) => [
-          student.studentName, student.rollNo,
-          ...student.sessions.map((session) => session.status.charAt(0))
-        ]),
-      ];
-      const wsDetailed = XLSX.utils.aoa_to_sheet(detailedAttendanceData);
-      XLSX.utils.book_append_sheet(wb, wsDetailed, "Detailed Attendance");
-    }
-
-    XLSX.writeFile(wb, `${classData.code}_Report_${new Date().toISOString().split("T")[0]}.xlsx`);
   };
 
   const getPieChartData = () => {
@@ -270,7 +236,9 @@ const Reports = () => {
               <p className="mt-1 text-sm text-gray-600">{classData?.name} • {classData?.code}</p>
             </div>
             <div className="flex gap-3">
-              <Button variant="primary" size="sm" onClick={exportToExcel}>📊 Export Excel</Button>
+              <Button variant="primary" size="sm" onClick={exportToExcel} disabled={exporting}>
+                {exporting ? "Exporting..." : "📊 Export Excel"}
+              </Button>
               <Button variant="outline" size="sm" onClick={() => navigate(`/teacher/class/${classId}`)}>Back to Class</Button>
             </div>
           </div>
