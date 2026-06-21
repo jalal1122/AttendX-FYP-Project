@@ -7,6 +7,7 @@ import SortableTable from "../../components/ui/SortableTable";
 import DateRangePicker from "../../components/ui/DateRangePicker";
 import Modal from "../../components/ui/Modal";
 import MultiSelectFilter from "../../components/ui/MultiSelectFilter";
+import ReportGraphicalView from "../../components/reports/ReportGraphicalView";
 
 const TABS = [
   { id: "departments", label: "Departments" },
@@ -25,6 +26,7 @@ const AdminReports = () => {
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, limit: 50, total: 0, pages: 0 });
+  const [viewMode, setViewMode] = useState("table");
 
   // Filters state
   const [dateRange, setDateRange] = useState({ startDate: "", endDate: "" });
@@ -317,7 +319,21 @@ const AdminReports = () => {
               <h1 className="text-3xl font-bold text-gray-900">Admin Report Registrar</h1>
               <p className="mt-1 text-sm text-gray-600">Comprehensive view across all entities with Hierarchical Drill-Down</p>
             </div>
-            <div className="flex gap-3">
+            <div className="flex gap-3 items-center">
+              <div className="flex bg-gray-100 p-1 rounded-lg border border-gray-200">
+                <button 
+                  onClick={() => setViewMode("table")} 
+                  className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${viewMode === "table" ? "bg-white shadow-sm text-gray-900" : "text-gray-500 hover:text-gray-700"}`}
+                >
+                  Table View
+                </button>
+                <button 
+                  onClick={() => setViewMode("graphical")} 
+                  className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${viewMode === "graphical" ? "bg-white shadow-sm text-gray-900" : "text-gray-500 hover:text-gray-700"}`}
+                >
+                  Graphical View
+                </button>
+              </div>
               <Button variant="primary" onClick={exportExcel}>📥 Export Excel</Button>
               <Button variant="outline" onClick={() => navigate("/admin/dashboard")}>Back to Dashboard</Button>
             </div>
@@ -420,6 +436,10 @@ const AdminReports = () => {
             <div className="p-12 text-center text-gray-500 flex flex-col items-center justify-center">
               <div className="w-8 h-8 border-4 border-primary-500 border-t-transparent rounded-full animate-spin mb-4"></div>
               Loading report data...
+            </div>
+          ) : viewMode === "graphical" ? (
+            <div className="p-6 bg-gray-50">
+              <ReportGraphicalView data={data} activeTab={activeTab} />
             </div>
           ) : (
             <SortableTable 
