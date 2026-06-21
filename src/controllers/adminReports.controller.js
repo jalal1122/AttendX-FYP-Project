@@ -294,13 +294,16 @@ export const getAdminTeacherReports = asyncHandler(async (req, res) => {
                 leaveCount: {
                   $sum: { $cond: [{ $eq: ["$status", "Leave"] }, 1, 0] },
                 },
+                lateCount: {
+                  $sum: { $cond: [{ $eq: ["$status", "Late"] }, 1, 0] },
+                },
               },
             },
           ])
         : [];
 
       const stats = attStats[0] || {
-        totalRecords: 0, presentCount: 0, absentCount: 0, leaveCount: 0,
+        totalRecords: 0, presentCount: 0, absentCount: 0, leaveCount: 0, lateCount: 0,
       };
       const avgAttendance = stats.totalRecords > 0
         ? ((stats.presentCount / stats.totalRecords) * 100).toFixed(2)
@@ -318,6 +321,7 @@ export const getAdminTeacherReports = asyncHandler(async (req, res) => {
         totalPresent: stats.presentCount,
         totalAbsent: stats.absentCount,
         totalLeave: stats.leaveCount,
+        totalLate: stats.lateCount,
         attendancePercentage: parseFloat(avgAttendance),
       };
     }),
@@ -396,13 +400,16 @@ export const getAdminDepartmentReports = asyncHandler(async (req, res) => {
                 leaveCount: {
                   $sum: { $cond: [{ $eq: ["$status", "Leave"] }, 1, 0] },
                 },
+                lateCount: {
+                  $sum: { $cond: [{ $eq: ["$status", "Late"] }, 1, 0] },
+                },
               },
             },
           ])
         : [];
 
       const stats = attStats[0] || {
-        totalRecords: 0, presentCount: 0, absentCount: 0, leaveCount: 0,
+        totalRecords: 0, presentCount: 0, absentCount: 0, leaveCount: 0, lateCount: 0,
       };
       const avgAttendance = stats.totalRecords > 0
         ? ((stats.presentCount / stats.totalRecords) * 100).toFixed(2)
@@ -420,6 +427,7 @@ export const getAdminDepartmentReports = asyncHandler(async (req, res) => {
         totalPresent: stats.presentCount,
         totalAbsent: stats.absentCount,
         totalLeave: stats.leaveCount,
+        totalLate: stats.lateCount,
         attendancePercentage: parseFloat(avgAttendance),
       };
     }),
@@ -483,13 +491,16 @@ export const getAdminBatchReports = asyncHandler(async (req, res) => {
                 leaveCount: {
                   $sum: { $cond: [{ $eq: ["$status", "Leave"] }, 1, 0] },
                 },
+                lateCount: {
+                  $sum: { $cond: [{ $eq: ["$status", "Late"] }, 1, 0] },
+                },
               },
             },
           ])
         : [];
 
       const stats = attStats[0] || {
-        totalRecords: 0, presentCount: 0, absentCount: 0, leaveCount: 0,
+        totalRecords: 0, presentCount: 0, absentCount: 0, leaveCount: 0, lateCount: 0,
       };
       const avgAttendance = stats.totalRecords > 0
         ? ((stats.presentCount / stats.totalRecords) * 100).toFixed(2)
@@ -503,6 +514,7 @@ export const getAdminBatchReports = asyncHandler(async (req, res) => {
         totalPresent: stats.presentCount,
         totalAbsent: stats.absentCount,
         totalLeave: stats.leaveCount,
+        totalLate: stats.lateCount,
         attendancePercentage: parseFloat(avgAttendance),
       };
     }),
@@ -569,13 +581,16 @@ export const getAdminSectionReports = asyncHandler(async (req, res) => {
                 leaveCount: {
                   $sum: { $cond: [{ $eq: ["$status", "Leave"] }, 1, 0] },
                 },
+                lateCount: {
+                  $sum: { $cond: [{ $eq: ["$status", "Late"] }, 1, 0] },
+                },
               },
             },
           ])
         : [];
 
       const stats = attStats[0] || {
-        totalRecords: 0, presentCount: 0, absentCount: 0, leaveCount: 0,
+        totalRecords: 0, presentCount: 0, absentCount: 0, leaveCount: 0, lateCount: 0,
       };
       const avgAttendance = stats.totalRecords > 0
         ? ((stats.presentCount / stats.totalRecords) * 100).toFixed(2)
@@ -590,6 +605,7 @@ export const getAdminSectionReports = asyncHandler(async (req, res) => {
         totalPresent: stats.presentCount,
         totalAbsent: stats.absentCount,
         totalLeave: stats.leaveCount,
+        totalLate: stats.lateCount,
         attendancePercentage: parseFloat(avgAttendance),
       };
     }),
@@ -657,13 +673,16 @@ export const getAdminSubjectReports = asyncHandler(async (req, res) => {
                 leaveCount: {
                   $sum: { $cond: [{ $eq: ["$status", "Leave"] }, 1, 0] },
                 },
+                lateCount: {
+                  $sum: { $cond: [{ $eq: ["$status", "Late"] }, 1, 0] },
+                },
               },
             },
           ])
         : [];
 
       const stats = attStats[0] || {
-        totalRecords: 0, presentCount: 0, absentCount: 0, leaveCount: 0,
+        totalRecords: 0, presentCount: 0, absentCount: 0, leaveCount: 0, lateCount: 0,
       };
       const avgAttendance = stats.totalRecords > 0
         ? ((stats.presentCount / stats.totalRecords) * 100).toFixed(2)
@@ -678,6 +697,7 @@ export const getAdminSubjectReports = asyncHandler(async (req, res) => {
         totalPresent: stats.presentCount,
         totalAbsent: stats.absentCount,
         totalLeave: stats.leaveCount,
+        totalLate: stats.lateCount,
         attendancePercentage: parseFloat(avgAttendance),
       };
     }),
@@ -749,12 +769,15 @@ export const getAdminClassReports = asyncHandler(async (req, res) => {
             leaveCount: {
               $sum: { $cond: [{ $eq: ["$status", "Leave"] }, 1, 0] },
             },
+            lateCount: {
+              $sum: { $cond: [{ $eq: ["$status", "Late"] }, 1, 0] },
+            },
           },
         },
       ]);
 
       const stats = attStats[0] || {
-        totalRecords: 0, presentCount: 0, absentCount: 0, leaveCount: 0,
+        totalRecords: 0, presentCount: 0, absentCount: 0, leaveCount: 0, lateCount: 0,
       };
       const avgAttendance = stats.totalRecords > 0
         ? ((stats.presentCount / stats.totalRecords) * 100).toFixed(2)
@@ -779,6 +802,7 @@ export const getAdminClassReports = asyncHandler(async (req, res) => {
         totalPresent: stats.presentCount,
         totalAbsent: stats.absentCount,
         totalLeave: stats.leaveCount,
+        totalLate: stats.lateCount,
         attendancePercentage: parseFloat(avgAttendance),
       };
     }),
@@ -858,6 +882,9 @@ export const getAdminDefaulters = asyncHandler(async (req, res) => {
         leaveCount: {
           $sum: { $cond: [{ $eq: ["$status", "Leave"] }, 1, 0] },
         },
+        lateCount: {
+          $sum: { $cond: [{ $eq: ["$status", "Late"] }, 1, 0] },
+        },
       },
     },
     {
@@ -867,6 +894,7 @@ export const getAdminDefaulters = asyncHandler(async (req, res) => {
         presentCount: 1,
         absentCount: 1,
         leaveCount: 1,
+        lateCount: 1,
         attendancePercentage: {
           $cond: [
             { $gt: ["$totalClasses", 0] },
@@ -918,6 +946,7 @@ export const getAdminDefaulters = asyncHandler(async (req, res) => {
       presentCount: stat.presentCount,
       absentCount: stat.absentCount,
       leaveCount: stat.leaveCount,
+      lateCount: stat.lateCount,
       attendancePercentage: stat.attendancePercentage,
     };
   });
