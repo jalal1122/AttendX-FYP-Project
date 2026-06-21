@@ -51,19 +51,18 @@ const Reports = () => {
       setLoading(true);
       setError("");
 
-      const [classRes, analyticsRes, allStudentsRes, defaultersRes] = await Promise.all([
+      const [classRes, analyticsRes, studentStatsRes, defaultersRes] = await Promise.all([
         classAPI.getClassById(classId),
         analyticsAPI.getClassAnalytics(classId, period, dateRange.startDate, dateRange.endDate),
-        analyticsAPI.getDefaulters(classId, 101), // all students
+        analyticsAPI.getClassStudentStats(classId), // all students
         analyticsAPI.getDefaulters(classId, 75)   // real defaulters
       ]);
 
       setClassData(classRes.data);
       setAnalytics(analyticsRes.data);
       
-      // Defaulters API returns array inside "defaulters" key or similar
-      setAllStudents(allStudentsRes.data?.defaulters || allStudentsRes.data || []);
-      setDefaulters(defaultersRes.data?.defaulters || defaultersRes.data || []);
+      setAllStudents(studentStatsRes?.students || studentStatsRes?.data?.students || []);
+      setDefaulters(defaultersRes?.defaulters || defaultersRes?.data?.defaulters || []);
 
       setLoading(false);
     } catch (err) {

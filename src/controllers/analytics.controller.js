@@ -718,6 +718,115 @@ export const getDefaulters = asyncHandler(async (req, res) => {
 });
 
 /**
+ * Get Class Student Stats (All students with attendance details)
+ * GET /api/v1/analytics/class/:classId/students
+ */
+export const getClassStudentStats = asyncHandler(async (req, res) => {
+  const { classId } = req.params;
+
+  // Validate class exists
+  const classDoc = await Class.findById(classId).populate(
+    "students",
+    "name email info",
+  );
+  if (!classDoc) {
+    throw ApiError.notFound("Class not found");
+  }
+
+  // Check authorization
+  const isTeacher = classDoc.teacher.toString() === req.user._id.toString();
+  const isAdmin = req.user.role === "admin";
+
+  if (!isTeacher && !isAdmin) {
+    throw ApiError.forbidden("You do not have access to this class");
+  }
+
+  // Get total sessions for this class
+  const totalSessions = await Session.countDocuments({ classId });
+
+  if (totalSessions === 0) {
+    return res.status(200).json(
+      new ApiResponse(
+        200,
+        {
+          totalSessions: 0,
+          students: [],
+          message: "No sessions conducted yet for this class",
+        },
+        "No sessions found",
+      ),
+    );
+  }
+
+  // Aggregation pipeline to find all student stats
+  const students = await Attendance.aggregate([
+    {
+      $match: {
+        classId: new mongoose.Types.ObjectId(classId),
+      },
+    },
+    {
+      $group: {
+        _id: "$studentId",
+        totalClasses: { $sum: 1 },
+        presentCount: {
+          $sum: {
+            $cond: [{ $eq: ["$status", "Present"] }, 1, 0],
+          },
+        },
+      },
+    },
+    {
+      $project: {
+        studentId: "$_id",
+        totalClasses: 1,
+        presentCount: 1,
+        attendancePercentage: {
+          $multiply: [{ $divide: ["$presentCount", "$totalClasses"] }, 100],
+        },
+      },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: "studentId",
+        foreignField: "_id",
+        as: "studentDetails",
+      },
+    },
+    {
+      $unwind: "$studentDetails",
+    },
+    {
+      $project: {
+        _id: 0,
+        studentId: "$studentDetails._id",
+        name: "$studentDetails.name",
+        email: "$studentDetails.email",
+        info: "$studentDetails.info",
+        totalClasses: 1,
+        presentCount: 1,
+        attendancePercentage: { $round: ["$attendancePercentage", 2] },
+      },
+    },
+    {
+      $sort: { attendancePercentage: 1 },
+    },
+  ]);
+
+  res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        totalSessions,
+        students,
+      },
+      "Class student stats retrieved successfully",
+    ),
+  );
+});
+
+/**
  * Get Teacher Statistics
  * GET /api/v1/analytics/teacher/stats
  */

@@ -57,8 +57,14 @@ const analyticsAPI = {
   // Get list of defaulters (students below threshold)
   getDefaulters: async (classId, threshold = 75) => {
     const response = await api.get(
-      `/analytics/class/${classId}/defaulters?threshold=${threshold}`
+      `/analytics/class/${classId}/defaulters?minPercentage=${threshold}`
     );
+    return response.data;
+  },
+
+  // Get class student stats
+  getClassStudentStats: async (classId) => {
+    const response = await api.get(`/analytics/class/${classId}/students`);
     return response.data;
   },
 

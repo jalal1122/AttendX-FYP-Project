@@ -7,6 +7,7 @@ import {
   getComprehensiveReport,
   exportReport,
   checkAndNotifyDefaulters,
+  getClassStudentStats,
 } from "../controllers/analytics.controller.js";
 import {
   getAdminStudentReports,
@@ -36,6 +37,9 @@ router.get("/class/:classId", getClassAnalytics);
 
 // Defaulters list (Teacher/Admin only)
 router.get("/class/:classId/defaulters", getDefaulters);
+
+// Class student stats (All students) (Teacher/Admin only)
+router.get("/class/:classId/students", getClassStudentStats);
 
 // Teacher statistics (Teacher/Admin only)
 router.get("/teacher/stats", hasRole("teacher", "admin"), getTeacherStats);
