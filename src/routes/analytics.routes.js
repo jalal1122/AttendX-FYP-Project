@@ -18,6 +18,7 @@ import {
   getAdminClassReports,
   getAdminDefaulters,
   getStudentAttendanceDetail,
+  getAdminSemesterReports,
 } from "../controllers/adminReports.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import { hasRole } from "../middlewares/role.middleware.js";
@@ -53,6 +54,7 @@ router.get("/admin/students", hasRole("admin", "teacher"), getAdminStudentReport
 router.get("/admin/teachers", hasRole("admin"), getAdminTeacherReports);
 router.get("/admin/departments", hasRole("admin"), getAdminDepartmentReports);
 router.get("/admin/batches", hasRole("admin"), getAdminBatchReports);
+router.get("/admin/semesters", hasRole("admin"), getAdminSemesterReports);
 router.get("/admin/sections", hasRole("admin", "teacher"), getAdminSectionReports);
 router.get("/admin/subjects", hasRole("admin", "teacher"), getAdminSubjectReports);
 router.get("/admin/classes", hasRole("admin", "teacher"), getAdminClassReports);

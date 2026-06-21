@@ -533,6 +533,95 @@ export const getAdminBatchReports = asyncHandler(async (req, res) => {
 });
 
 /**
+ * Admin Semester Reports
+ * GET /api/v1/analytics/admin/semesters
+ */
+export const getAdminSemesterReports = asyncHandler(async (req, res) => {
+  if (req.user.role !== "admin") {
+    throw ApiError.forbidden("Not authorized to access reports");
+  }
+
+  const { department, batch, startDate, endDate, export: isExport } = req.query;
+  const dateFilter = buildDateFilter(startDate, endDate);
+
+  const classFilter = {};
+  if (department) classFilter.department = buildArrayRegex(department);
+  if (batch) classFilter.batch = buildArrayRegex(batch);
+
+  const semesters = await Class.distinct("semester", classFilter);
+
+  const result = await Promise.all(
+    semesters.filter(Boolean).map(async (semester) => {
+      const semesterFilter = { semester, ...classFilter };
+      const semesterClasses = await Class.find(semesterFilter)
+        .select("_id students department batch")
+        .lean();
+      const classIds = semesterClasses.map((c) => c._id);
+      const totalStudents = new Set(
+        semesterClasses.flatMap((c) => (c.students || []).map((s) => s.toString())),
+      ).size;
+      const deptSet = new Set(semesterClasses.map((c) => c.department));
+      const batchSet = new Set(semesterClasses.map((c) => c.batch));
+
+      const attendanceMatch = { classId: { $in: classIds }, ...dateFilter };
+      const attStats = classIds.length > 0
+        ? await Attendance.aggregate([
+            { $match: attendanceMatch },
+            {
+              $group: {
+                _id: null,
+                totalRecords: { $sum: 1 },
+                presentCount: {
+                  $sum: { $cond: [{ $eq: ["$status", "Present"] }, 1, 0] },
+                },
+                absentCount: {
+                  $sum: { $cond: [{ $eq: ["$status", "Absent"] }, 1, 0] },
+                },
+                leaveCount: {
+                  $sum: { $cond: [{ $eq: ["$status", "Leave"] }, 1, 0] },
+                },
+                lateCount: {
+                  $sum: { $cond: [{ $eq: ["$status", "Late"] }, 1, 0] },
+                },
+              },
+            },
+          ])
+        : [];
+
+      const stats = attStats[0] || {
+        totalRecords: 0, presentCount: 0, absentCount: 0, leaveCount: 0, lateCount: 0,
+      };
+      const avgAttendance = stats.totalRecords > 0
+        ? ((stats.presentCount / stats.totalRecords) * 100).toFixed(2)
+        : 0;
+
+      return {
+        name: `Semester ${semester}`,
+        departments: [...deptSet],
+        totalClasses: semesterClasses.length,
+        totalStudents,
+        totalPresent: stats.presentCount,
+        totalAbsent: stats.absentCount,
+        totalLeave: stats.leaveCount,
+        totalLate: stats.lateCount,
+        attendancePercentage: parseFloat(avgAttendance),
+      };
+    }),
+  );
+
+  if (isExport === "true") {
+    const buffer = await ExportService.generateAdminReport("semesters", result, "xlsx");
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    res.setHeader("Content-Disposition", `attachment; filename=admin_semesters_report.xlsx`);
+    return res.status(200).send(buffer);
+  }
+
+  res.status(200).json(
+    new ApiResponse(200, { semesters: result }, "Admin semester reports retrieved"),
+  );
+});
+
+/**
  * Admin Section Reports
  * GET /api/v1/analytics/admin/sections
  */

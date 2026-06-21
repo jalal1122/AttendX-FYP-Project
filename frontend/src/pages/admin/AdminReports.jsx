@@ -12,6 +12,7 @@ import ReportGraphicalView from "../../components/reports/ReportGraphicalView";
 const TABS = [
   { id: "departments", label: "Departments" },
   { id: "batches", label: "Batches" },
+  { id: "semesters", label: "Semesters" },
   { id: "sections", label: "Sections" },
   { id: "subjects", label: "Subjects" },
   { id: "teachers", label: "Teachers" },
@@ -251,9 +252,26 @@ const AdminReports = () => {
               </button>
             )
           },
-          { key: "departments", label: "Departments", render: (val) => (val || []).join(", ") },
-          { key: "totalStudents", label: "Students" },
           { key: "totalClasses", label: "Classes" },
+          { key: "totalStudents", label: "Students" },
+          { key: "attendancePercentage", label: "Avg Attendance %", render: (val) => `${val}%` }
+        ];
+      case "semesters":
+        return [
+          { 
+            key: "name", 
+            label: "Semester",
+            render: (val) => (
+              <button onClick={() => {
+                const num = val.replace("Semester ", "");
+                handleDrillDown("classes", "semesters", num);
+              }} className="text-primary-600 font-medium hover:underline text-left">
+                {val}
+              </button>
+            )
+          },
+          { key: "totalClasses", label: "Classes" },
+          { key: "totalStudents", label: "Students" },
           { key: "attendancePercentage", label: "Avg Attendance %", render: (val) => `${val}%` }
         ];
       case "sections":
