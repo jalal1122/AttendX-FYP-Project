@@ -30,7 +30,8 @@ const TeacherReports = () => {
   const [search, setSearch] = useState("");
   
   const [filters, setFilters] = useState({
-    sections: []
+    sections: [],
+    threshold: 75
   });
 
   const [filterOptions, setFilterOptions] = useState({
@@ -69,6 +70,10 @@ const TeacherReports = () => {
         endDate: dateRange.endDate,
         section: filters.sections?.length ? filters.sections.join(",") : "",
       };
+
+      if (activeTab === "defaulters") {
+        params.threshold = filters.threshold;
+      }
 
       if (search) params.name = search;
 
@@ -129,6 +134,10 @@ const TeacherReports = () => {
         endDate: dateRange.endDate,
         section: filters.sections.join(","),
       };
+      
+      if (activeTab === "defaulters") {
+        params.threshold = filters.threshold;
+      }
       if (search) params.name = search;
 
       const blob = await analyticsAPI.getAdminReportsExcel(activeTab, params);
@@ -294,6 +303,20 @@ const TeacherReports = () => {
               placeholder="All Assigned Sections"
             />
 
+            {activeTab === "defaulters" && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Threshold (%)</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={filters.threshold}
+                  onChange={(e) => handleFilterChange("threshold", e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                />
+              </div>
+            )}
+
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-1">Date Range</label>
               <DateRangePicker 
@@ -319,7 +342,7 @@ const TeacherReports = () => {
             <Button 
               variant="secondary" 
               onClick={() => {
-                setFilters({ sections: [] });
+                setFilters({ sections: [], threshold: 75 });
                 setSearch("");
                 setDateRange({ startDate: "", endDate: "" });
               }}

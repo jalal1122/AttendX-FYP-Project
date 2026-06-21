@@ -37,7 +37,8 @@ const AdminReports = () => {
     departments: [],
     batches: [],
     sections: [],
-    semesters: []
+    semesters: [],
+    threshold: 75,
   });
 
   const [filterOptions, setFilterOptions] = useState({
@@ -95,6 +96,10 @@ const AdminReports = () => {
         section: filters.sections.join(","),
         semester: filters.semesters.join(","),
       };
+      
+      if (activeTab === "defaulters") {
+        params.threshold = filters.threshold;
+      }
 
       if (search) params.name = search;
 
@@ -158,6 +163,11 @@ const AdminReports = () => {
         section: filters.sections.join(","),
         semester: filters.semesters.join(","),
       };
+      
+      if (activeTab === "defaulters") {
+        params.threshold = filters.threshold;
+      }
+
       if (search) params.name = search;
 
       const blob = await analyticsAPI.getAdminReportsExcel(activeTab, params);
@@ -413,6 +423,19 @@ const AdminReports = () => {
               placeholder="All Semesters"
               searchable={false}
             />
+            {activeTab === "defaulters" && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Threshold (%)</label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={filters.threshold}
+                  onChange={(e) => handleFilterChange("threshold", e.target.value)}
+                  className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                />
+              </div>
+            )}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Date Range</label>
               <DateRangePicker 
@@ -438,7 +461,7 @@ const AdminReports = () => {
             <Button 
               variant="secondary" 
               onClick={() => {
-                setFilters({ departments: [], batches: [], sections: [], semesters: [] });
+                setFilters({ departments: [], batches: [], sections: [], semesters: [], threshold: 75 });
                 setSearch("");
                 setDateRange({ startDate: "", endDate: "" });
               }}
