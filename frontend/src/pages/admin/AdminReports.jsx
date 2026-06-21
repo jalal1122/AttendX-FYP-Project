@@ -480,6 +480,32 @@ const AdminReports = () => {
           </div>
         </Card>
 
+        {/* Summary Stats */}
+        {!loading && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+            <Card className="bg-white border border-gray-100 shadow-sm">
+              <h3 className="text-sm font-medium text-gray-500 capitalize">Total {activeTab}</h3>
+              <p className="text-2xl font-bold text-gray-900 mt-1">{pagination.total}</p>
+            </Card>
+            {data.length > 0 && data[0].hasOwnProperty('attendancePercentage') && (
+               <Card className="bg-white border border-gray-100 shadow-sm">
+                 <h3 className="text-sm font-medium text-gray-500">Avg Attendance (Current Page)</h3>
+                 <p className="text-2xl font-bold text-gray-900 mt-1">
+                   {(data.reduce((sum, item) => sum + (item.attendancePercentage || 0), 0) / data.length).toFixed(1)}%
+                 </p>
+               </Card>
+            )}
+            {data.length > 0 && data[0].hasOwnProperty('defaulters') && (
+               <Card className="bg-white border border-gray-100 shadow-sm">
+                 <h3 className="text-sm font-medium text-gray-500">Total Defaulters (Current Page)</h3>
+                 <p className="text-2xl font-bold text-red-600 mt-1">
+                   {data.reduce((sum, item) => sum + (item.defaulters || 0), 0)}
+                 </p>
+               </Card>
+            )}
+          </div>
+        )}
+
         {/* Data Table */}
         <Card className="overflow-hidden p-0">
           {loading ? (
