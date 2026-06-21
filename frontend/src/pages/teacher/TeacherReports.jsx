@@ -144,7 +144,10 @@ const TeacherReports = () => {
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `teacher_${activeTab}_report.xlsx`;
+      const dateStr = new Date().toISOString().split("T")[0];
+      const filterName = filters.sections.length > 0 ? filters.sections.join("-") : "All_Sections";
+      
+      link.download = `Teacher_${activeTab}_Report_${filterName}_${dateStr}.xlsx`;
       link.click();
       URL.revokeObjectURL(url);
     } catch (err) {

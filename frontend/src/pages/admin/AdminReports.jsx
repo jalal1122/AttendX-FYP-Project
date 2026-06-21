@@ -174,7 +174,15 @@ const AdminReports = () => {
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `admin_${activeTab}_report.xlsx`;
+      const dateStr = new Date().toISOString().split("T")[0];
+      const filterParts = [
+        filters.departments.length ? filters.departments.join("-") : "",
+        filters.batches.length ? filters.batches.join("-") : "",
+        filters.sections.length ? filters.sections.join("-") : "",
+      ].filter(Boolean);
+      const filterName = filterParts.length > 0 ? filterParts.join("_") : "All";
+
+      link.download = `Admin_${activeTab}_Report_${filterName}_${dateStr}.xlsx`;
       link.click();
       URL.revokeObjectURL(url);
     } catch (err) {
