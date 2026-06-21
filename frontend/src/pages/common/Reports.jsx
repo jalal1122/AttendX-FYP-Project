@@ -506,13 +506,21 @@ const Reports = () => {
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Time</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Class</th>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Verification</th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {drillDownModal.records.map((rec, idx) => (
+                  {drillDownModal.records.map((rec, idx) => {
+                    const dateObj = new Date(rec.date);
+                    const timeStr = rec.time ? new Date(rec.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    return (
                     <tr key={idx}>
-                      <td className="px-4 py-2 text-sm text-gray-900">{new Date(rec.date).toLocaleDateString()}</td>
+                      <td className="px-4 py-2 text-sm text-gray-900">{dateObj.toLocaleDateString()}</td>
+                      <td className="px-4 py-2 text-sm text-gray-600">{timeStr}</td>
+                      <td className="px-4 py-2 text-sm text-gray-600">{rec.classCode} - {rec.className}</td>
                       <td className="px-4 py-2 text-sm">
                         <span className={`px-2 py-1 text-xs rounded-full font-medium ${
                           rec.status === "Present" ? "bg-green-100 text-green-800" :
@@ -523,8 +531,10 @@ const Reports = () => {
                           {rec.status}
                         </span>
                       </td>
+                      <td className="px-4 py-2 text-sm text-gray-600 capitalize">{rec.verificationMethod || "Manual"}</td>
                     </tr>
-                  ))}
+                    );
+                  })}
                 </tbody>
               </table>
             )}
