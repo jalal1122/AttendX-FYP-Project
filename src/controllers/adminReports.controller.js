@@ -40,6 +40,30 @@ const buildPaginationSort = (query) => {
   return { page, limit, skip: (page - 1) * limit, sortBy, sortOrder };
 };
 
+const buildArrayRegex = (val) => {
+  if (!val) return undefined;
+  let arr = Array.isArray(val) ? val : val.split(',').map(s => s.trim()).filter(Boolean);
+  if (arr.length === 0) return undefined;
+  if (arr.length === 1) return { $regex: new RegExp(`^${arr[0]}$`, 'i') };
+  return { $in: arr.map(s => new RegExp(`^${s}$`, 'i')) };
+};
+
+const buildArrayObjectId = (val) => {
+  if (!val) return undefined;
+  let arr = Array.isArray(val) ? val : val.split(',').map(s => s.trim()).filter(Boolean);
+  if (arr.length === 0) return undefined;
+  if (arr.length === 1) return new mongoose.Types.ObjectId(arr[0]);
+  return { $in: arr.map(s => new mongoose.Types.ObjectId(s)) };
+};
+
+const buildArrayNumber = (val) => {
+  if (!val) return undefined;
+  let arr = Array.isArray(val) ? val : val.split(',').map(s => s.trim()).filter(Boolean);
+  if (arr.length === 0) return undefined;
+  if (arr.length === 1) return parseInt(arr[0]);
+  return { $in: arr.map(s => parseInt(s)) };
+};
+
 /**
  * Admin Student Reports
  * GET /api/v1/analytics/admin/students
@@ -60,14 +84,14 @@ export const getAdminStudentReports = asyncHandler(async (req, res) => {
 
   // Build user filter
   const userFilter = { role: "student" };
-  if (name) userFilter.name = { $regex: name, $options: "i" };
-  if (email) userFilter.email = { $regex: email, $options: "i" };
-  if (phone) userFilter.mobileNumber = { $regex: phone, $options: "i" };
-  if (department) userFilter["info.department"] = { $regex: department, $options: "i" };
-  if (batch) userFilter["info.batch"] = { $regex: batch, $options: "i" };
-  if (section) userFilter["info.section"] = { $regex: section, $options: "i" };
-  if (semester) userFilter["info.semester"] = parseInt(semester);
-  if (rollNo) userFilter["info.rollNo"] = { $regex: rollNo, $options: "i" };
+  if (name) userFilter.name = buildArrayRegex(name);
+  if (email) userFilter.email = buildArrayRegex(email);
+  if (phone) userFilter.mobileNumber = buildArrayRegex(phone);
+  if (department) userFilter["info.department"] = buildArrayRegex(department);
+  if (batch) userFilter["info.batch"] = buildArrayRegex(batch);
+  if (section) userFilter["info.section"] = buildArrayRegex(section);
+  if (semester) userFilter["info.semester"] = buildArrayNumber(semester);
+  if (rollNo) userFilter["info.rollNo"] = buildArrayRegex(rollNo);
 
   // Find matching students
   const totalCount = await User.countDocuments(userFilter);
@@ -92,7 +116,7 @@ export const getAdminStudentReports = asyncHandler(async (req, res) => {
   // Build attendance match
   const attendanceMatch = { studentId: { $in: studentIds }, ...dateFilter };
   if (classId) {
-    attendanceMatch.classId = new mongoose.Types.ObjectId(classId);
+    attendanceMatch.classId = buildArrayObjectId(classId);
   }
 
   // Aggregate attendance per student
@@ -175,10 +199,10 @@ export const getAdminTeacherReports = asyncHandler(async (req, res) => {
 
   // Build teacher filter
   const userFilter = { role: "teacher" };
-  if (name) userFilter.name = { $regex: name, $options: "i" };
-  if (email) userFilter.email = { $regex: email, $options: "i" };
-  if (phone) userFilter.mobileNumber = { $regex: phone, $options: "i" };
-  if (department) userFilter["info.department"] = { $regex: department, $options: "i" };
+  if (name) userFilter.name = buildArrayRegex(name);
+  if (email) userFilter.email = buildArrayRegex(email);
+  if (phone) userFilter.mobileNumber = buildArrayRegex(phone);
+  if (department) userFilter["info.department"] = buildArrayRegex(department);
 
   const totalCount = await User.countDocuments(userFilter);
   const teachers = await User.find(userFilter)
@@ -384,7 +408,7 @@ export const getAdminBatchReports = asyncHandler(async (req, res) => {
   const dateFilter = buildDateFilter(startDate, endDate);
 
   const classFilter = {};
-  if (department) classFilter.department = { $regex: department, $options: "i" };
+  if (department) classFilter.department = buildArrayRegex(department);
 
   const batches = await Class.distinct("batch", classFilter);
 
@@ -460,8 +484,8 @@ export const getAdminSectionReports = asyncHandler(async (req, res) => {
   const dateFilter = buildDateFilter(startDate, endDate);
 
   const classFilter = {};
-  if (department) classFilter.department = { $regex: department, $options: "i" };
-  if (batch) classFilter.batch = { $regex: batch, $options: "i" };
+  if (department) classFilter.department = buildArrayRegex(department);
+  if (batch) classFilter.batch = buildArrayRegex(batch);
 
   const sections = await Class.distinct("section", classFilter);
 
@@ -539,9 +563,9 @@ export const getAdminSubjectReports = asyncHandler(async (req, res) => {
   const dateFilter = buildDateFilter(startDate, endDate);
 
   const classFilter = {};
-  if (department) classFilter.department = { $regex: department, $options: "i" };
-  if (batch) classFilter.batch = { $regex: batch, $options: "i" };
-  if (section) classFilter.section = { $regex: section, $options: "i" };
+  if (department) classFilter.department = buildArrayRegex(department);
+  if (batch) classFilter.batch = buildArrayRegex(batch);
+  if (section) classFilter.section = buildArrayRegex(section);
 
   const subjects = await Class.distinct("name", classFilter);
 
@@ -620,10 +644,10 @@ export const getAdminClassReports = asyncHandler(async (req, res) => {
   const dateFilter = buildDateFilter(startDate, endDate);
 
   const classFilter = {};
-  if (department) classFilter.department = { $regex: department, $options: "i" };
-  if (batch) classFilter.batch = { $regex: batch, $options: "i" };
-  if (semester) classFilter.semester = parseInt(semester);
-  if (teacher) classFilter.teacher = new mongoose.Types.ObjectId(teacher);
+  if (department) classFilter.department = buildArrayRegex(department);
+  if (batch) classFilter.batch = buildArrayRegex(batch);
+  if (semester) classFilter.semester = buildArrayNumber(semester);
+  if (teacher) classFilter.teacher = buildArrayObjectId(teacher);
 
   const totalCount = await Class.countDocuments(classFilter);
   const classes = await Class.find(classFilter)
@@ -722,10 +746,10 @@ export const getAdminDefaulters = asyncHandler(async (req, res) => {
 
   // Build class filter
   const classFilter = {};
-  if (department) classFilter.department = { $regex: department, $options: "i" };
-  if (batch) classFilter.batch = { $regex: batch, $options: "i" };
-  if (semester) classFilter.semester = parseInt(semester);
-  if (classId) classFilter._id = new mongoose.Types.ObjectId(classId);
+  if (department) classFilter.department = buildArrayRegex(department);
+  if (batch) classFilter.batch = buildArrayRegex(batch);
+  if (semester) classFilter.semester = buildArrayNumber(semester);
+  if (classId) classFilter._id = buildArrayObjectId(classId);
 
   const matchingClasses = await Class.find(classFilter).select("_id name code department").lean();
   const classIds = matchingClasses.map((c) => c._id);
