@@ -117,24 +117,22 @@ export const getAdminStudentReports = asyncHandler(async (req, res) => {
 
   const studentIds = students.map((s) => s._id);
 
+  // Build class filter to restrict attendance matching
+  const classFilter = {};
+  if (req.user.role === "teacher") classFilter.teacher = req.user._id;
+  if (batch) classFilter.batch = buildArrayRegex(batch);
+  if (department) classFilter.department = buildArrayRegex(department);
+  if (semester) classFilter.semester = buildArrayNumber(semester);
+  if (section) classFilter["sections.name"] = buildArrayRegex(section);
+  if (classId) classFilter._id = buildArrayObjectId(classId);
+
   // Build attendance match
   const attendanceMatch = { studentId: { $in: studentIds }, ...dateFilter };
   
-  if (req.user.role === "teacher") {
-    const classes = await Class.find({ teacher: req.user._id }).select("_id").lean();
-    const tClassIds = classes.map(c => c._id);
-    
-    if (classId) {
-      const requestedArr = Array.isArray(classId) ? classId : classId.split(',').map(s => s.trim());
-      const intersected = tClassIds.filter(id => requestedArr.includes(id.toString()));
-      attendanceMatch.classId = { $in: intersected };
-    } else {
-      attendanceMatch.classId = { $in: tClassIds };
-    }
-  } else {
-    if (classId) {
-      attendanceMatch.classId = buildArrayObjectId(classId);
-    }
+  // If there are class-level filters or user is a teacher, restrict attendance to those classes
+  if (Object.keys(classFilter).length > 0) {
+    const matchingClasses = await Class.find(classFilter).select("_id").lean();
+    attendanceMatch.classId = { $in: matchingClasses.map(c => c._id) };
   }
 
   // Aggregate attendance per student
