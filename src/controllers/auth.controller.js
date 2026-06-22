@@ -64,7 +64,7 @@ export const registerUser = asyncHandler(async (req, res) => {
 
   // Validate info based on role
   if (role === "student" && info) {
-    const { rollNo, semester, department, batch, year } = info;
+    const { rollNo, semester, department, batch, year, section } = info;
     if (!rollNo || !semester || !department || !batch || !year) {
       throw ApiError.badRequest(
         "Student info must include: rollNo, semester, department, batch, year",
