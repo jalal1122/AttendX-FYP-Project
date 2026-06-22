@@ -113,12 +113,21 @@ const seedDB = async () => {
   };
   const sectionsList = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"];
 
-  for (let i = 0; i < NUM_CLASSES; i++) {
+  const combinations = [];
+  for (const dept of departments) {
+    for (const subject of departmentSubjects[dept]) {
+      for (const batch of ["2022", "2023", "2024"]) {
+        combinations.push({ dept, subject, batch });
+      }
+    }
+  }
+  faker.helpers.shuffle(combinations);
+
+  for (let i = 0; i < NUM_CLASSES && i < combinations.length; i++) {
     const teacher = faker.helpers.arrayElement(teachers);
     const classStudents = faker.helpers.arrayElements(students, faker.number.int({ min: 20, max: 30 }));
     
-    const dept = faker.helpers.arrayElement(departments);
-    const subject = faker.helpers.arrayElement(departmentSubjects[dept]);
+    const { dept, subject, batch } = combinations[i];
     const sectionName = sectionsList[i % sectionsList.length];
 
     const newClass = await Class.create({
@@ -128,7 +137,7 @@ const seedDB = async () => {
       students: classStudents.map(s => s._id),
       department: dept,
       semester: faker.number.int({ min: 1, max: 8 }),
-      batch: faker.helpers.arrayElement(["2022", "2023", "2024"]),
+      batch: batch,
       academicYear: "2023-2024",
       room: faker.location.buildingNumber(),
       allowRetroactiveSessions: faker.datatype.boolean(),
