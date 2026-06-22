@@ -69,6 +69,7 @@ const seedDB = async () => {
       baseUser.info.batch = faker.helpers.arrayElement(["2022", "2023", "2024"]);
       baseUser.info.enrollmentYear = parseInt(baseUser.info.batch);
       baseUser.info.department = faker.helpers.arrayElement(validDepts);
+      baseUser.info.section = faker.helpers.arrayElement(["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"]);
     } else if (role === "teacher") {
       baseUser.info.designation = faker.person.jobTitle();
       baseUser.info.department = faker.helpers.arrayElement(validDepts);
@@ -131,7 +132,7 @@ const seedDB = async () => {
     const sectionName = sectionsList[i % sectionsList.length];
 
     const newClass = await Class.create({
-      name: subject,
+      name: `${subject} Section ${sectionName}`,
       code: faker.string.alphanumeric({ length: 6, casing: 'upper' }),
       teacher: teacher._id,
       students: classStudents.map(s => s._id),
