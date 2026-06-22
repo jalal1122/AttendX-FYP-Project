@@ -20,6 +20,7 @@ import {
   getAdminDefaulters,
   getStudentAttendanceDetail,
   getAdminSemesterReports,
+  getClassAttendanceDetail,
 } from "../controllers/adminReports.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import { hasRole } from "../middlewares/role.middleware.js";
@@ -66,5 +67,6 @@ router.get("/admin/defaulters", hasRole("admin", "teacher"), getAdminDefaulters)
 // Missing sections & subjects from the plan, let's just make sure we add what we wrote.
 // Also drill down for attendance details
 router.get("/admin/students/:studentId/attendance", hasRole("admin", "teacher"), getStudentAttendanceDetail);
+router.get("/admin/classes/:classId/attendance", hasRole("admin", "teacher"), getClassAttendanceDetail);
 
 export default router;
