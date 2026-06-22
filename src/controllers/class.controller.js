@@ -178,6 +178,25 @@ export const joinClass = asyncHandler(async (req, res) => {
     );
   }
 
+  // 4. Section validation
+  const studentSection = studentInfo.section;
+  const classNameParts = classDoc.name.trim().split(" ");
+  const classSectionStr = classNameParts[classNameParts.length - 1].toUpperCase();
+  
+  // Check if the last word is likely a section indicator (e.g., "A", "B", "C" or "SEC-A")
+  const isSectionIndicator = /^(?:SEC-)?[A-Z]$/.test(classSectionStr);
+
+  if (isSectionIndicator && studentSection) {
+    const normalizedClassSection = classSectionStr.replace("SEC-", "");
+    const normalizedStudentSection = studentSection.toUpperCase().replace("SEC-", "");
+    
+    if (normalizedClassSection !== normalizedStudentSection) {
+      throw ApiError.badRequest(
+        `Your section (${normalizedStudentSection}) does not match the class section requirement (${normalizedClassSection}). You cannot join this class.`
+      );
+    }
+  }
+
   // Add student to class using $addToSet (prevents duplicates)
   const updatedClass = await Class.findByIdAndUpdate(
     classDoc._id,
