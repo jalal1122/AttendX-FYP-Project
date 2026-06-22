@@ -11,14 +11,13 @@ import ReportGraphicalView from "../../components/reports/ReportGraphicalView";
 
 const TABS = [
   { id: "classes", label: "Classes" },
-  { id: "subjects", label: "Subjects" },
   { id: "students", label: "Students" },
   { id: "defaulters", label: "Defaulters" },
 ];
 
 const TeacherReports = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("sections");
+  const [activeTab, setActiveTab] = useState("classes");
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, limit: 50, total: 0, pages: 0 });
@@ -221,57 +220,6 @@ const TeacherReports = () => {
               </button>
             )
           }
-        ];
-      case "departments":
-        return [
-          { key: "name", label: "Department" },
-          { key: "totalStudents", label: "Students" },
-          { key: "totalClasses", label: "Classes" },
-          { key: "attendancePercentage", label: "Avg Attendance %", render: (val) => `${val}%` }
-        ];
-      case "batches":
-        return [
-          { key: "name", label: "Batch" },
-          { key: "totalStudents", label: "Students" },
-          { key: "totalClasses", label: "Classes" },
-          { key: "attendancePercentage", label: "Avg Attendance %", render: (val) => `${val}%` }
-        ];
-      case "semesters":
-        return [
-          { key: "name", label: "Semester" },
-          { key: "totalStudents", label: "Students" },
-          { key: "totalClasses", label: "Classes" },
-          { key: "attendancePercentage", label: "Avg Attendance %", render: (val) => `${val}%` }
-        ];
-      case "sections":
-        return [
-          { 
-            key: "name", 
-            label: "Section",
-            render: (val) => (
-              <button onClick={() => handleDrillDown("subjects", "sections", val)} className="text-primary-600 font-medium hover:underline text-left">
-                {val}
-              </button>
-            )
-          },
-          { key: "totalStudents", label: "Students" },
-          { key: "totalClasses", label: "Classes" },
-          { key: "attendancePercentage", label: "Avg Attendance %", render: (val) => `${val}%` }
-        ];
-      case "subjects":
-        return [
-          { 
-            key: "name", 
-            label: "Subject",
-            render: (val) => (
-              <button onClick={() => { setSearch(val); handleTabChange("classes"); }} className="text-primary-600 font-medium hover:underline text-left">
-                {val}
-              </button>
-            )
-          },
-          { key: "totalStudents", label: "Students" },
-          { key: "totalClasses", label: "Classes" },
-          { key: "attendancePercentage", label: "Avg Attendance %", render: (val) => `${val}%` }
         ];
       case "classes":
         return [

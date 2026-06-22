@@ -11,12 +11,11 @@ import ReportGraphicalView from "../../components/reports/ReportGraphicalView";
 
 const TABS = [
   { id: "classes", label: "Classes" },
-  { id: "subjects", label: "Subjects" },
 ];
 
 const StudentReports = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("subjects");
+  const [activeTab, setActiveTab] = useState("classes");
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, limit: 50, total: 0, pages: 0 });
@@ -198,20 +197,6 @@ const StudentReports = () => {
     ];
 
     switch (activeTab) {
-      case "subjects":
-        return [
-          { 
-            key: "name", 
-            label: "Subject",
-            render: (val) => (
-              <button onClick={() => { setSearch(val); handleTabChange("classes"); }} className="text-primary-600 font-medium hover:underline text-left">
-                {val}
-              </button>
-            )
-          },
-          { key: "totalClasses", label: "Classes" },
-          { key: "attendancePercentage", label: "Avg Attendance %", render: (val) => `${val}%` }
-        ];
       case "classes":
         return [
           { key: "code", label: "Code" },
