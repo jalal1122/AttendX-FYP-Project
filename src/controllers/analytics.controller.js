@@ -1040,14 +1040,10 @@ export const getComprehensiveReport = asyncHandler(async (req, res) => {
       },
       "Comprehensive report generated successfully",
     ),
-  );
-});
-
 /**
  * Export Report (Excel or CSV)
- * GET /api/v1/analytics/export
- * Query Params:
- *   - type: 'class_matrix' | 'student_transcript' | 'dept_summary' | 'defaulters'
+ * Generate specialized export reports (Excel/CSV)
+ * @query type: 'class_matrix' | 'dept_summary' | 'defaulters'
  *   - format: 'xlsx' | 'csv'
  *   - range: 'week' | 'month' | 'semester' | 'custom'
  *   - startDate, endDate: (if range is custom)
@@ -1188,90 +1184,6 @@ export const exportReport = asyncHandler(async (req, res) => {
         format,
       );
       filename = `${classData.code}_Attendance_${moment().format("YYYY-MM-DD")}.${format}`;
-      break;
-
-    case "student_transcript":
-      if (!targetId) {
-        throw ApiError.badRequest(
-          "Student ID is required for student transcript",
-        );
-      }
-
-      // Fetch student
-      const student = await User.findById(targetId).lean();
-
-      if (!student) {
-        throw ApiError.notFound("Student not found");
-      }
-
-      // Check authorization
-      if (
-        req.user._id.toString() !== targetId &&
-        req.user.role !== "admin" &&
-        req.user.role !== "teacher"
-      ) {
-        throw ApiError.forbidden("You can only view your own transcript");
-      }
-
-      // Fetch all classes student is enrolled in
-      const studentClasses = await Class.find({ students: targetId })
-        .populate("teacher", "name")
-        .lean();
-
-      // For each class, calculate attendance
-      const classesData = await Promise.all(
-        studentClasses.map(async (classItem) => {
-          const sessionsQuery = {
-            classId: classItem._id,
-            active: false,
-          };
-
-          if (Object.keys(dateFilter).length > 0) {
-            sessionsQuery.startTime = dateFilter;
-          }
-
-          const classSessions = await Session.find(sessionsQuery).lean();
-
-          const attendanceStats = await Attendance.aggregate([
-            {
-              $match: {
-                studentId: new mongoose.Types.ObjectId(targetId),
-                sessionId: { $in: classSessions.map((s) => s._id) },
-              },
-            },
-            {
-              $group: {
-                _id: "$status",
-                count: { $sum: 1 },
-              },
-            },
-          ]);
-
-          const presentCount =
-            attendanceStats.find((s) => s._id === "Present")?.count || 0;
-          const absentCount = classSessions.length - presentCount;
-          const percentage =
-            classSessions.length > 0
-              ? (presentCount / classSessions.length) * 100
-              : 0;
-
-          return {
-            className: classItem.name,
-            classCode: classItem.code,
-            totalSessions: classSessions.length,
-            presentCount,
-            absentCount,
-            percentage,
-          };
-        }),
-      );
-
-      buffer = await ExportService.generateStudentTranscript(
-        student,
-        classesData,
-        format,
-      );
-      filename = `${student.rollNumber || student._id}_Transcript_${moment().format("YYYY-MM-DD")}.${format}`;
       break;
 
     case "dept_summary":

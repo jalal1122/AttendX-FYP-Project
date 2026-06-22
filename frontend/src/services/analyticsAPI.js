@@ -35,14 +35,7 @@ const analyticsAPI = {
     return response.data;
   },
 
-  // Export student transcript
-  exportStudentReport: async (studentId, format = "xlsx") => {
-    const response = await api.get(
-      `/analytics/export?type=student_transcript&targetId=${studentId}&format=${format}`,
-      { responseType: "blob" }
-    );
-    return response.data;
-  },
+
 
   // Export class matrix
   exportClassMatrix: async (classId, startDate, endDate, format = "xlsx") => {

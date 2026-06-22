@@ -26,12 +26,6 @@ const ExportModal = ({ isOpen, onClose, defaultType = null, defaultTargetId = nu
       needsTarget: "classId",
     },
     {
-      value: "student_transcript",
-      label: "Student Transcript",
-      description: "Individual student attendance across all classes",
-      needsTarget: "studentId",
-    },
-    {
       value: "dept_summary",
       label: "Department Summary",
       description: "Attendance statistics grouped by department",

@@ -6,7 +6,6 @@ import classAPI from "../../services/classAPI";
 import Button from "../../components/ui/Button";
 import Card from "../../components/ui/Card";
 import Input from "../../components/ui/Input";
-import ExportModal from "../../components/modals/ExportModal";
 import ClassFilters from "../../components/ui/ClassFilters";
 
 const StudentDashboard = () => {
@@ -18,7 +17,6 @@ const StudentDashboard = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [joiningClass, setJoiningClass] = useState(false);
-  const [showExportModal, setShowExportModal] = useState(false);
 
   // Backend Filters
   const [filters, setFilters] = useState({
@@ -115,13 +113,6 @@ const StudentDashboard = () => {
                 className="mobile-btn w-full sm:w-auto"
               >
                 📊 View Reports
-              </Button>
-              <Button
-                variant="secondary"
-                onClick={() => setShowExportModal(true)}
-                className="mobile-btn w-full sm:w-auto"
-              >
-                📄 Download Transcript
               </Button>
               <Button
                 variant="success"
@@ -304,14 +295,6 @@ const StudentDashboard = () => {
           )}
         </div>
       </div>
-
-      {/* Export Modal */}
-      <ExportModal
-        isOpen={showExportModal}
-        onClose={() => setShowExportModal(false)}
-        defaultType="student_transcript"
-        defaultTargetId={user?._id}
-      />
     </div>
   );
 };
