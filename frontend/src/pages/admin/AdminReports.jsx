@@ -10,20 +10,15 @@ import MultiSelectFilter from "../../components/ui/MultiSelectFilter";
 import ReportGraphicalView from "../../components/reports/ReportGraphicalView";
 
 const TABS = [
-  { id: "departments", label: "Departments" },
-  { id: "batches", label: "Batches" },
-  { id: "semesters", label: "Semesters" },
-  { id: "sections", label: "Sections" },
-  { id: "subjects", label: "Subjects" },
-  { id: "teachers", label: "Teachers" },
   { id: "classes", label: "Classes" },
+  { id: "teachers", label: "Teachers" },
   { id: "students", label: "Students" },
   { id: "defaulters", label: "Defaulters" },
 ];
 
 const AdminReports = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("departments");
+  const [activeTab, setActiveTab] = useState("classes");
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, limit: 50, total: 0, pages: 0 });
@@ -241,7 +236,9 @@ const AdminReports = () => {
           { key: "department", label: "Department" },
           { key: "totalClasses", label: "Classes Assigned" },
           { key: "totalStudents", label: "Total Students" },
-          { key: "totalSessions", label: "Sessions Conducted" },
+          { key: "totalSessions", label: "Total Sessions" },
+          { key: "liveSessions", label: "Live Sessions" },
+          { key: "retroactiveSessions", label: "Retroactive Sessions" },
           { key: "attendancePercentage", label: "Avg Attendance %", render: (val) => `${val}%` }
         ];
       case "departments":
@@ -403,18 +400,18 @@ const AdminReports = () => {
           <h3 className="text-sm font-semibold text-gray-700 mb-4 uppercase tracking-wider">Report Filters</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
             <MultiSelectFilter
-              label="Departments"
-              options={filterOptions.departments}
-              selected={filters.departments}
-              onChange={(val) => handleFilterChange("departments", val)}
-              placeholder="All Departments"
-            />
-            <MultiSelectFilter
               label="Batches"
               options={filterOptions.batches}
               selected={filters.batches}
               onChange={(val) => handleFilterChange("batches", val)}
               placeholder="All Batches"
+            />
+            <MultiSelectFilter
+              label="Departments"
+              options={filterOptions.departments}
+              selected={filters.departments}
+              onChange={(val) => handleFilterChange("departments", val)}
+              placeholder="All Departments"
             />
             <MultiSelectFilter
               label="Sections"
@@ -431,6 +428,16 @@ const AdminReports = () => {
               placeholder="All Semesters"
               searchable={false}
             />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Global Search</label>
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search Name, Dept, etc."
+                className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+              />
+            </div>
             {activeTab === "defaulters" && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Threshold (%)</label>
