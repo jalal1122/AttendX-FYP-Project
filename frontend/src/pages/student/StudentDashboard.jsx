@@ -110,6 +110,13 @@ const StudentDashboard = () => {
             </div>
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
               <Button
+                variant="primary"
+                onClick={() => navigate("/student/reports")}
+                className="mobile-btn w-full sm:w-auto"
+              >
+                📊 View Reports
+              </Button>
+              <Button
                 variant="secondary"
                 onClick={() => setShowExportModal(true)}
                 className="mobile-btn w-full sm:w-auto"

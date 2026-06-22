@@ -10,19 +10,14 @@ import MultiSelectFilter from "../../components/ui/MultiSelectFilter";
 import ReportGraphicalView from "../../components/reports/ReportGraphicalView";
 
 const TABS = [
-  { id: "departments", label: "Departments" },
-  { id: "batches", label: "Batches" },
   { id: "semesters", label: "Semesters" },
-  { id: "sections", label: "Sections" },
   { id: "subjects", label: "Subjects" },
   { id: "classes", label: "Classes" },
-  { id: "students", label: "Students" },
-  { id: "defaulters", label: "Defaulters" },
 ];
 
-const TeacherReports = () => {
+const StudentReports = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("sections");
+  const [activeTab, setActiveTab] = useState("subjects");
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState([]);
   const [pagination, setPagination] = useState({ page: 1, limit: 50, total: 0, pages: 0 });
@@ -150,7 +145,7 @@ const TeacherReports = () => {
       const dateStr = new Date().toISOString().split("T")[0];
       const filterName = filters.sections.length > 0 ? filters.sections.join("-") : "All_Sections";
       
-      link.download = `Teacher_${activeTab}_Report_${filterName}_${dateStr}.xlsx`;
+      link.download = `Student_${activeTab}_Report_${filterName}_${dateStr}.xlsx`;
       link.click();
       URL.revokeObjectURL(url);
     } catch (err) {
@@ -179,61 +174,9 @@ const TeacherReports = () => {
     ];
 
     switch (activeTab) {
-      case "students":
-      case "defaulters":
-        return [
-          { key: "name", label: "Name" },
-          { key: "rollNo", label: "Roll No" },
-          { key: "section", label: "Section" },
-          { key: "semester", label: "Semester" },
-          ...commonCols,
-          { 
-            key: "actions", 
-            label: "Actions", 
-            sortable: false,
-            render: (_, row) => (
-              <button 
-                onClick={(e) => { e.stopPropagation(); openDrillDown(row); }}
-                className="text-blue-600 hover:text-blue-800 text-xs font-medium"
-              >
-                View Detail
-              </button>
-            )
-          }
-        ];
-      case "departments":
-        return [
-          { key: "name", label: "Department" },
-          { key: "totalStudents", label: "Students" },
-          { key: "totalClasses", label: "Classes" },
-          { key: "attendancePercentage", label: "Avg Attendance %", render: (val) => `${val}%` }
-        ];
-      case "batches":
-        return [
-          { key: "name", label: "Batch" },
-          { key: "totalStudents", label: "Students" },
-          { key: "totalClasses", label: "Classes" },
-          { key: "attendancePercentage", label: "Avg Attendance %", render: (val) => `${val}%` }
-        ];
       case "semesters":
         return [
           { key: "name", label: "Semester" },
-          { key: "totalStudents", label: "Students" },
-          { key: "totalClasses", label: "Classes" },
-          { key: "attendancePercentage", label: "Avg Attendance %", render: (val) => `${val}%` }
-        ];
-      case "sections":
-        return [
-          { 
-            key: "name", 
-            label: "Section",
-            render: (val) => (
-              <button onClick={() => handleDrillDown("subjects", "sections", val)} className="text-primary-600 font-medium hover:underline text-left">
-                {val}
-              </button>
-            )
-          },
-          { key: "totalStudents", label: "Students" },
           { key: "totalClasses", label: "Classes" },
           { key: "attendancePercentage", label: "Avg Attendance %", render: (val) => `${val}%` }
         ];
@@ -248,7 +191,6 @@ const TeacherReports = () => {
               </button>
             )
           },
-          { key: "totalStudents", label: "Students" },
           { key: "totalClasses", label: "Classes" },
           { key: "attendancePercentage", label: "Avg Attendance %", render: (val) => `${val}%` }
         ];
@@ -257,7 +199,6 @@ const TeacherReports = () => {
           { key: "code", label: "Code" },
           { key: "name", label: "Course Name" },
           { key: "semester", label: "Semester" },
-          { key: "totalStudents", label: "Students" },
           { key: "totalSessions", label: "Sessions" },
           { key: "attendancePercentage", label: "Avg Attendance %", render: (val) => `${val}%` }
         ];
@@ -513,4 +454,4 @@ const TeacherReports = () => {
   );
 };
 
-export default TeacherReports;
+export default StudentReports;

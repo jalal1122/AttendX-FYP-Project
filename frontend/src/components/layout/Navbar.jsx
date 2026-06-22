@@ -82,7 +82,7 @@ const Navbar = () => {
                 </button>
               )}
 
-              {(user.role === "admin" || user.role === "teacher") && (
+              {(user.role === "admin" || user.role === "teacher" || user.role === "student") && (
                 <button
                   onClick={() => navigate(`/${user.role}/reports`)}
                   className="text-sm font-medium text-gray-700 hover:text-sky-600 transition-colors"
@@ -202,7 +202,7 @@ const Navbar = () => {
               </button>
             )}
 
-            {(user.role === "admin" || user.role === "teacher") && (
+            {(user.role === "admin" || user.role === "teacher" || user.role === "student") && (
               <button
                 onClick={() => {
                   navigate(`/${user.role}/reports`);
