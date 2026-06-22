@@ -1040,6 +1040,9 @@ export const getComprehensiveReport = asyncHandler(async (req, res) => {
       },
       "Comprehensive report generated successfully",
     ),
+  );
+});
+
 /**
  * Export Report (Excel or CSV)
  * Generate specialized export reports (Excel/CSV)
