@@ -1032,6 +1032,14 @@ class ExportService {
     return this.generateAdminReportExcel(reportType, data, format, detailedData);
   }
 
+  static async generateTeacherReport(reportType, data, format = "xlsx", detailedData = null) {
+    return this.generateAdminReportExcel(reportType, data, format, detailedData);
+  }
+
+  static async generateStudentReport(reportType, data, format = "xlsx", detailedData = null) {
+    return this.generateAdminReportExcel(reportType, data, format, detailedData);
+  }
+
   static async generateAdminReportExcel(reportType, data, format = "xlsx", detailedData = null) {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet(reportType + " Report");
