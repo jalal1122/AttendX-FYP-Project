@@ -422,19 +422,22 @@ export const getAdminTeacherReports = asyncHandler(async (req, res) => {
  * GET /api/v1/analytics/admin/departments
  */
 export const getAdminDepartmentReports = asyncHandler(async (req, res) => {
-  if (req.user.role !== "admin") {
-    throw ApiError.forbidden("Only admins can access admin reports");
+  if (req.user.role !== "admin" && req.user.role !== "teacher") {
+    throw ApiError.forbidden("Only admins and teachers can access reports");
   }
 
   const { startDate, endDate, export: isExport } = req.query;
   const dateFilter = buildDateFilter(startDate, endDate);
 
+  const classFilter = {};
+  if (req.user.role === "teacher") classFilter.teacher = req.user._id;
+
   // Get all unique departments
-  const departments = await Class.distinct("department");
+  const departments = await Class.distinct("department", classFilter);
 
   const result = await Promise.all(
     departments.map(async (dept) => {
-      const deptClasses = await Class.find({ department: dept })
+      const deptClasses = await Class.find({ department: dept, ...classFilter })
         .select("_id students")
         .lean();
       const classIds = deptClasses.map((c) => c._id);
@@ -519,14 +522,15 @@ export const getAdminDepartmentReports = asyncHandler(async (req, res) => {
  * GET /api/v1/analytics/admin/batches
  */
 export const getAdminBatchReports = asyncHandler(async (req, res) => {
-  if (req.user.role !== "admin") {
-    throw ApiError.forbidden("Only admins can access admin reports");
+  if (req.user.role !== "admin" && req.user.role !== "teacher") {
+    throw ApiError.forbidden("Only admins and teachers can access reports");
   }
 
   const { department, startDate, endDate, export: isExport } = req.query;
   const dateFilter = buildDateFilter(startDate, endDate);
 
   const classFilter = {};
+  if (req.user.role === "teacher") classFilter.teacher = req.user._id;
   if (department) classFilter.department = buildArrayRegex(department);
 
   const batches = await Class.distinct("batch", classFilter);
@@ -606,7 +610,7 @@ export const getAdminBatchReports = asyncHandler(async (req, res) => {
  * GET /api/v1/analytics/admin/semesters
  */
 export const getAdminSemesterReports = asyncHandler(async (req, res) => {
-  if (req.user.role !== "admin") {
+  if (req.user.role !== "admin" && req.user.role !== "teacher") {
     throw ApiError.forbidden("Not authorized to access reports");
   }
 
@@ -614,6 +618,7 @@ export const getAdminSemesterReports = asyncHandler(async (req, res) => {
   const dateFilter = buildDateFilter(startDate, endDate);
 
   const classFilter = {};
+  if (req.user.role === "teacher") classFilter.teacher = req.user._id;
   if (department) classFilter.department = buildArrayRegex(department);
   if (batch) classFilter.batch = buildArrayRegex(batch);
 
