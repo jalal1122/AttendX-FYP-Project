@@ -366,7 +366,7 @@ export const getAdminTeacherReports = asyncHandler(async (req, res) => {
     const teacherIds = teachers.map(t => t._id);
     const detailedSessions = await Session.find({
        teacherId: { $in: teacherIds },
-       ...dateFilter
+       ...sessionDateFilter
     }).populate("classId", "name code students")
       .populate("teacherId", "name")
       .lean();
