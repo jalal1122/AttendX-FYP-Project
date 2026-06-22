@@ -1028,11 +1028,11 @@ class ExportService {
   /**
    * Generic Admin Report Export
    */
-  static async generateAdminReport(reportType, data, format = "xlsx") {
-    return this.generateAdminReportExcel(reportType, data, format);
+  static async generateAdminReport(reportType, data, format = "xlsx", detailedData = null) {
+    return this.generateAdminReportExcel(reportType, data, format, detailedData);
   }
 
-  static async generateAdminReportExcel(reportType, data, format = "xlsx") {
+  static async generateAdminReportExcel(reportType, data, format = "xlsx", detailedData = null) {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet(reportType + " Report");
     
@@ -1186,6 +1186,81 @@ class ExportService {
         }
       });
     });
+
+    if (detailedData) {
+      const detailSheet = workbook.addWorksheet(reportType + " Details");
+      
+      let detailColumns = [];
+      if (reportType === "students" || reportType === "defaulters") {
+        detailColumns = [
+          { header: "Roll No", key: "rollNo", width: 15 },
+          { header: "Student Name", key: "studentName", width: 25 },
+          { header: "Date", key: "date", width: 15 },
+          { header: "Time", key: "time", width: 15 },
+          { header: "Class Name", key: "className", width: 25 },
+          { header: "Class Code", key: "classCode", width: 15 },
+          { header: "Session Type", key: "sessionType", width: 15 },
+          { header: "Status", key: "status", width: 15 },
+        ];
+      } else if (reportType === "teachers") {
+        detailColumns = [
+          { header: "Teacher Name", key: "teacherName", width: 25 },
+          { header: "Class Name", key: "className", width: 25 },
+          { header: "Class Code", key: "classCode", width: 15 },
+          { header: "Date", key: "date", width: 15 },
+          { header: "Time", key: "time", width: 15 },
+          { header: "Session Type", key: "sessionType", width: 15 },
+          { header: "Is Retroactive", key: "isRetroactive", width: 15 },
+          { header: "Total Students", key: "totalStudents", width: 15 },
+          { header: "Present", key: "presentCount", width: 10 },
+          { header: "Absent", key: "absentCount", width: 10 },
+        ];
+      } else if (reportType === "classes") {
+        detailColumns = [
+          { header: "Class Name", key: "className", width: 25 },
+          { header: "Roll No", key: "rollNo", width: 15 },
+          { header: "Student Name", key: "studentName", width: 25 },
+          { header: "Date", key: "date", width: 15 },
+          { header: "Time", key: "time", width: 15 },
+          { header: "Status", key: "status", width: 15 },
+        ];
+      } else {
+        // Fallback
+        detailColumns = Object.keys(detailedData[0] || {}).map(k => ({ header: k, key: k, width: 20 }));
+      }
+
+      detailSheet.columns = detailColumns;
+      
+      detailSheet.getRow(1).values = detailColumns.map(c => c.header);
+      detailSheet.getRow(1).eachCell((cell) => {
+        cell.font = { bold: true, color: { argb: "FF" + this.COLORS.headerText } };
+        cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF" + this.COLORS.headerBg } };
+      });
+
+      detailedData.forEach(item => {
+        const rowData = detailColumns.map(col => {
+          let val = item[col.key];
+          if (val instanceof Date) val = moment(val).format("YYYY-MM-DD");
+          return val;
+        });
+        const row = detailSheet.addRow(rowData);
+        
+        row.eachCell((cell, colNumber) => {
+          if (detailColumns[colNumber - 1].key === "status") {
+            if (cell.value === "Absent") {
+              cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF" + this.COLORS.absentBg } };
+              cell.font = { color: { argb: "FF" + this.COLORS.absentText }, bold: true };
+            } else if (cell.value === "Present") {
+              cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF" + this.COLORS.presentBg } };
+              cell.font = { color: { argb: "FF" + this.COLORS.presentText }, bold: true };
+            } else if (cell.value === "Late") {
+              cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF" + this.COLORS.pendingBg } };
+              cell.font = { color: { argb: "FF" + this.COLORS.pendingText }, bold: true };
+            }
+          }
+        });
+      });
+    }
 
     if (format === "csv") {
       return await workbook.csv.writeBuffer();

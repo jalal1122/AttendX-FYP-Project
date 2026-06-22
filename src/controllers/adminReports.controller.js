@@ -7,6 +7,7 @@ import Class from "../models/class.model.js";
 import User from "../models/user.model.js";
 import mongoose from "mongoose";
 import ExportService from "../services/export.service.js";
+import moment from "moment";
 
 /**
  * Build a date filter object for attendance queries.
@@ -191,7 +192,27 @@ export const getAdminStudentReports = asyncHandler(async (req, res) => {
   });
 
   if (isExport === "true") {
-    const buffer = await ExportService.generateAdminReport("students", result, "xlsx");
+    const studentIds = students.map(s => s._id);
+    const detailedRecords = await Attendance.find({
+       studentId: { $in: studentIds },
+       ...dateFilter
+    }).populate("classId", "name code")
+      .populate("sessionId", "startTime endTime type")
+      .populate("studentId", "name info.rollNo")
+      .lean();
+
+    const formattedDetails = detailedRecords.map(r => ({
+      studentName: r.studentId?.name || "N/A",
+      rollNo: r.studentId?.info?.rollNo || "N/A",
+      date: r.date,
+      time: r.sessionId?.startTime ? moment(r.sessionId.startTime).format("HH:mm") : "N/A",
+      className: r.classId?.name || "N/A",
+      classCode: r.classId?.code || "N/A",
+      sessionType: r.sessionId?.type || "N/A",
+      status: r.status
+    }));
+
+    const buffer = await ExportService.generateAdminReport("students", result, "xlsx", formattedDetails);
     res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
     res.setHeader("Content-Disposition", `attachment; filename=admin_students_report.xlsx`);
     return res.status(200).send(buffer);
@@ -342,7 +363,44 @@ export const getAdminTeacherReports = asyncHandler(async (req, res) => {
   result.sort((a, b) => b.attendancePercentage - a.attendancePercentage);
 
   if (isExport === "true") {
-    const buffer = await ExportService.generateAdminReport("teachers", result, "xlsx");
+    const teacherIds = teachers.map(t => t._id);
+    const detailedSessions = await Session.find({
+       teacherId: { $in: teacherIds },
+       ...dateFilter
+    }).populate("classId", "name code students")
+      .populate("teacherId", "name")
+      .lean();
+
+    const sessionIds = detailedSessions.map(s => s._id);
+    const sessionAttendance = await Attendance.aggregate([
+      { $match: { sessionId: { $in: sessionIds } } },
+      {
+        $group: {
+          _id: "$sessionId",
+          present: { $sum: { $cond: [{ $eq: ["$status", "Present"] }, 1, 0] } },
+          absent: { $sum: { $cond: [{ $eq: ["$status", "Absent"] }, 1, 0] } }
+        }
+      }
+    ]);
+    const attMap = new Map(sessionAttendance.map(a => [a._id.toString(), a]));
+
+    const formattedDetails = detailedSessions.map(s => {
+       const att = attMap.get(s._id.toString()) || { present: 0, absent: 0 };
+       return {
+         teacherName: s.teacherId?.name || "N/A",
+         className: s.classId?.name || "N/A",
+         classCode: s.classId?.code || "N/A",
+         date: s.startTime,
+         time: s.startTime ? moment(s.startTime).format("HH:mm") : "N/A",
+         sessionType: s.type || "N/A",
+         isRetroactive: s.isRetroactive ? "Yes" : "No",
+         totalStudents: s.classId?.students?.length || 0,
+         presentCount: att.present,
+         absentCount: att.absent
+       };
+    });
+
+    const buffer = await ExportService.generateAdminReport("teachers", result, "xlsx", formattedDetails);
     res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
     res.setHeader("Content-Disposition", `attachment; filename=admin_teachers_report.xlsx`);
     return res.status(200).send(buffer);
@@ -854,6 +912,10 @@ export const getAdminClassReports = asyncHandler(async (req, res) => {
   if (department) classFilter.department = buildArrayRegex(department);
   if (batch) classFilter.batch = buildArrayRegex(batch);
   if (semester) classFilter.semester = buildArrayNumber(semester);
+  
+  if (req.query.classIds) {
+    classFilter._id = { $in: req.query.classIds.split(",").map(id => new mongoose.Types.ObjectId(id)) };
+  }
 
   const totalCount = await Class.countDocuments(classFilter);
   const query = Class.find(classFilter)
@@ -929,7 +991,25 @@ export const getAdminClassReports = asyncHandler(async (req, res) => {
   );
 
   if (isExport === "true") {
-    const buffer = await ExportService.generateAdminReport("classes", result, "xlsx");
+    const classIdsArr = classes.map(c => c._id);
+    const detailedRecords = await Attendance.find({
+       classId: { $in: classIdsArr },
+       ...dateFilter
+    }).populate("classId", "name code")
+      .populate("sessionId", "startTime endTime")
+      .populate("studentId", "name info.rollNo")
+      .lean();
+
+    const formattedDetails = detailedRecords.map(r => ({
+      className: r.classId?.name || "N/A",
+      rollNo: r.studentId?.info?.rollNo || "N/A",
+      studentName: r.studentId?.name || "N/A",
+      date: r.date,
+      time: r.sessionId?.startTime ? moment(r.sessionId.startTime).format("HH:mm") : "N/A",
+      status: r.status
+    }));
+
+    const buffer = await ExportService.generateAdminReport("classes", result, "xlsx", formattedDetails);
     res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
     res.setHeader("Content-Disposition", `attachment; filename=admin_classes_report.xlsx`);
     return res.status(200).send(buffer);
@@ -1072,7 +1152,26 @@ export const getAdminDefaulters = asyncHandler(async (req, res) => {
   });
 
   if (isExport === "true") {
-    const buffer = await ExportService.generateAdminReport("defaulters", defaulters, "xlsx");
+    const detailedRecords = await Attendance.find({
+       studentId: { $in: studentIds },
+       ...dateFilter
+    }).populate("classId", "name code")
+      .populate("sessionId", "startTime endTime type")
+      .populate("studentId", "name info.rollNo")
+      .lean();
+
+    const formattedDetails = detailedRecords.map(r => ({
+      studentName: r.studentId?.name || "N/A",
+      rollNo: r.studentId?.info?.rollNo || "N/A",
+      date: r.date,
+      time: r.sessionId?.startTime ? moment(r.sessionId.startTime).format("HH:mm") : "N/A",
+      className: r.classId?.name || "N/A",
+      classCode: r.classId?.code || "N/A",
+      sessionType: r.sessionId?.type || "N/A",
+      status: r.status
+    }));
+
+    const buffer = await ExportService.generateAdminReport("defaulters", defaulters, "xlsx", formattedDetails);
     res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
     res.setHeader("Content-Disposition", `attachment; filename=admin_defaulters_report.xlsx`);
     return res.status(200).send(buffer);
