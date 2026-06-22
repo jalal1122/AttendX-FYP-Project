@@ -53,7 +53,15 @@ const AdminReports = () => {
   });
   
   // Drill-down Modal State
-  const [drillDownModal, setDrillDownModal] = useState({ isOpen: false, student: null, loading: false, records: [] });
+  const [selectedClasses, setSelectedClasses] = useState([]);
+  
+  const [drillDownModal, setDrillDownModal] = useState({
+    isOpen: false,
+    student: null,
+    classData: null,
+    records: [],
+    loading: false
+  });
 
   // Load Filter Options
   useEffect(() => {
@@ -135,15 +143,32 @@ const AdminReports = () => {
   };
 
   // Open Student Drill-Down Modal
-  const openDrillDown = async (student) => {
-    setDrillDownModal({ isOpen: true, student, loading: true, records: [] });
+  const openDrillDown = async (row, type = "student") => {
+    setDrillDownModal({ 
+      isOpen: true, 
+      student: type === "student" ? row : null, 
+      classData: type === "class" ? row : null, 
+      records: [], 
+      loading: true 
+    });
     try {
-      const params = { startDate: dateRange.startDate, endDate: dateRange.endDate };
-      const res = await analyticsAPI.getStudentAttendanceDetail(student._id, params);
-      setDrillDownModal((prev) => ({ ...prev, loading: false, records: res.data.records }));
-    } catch (error) {
-      console.error("Failed to load drill-down", error);
-      setDrillDownModal((prev) => ({ ...prev, loading: false }));
+      const params = {
+        startDate: dateRange.startDate,
+        endDate: dateRange.endDate
+      };
+      
+      let res;
+      if (type === "class") {
+        res = await analyticsAPI.getClassAttendanceDetail(row._id, params);
+      } else {
+        if (filters.classes) params.classId = filters.classes;
+        res = await analyticsAPI.getStudentAttendanceDetail(row._id, params);
+      }
+      
+      setDrillDownModal(prev => ({ ...prev, records: res.data.records, loading: false }));
+    } catch (err) {
+      console.error("Failed to load drill down detail", err);
+      setDrillDownModal(prev => ({ ...prev, loading: false }));
     }
   };
 
@@ -165,10 +190,6 @@ const AdminReports = () => {
 
       if (search) params.name = search;
 
-      const blob = await analyticsAPI.getAdminReportsExcel(activeTab, params);
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
       const dateStr = new Date().toISOString().split("T")[0];
       const filterParts = [
         filters.departments.length ? filters.departments.join("-") : "",
@@ -177,6 +198,14 @@ const AdminReports = () => {
       ].filter(Boolean);
       const filterName = filterParts.length > 0 ? filterParts.join("_") : "All";
 
+      if (activeTab === "classes" && selectedClasses.length > 0) {
+        params.classIds = selectedClasses.join(",");
+      }
+
+      const blob = await analyticsAPI.getAdminReportsExcel(activeTab, params);
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
       link.download = `Admin_${activeTab}_Report_${filterName}_${dateStr}.xlsx`;
       link.click();
       URL.revokeObjectURL(url);
@@ -326,17 +355,60 @@ const AdminReports = () => {
         ];
       case "classes":
         return [
-          { 
-            key: "code", 
-            label: "Code"
+          {
+            key: "select",
+            label: (
+              <input
+                type="checkbox"
+                className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                checked={data.length > 0 && selectedClasses.length === data.length}
+                onChange={(e) => {
+                  if (e.target.checked) {
+                    setSelectedClasses(data.map(d => d._id));
+                  } else {
+                    setSelectedClasses([]);
+                  }
+                }}
+              />
+            ),
+            sortable: false,
+            render: (_, row) => (
+              <input
+                type="checkbox"
+                className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                checked={selectedClasses.includes(row._id)}
+                onChange={(e) => {
+                  if (e.target.checked) {
+                    setSelectedClasses(prev => [...prev, row._id]);
+                  } else {
+                    setSelectedClasses(prev => prev.filter(id => id !== row._id));
+                  }
+                }}
+                onClick={(e) => e.stopPropagation()}
+              />
+            )
           },
-          { key: "name", label: "Course Name" },
-          { key: "teacher", label: "Teacher" },
+          { key: "name", label: "Class Name" },
+          { key: "code", label: "Code" },
           { key: "department", label: "Department" },
           { key: "semester", label: "Semester" },
-          { key: "totalStudents", label: "Students" },
-          { key: "totalSessions", label: "Sessions" },
-          { key: "attendancePercentage", label: "Avg Attendance %", render: (val) => `${val}%` }
+          { key: "batch", label: "Batch" },
+          { key: "teacher", label: "Teacher" },
+          { key: "totalStudents", label: "Total Students" },
+          ...commonCols,
+          { 
+            key: "actions", 
+            label: "Actions", 
+            sortable: false,
+            render: (_, row) => (
+              <button 
+                onClick={(e) => { e.stopPropagation(); openDrillDown(row, "class"); }}
+                className="text-blue-600 hover:text-blue-800 text-xs font-medium"
+              >
+                View Detail
+              </button>
+            )
+          }
         ];
       default:
         return [];
@@ -564,7 +636,13 @@ const AdminReports = () => {
       <Modal 
         isOpen={drillDownModal.isOpen} 
         onClose={() => setDrillDownModal({ ...drillDownModal, isOpen: false })}
-        title={drillDownModal.student ? `Attendance Detail: ${drillDownModal.student.name}` : "Attendance Detail"}
+        title={
+          drillDownModal.student 
+            ? `Attendance Detail: ${drillDownModal.student.name}` 
+            : drillDownModal.classData
+              ? `Session Details: ${drillDownModal.classData.name}`
+              : "Attendance Detail"
+        }
         size="lg"
       >
         {drillDownModal.loading ? (
@@ -583,7 +661,9 @@ const AdminReports = () => {
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Time</th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Class</th>
+                    <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      {drillDownModal.classData ? "Student" : "Class"}
+                    </th>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
                   </tr>
                 </thead>
@@ -595,13 +675,17 @@ const AdminReports = () => {
                       <tr key={idx} className="hover:bg-gray-50 transition-colors">
                         <td className="px-4 py-3 text-sm font-medium text-gray-900">{dateObj.toLocaleDateString()}</td>
                         <td className="px-4 py-3 text-sm text-gray-600">{timeStr}</td>
-                        <td className="px-4 py-3 text-sm text-gray-600">{rec.classCode} - {rec.className}</td>
+                        {drillDownModal.classData ? (
+                          <td className="px-4 py-3 text-sm text-gray-600">{rec.rollNo} - {rec.studentName}</td>
+                        ) : (
+                          <td className="px-4 py-3 text-sm text-gray-600">{rec.classCode} - {rec.className}</td>
+                        )}
                         <td className="px-4 py-3 text-sm">
                           <span className={`inline-flex px-2.5 py-1 text-xs rounded-full font-medium ${
-                            rec.status === "Present" ? "bg-green-100 text-green-800" :
-                            rec.status === "Absent" ? "bg-red-100 text-red-800" :
-                            rec.status === "Leave" ? "bg-yellow-100 text-yellow-800" :
-                            "bg-gray-100 text-gray-800"
+                            rec.status === 'Present' ? 'bg-green-100 text-green-800' :
+                            rec.status === 'Absent' ? 'bg-red-100 text-red-800' :
+                            rec.status === 'Late' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-gray-100 text-gray-800'
                           }`}>
                             {rec.status}
                           </span>

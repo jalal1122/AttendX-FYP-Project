@@ -104,6 +104,15 @@ const analyticsAPI = {
     return response.data;
   },
 
+  getClassAttendanceDetail: async (classId, params = {}) => {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value) query.append(key, value);
+    });
+    const response = await api.get(`/analytics/admin/classes/${classId}/attendance?${query.toString()}`);
+    return response.data;
+  },
+
   getAdminReportsExcel: async (type, params = {}) => {
     const query = new URLSearchParams();
     Object.entries(params).forEach(([key, value]) => {
