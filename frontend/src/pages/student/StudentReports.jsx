@@ -10,9 +10,8 @@ import MultiSelectFilter from "../../components/ui/MultiSelectFilter";
 import ReportGraphicalView from "../../components/reports/ReportGraphicalView";
 
 const TABS = [
-  { id: "semesters", label: "Semesters" },
-  { id: "subjects", label: "Subjects" },
   { id: "classes", label: "Classes" },
+  { id: "subjects", label: "Subjects" },
 ];
 
 const StudentReports = () => {
@@ -28,11 +27,26 @@ const StudentReports = () => {
   const [search, setSearch] = useState("");
   
   const [filters, setFilters] = useState({
+    departments: [],
+    batches: [],
+    semesters: [],
     sections: [],
     threshold: 75
   });
 
   const [filterOptions, setFilterOptions] = useState({
+    departments: [],
+    batches: [],
+    semesters: [
+      { value: "1", label: "Semester 1" },
+      { value: "2", label: "Semester 2" },
+      { value: "3", label: "Semester 3" },
+      { value: "4", label: "Semester 4" },
+      { value: "5", label: "Semester 5" },
+      { value: "6", label: "Semester 6" },
+      { value: "7", label: "Semester 7" },
+      { value: "8", label: "Semester 8" },
+    ],
     sections: []
   });
   
@@ -43,12 +57,16 @@ const StudentReports = () => {
   useEffect(() => {
     const loadOptions = async () => {
       try {
-        const [sections] = await Promise.all([
+        const [depts, batches, sections] = await Promise.all([
+          analyticsAPI.getAdminReports("departments"),
+          analyticsAPI.getAdminReports("batches"),
           analyticsAPI.getAdminReports("sections")
         ]);
         
         setFilterOptions(prev => ({
           ...prev,
+          departments: (depts.data?.departments || []).map(d => ({ value: d.name, label: d.name })),
+          batches: (batches.data?.batches || []).map(b => ({ value: b.name, label: b.name })),
           sections: (sections.data?.sections || []).map(s => ({ value: s.name, label: s.name })),
         }));
       } catch (e) {
@@ -66,7 +84,10 @@ const StudentReports = () => {
         limit: pagination.limit,
         startDate: dateRange.startDate,
         endDate: dateRange.endDate,
-        section: filters.sections?.length ? filters.sections.join(",") : "",
+        department: filters.departments.join(","),
+        batch: filters.batches.join(","),
+        semester: filters.semesters.join(","),
+        section: filters.sections.join(","),
       };
 
       if (activeTab === "defaulters") {
@@ -130,6 +151,9 @@ const StudentReports = () => {
       const params = {
         startDate: dateRange.startDate,
         endDate: dateRange.endDate,
+        department: filters.departments.join(","),
+        batch: filters.batches.join(","),
+        semester: filters.semesters.join(","),
         section: filters.sections.join(","),
       };
       
@@ -174,12 +198,6 @@ const StudentReports = () => {
     ];
 
     switch (activeTab) {
-      case "semesters":
-        return [
-          { key: "name", label: "Semester" },
-          { key: "totalClasses", label: "Classes" },
-          { key: "attendancePercentage", label: "Avg Attendance %", render: (val) => `${val}%` }
-        ];
       case "subjects":
         return [
           { 
@@ -214,8 +232,8 @@ const StudentReports = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <div className="flex justify-between items-center flex-wrap gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Teacher Report Registrar</h1>
-              <p className="mt-1 text-sm text-gray-600">Reports and analytics for your assigned classes</p>
+              <h1 className="text-3xl font-bold text-gray-900">Student Report Registrar</h1>
+              <p className="mt-1 text-sm text-gray-600">Reports and analytics for your enrolled classes</p>
             </div>
             <div className="flex gap-3 items-center">
               <div className="flex bg-gray-100 p-1 rounded-lg border border-gray-200">
@@ -262,13 +280,35 @@ const StudentReports = () => {
         {/* Filters Panel */}
         <Card className="bg-white">
           <h3 className="text-sm font-semibold text-gray-700 mb-4 uppercase tracking-wider">Report Filters</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            <MultiSelectFilter
+              label="Batches"
+              options={filterOptions.batches}
+              selected={filters.batches}
+              onChange={(val) => handleFilterChange("batches", val)}
+              placeholder="All Assigned Batches"
+            />
+            <MultiSelectFilter
+              label="Departments"
+              options={filterOptions.departments}
+              selected={filters.departments}
+              onChange={(val) => handleFilterChange("departments", val)}
+              placeholder="All Assigned Departments"
+            />
             <MultiSelectFilter
               label="Sections"
               options={filterOptions.sections}
               selected={filters.sections}
               onChange={(val) => handleFilterChange("sections", val)}
               placeholder="All Assigned Sections"
+            />
+            <MultiSelectFilter
+              label="Semesters"
+              options={filterOptions.semesters}
+              selected={filters.semesters}
+              onChange={(val) => handleFilterChange("semesters", val)}
+              placeholder="All Semesters"
+              searchable={false}
             />
 
             {activeTab === "defaulters" && (
