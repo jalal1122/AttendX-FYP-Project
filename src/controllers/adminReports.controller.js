@@ -272,7 +272,12 @@ export const getAdminTeacherReports = asyncHandler(async (req, res) => {
 
       // Get sessions
       const sessionsQuery = { teacherId: teacher._id, active: false, ...sessionDateFilter };
-      const totalSessions = await Session.countDocuments(sessionsQuery);
+      
+      const [totalSessions, liveSessions, retroactiveSessions] = await Promise.all([
+        Session.countDocuments(sessionsQuery),
+        Session.countDocuments({ ...sessionsQuery, isRetroactive: false }),
+        Session.countDocuments({ ...sessionsQuery, isRetroactive: true })
+      ]);
 
       // Get attendance stats across all teacher's classes
       const dateFilter = buildDateFilter(startDate, endDate);
@@ -318,6 +323,8 @@ export const getAdminTeacherReports = asyncHandler(async (req, res) => {
         totalClasses: teacherClasses.length,
         totalStudents,
         totalSessions,
+        liveSessions,
+        retroactiveSessions,
         totalPresent: stats.presentCount,
         totalAbsent: stats.absentCount,
         totalLeave: stats.leaveCount,
