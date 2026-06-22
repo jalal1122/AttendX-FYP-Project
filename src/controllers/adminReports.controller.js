@@ -1248,3 +1248,63 @@ export const getStudentAttendanceDetail = asyncHandler(async (req, res) => {
     }, "Student attendance detail retrieved"),
   );
 });
+
+/**
+ * Admin Class Attendance Detail
+ * GET /api/v1/analytics/admin/classes/:classId/attendance
+ * Returns per-session attendance records for drill-down modal
+ */
+export const getClassAttendanceDetail = asyncHandler(async (req, res) => {
+  if (req.user.role !== "admin" && req.user.role !== "teacher") {
+    throw ApiError.forbidden("Only admins and teachers can access this");
+  }
+
+  const { classId } = req.params;
+  const { startDate, endDate } = req.query;
+
+  const classData = await Class.findById(classId)
+    .select("_id name code department batch semester")
+    .lean();
+
+  if (!classData) {
+    throw ApiError.notFound("Class not found");
+  }
+
+  const dateFilter = buildDateFilter(startDate, endDate);
+  const attendanceMatch = {
+    classId: new mongoose.Types.ObjectId(classId),
+    ...dateFilter,
+  };
+
+  const records = await Attendance.find(attendanceMatch)
+    .populate("studentId", "name info.rollNo")
+    .populate("sessionId", "startTime endTime type")
+    .sort({ date: -1 })
+    .lean();
+
+  const formattedRecords = records.map((r) => ({
+    date: r.date,
+    time: r.sessionId?.startTime || null,
+    status: r.status,
+    studentName: r.studentId?.name || "N/A",
+    rollNo: r.studentId?.info?.rollNo || "N/A",
+    sessionType: r.sessionId?.type || "N/A",
+    verificationMethod: r.verificationMethod,
+  }));
+
+  res.status(200).json(
+    new ApiResponse(200, {
+      class: {
+        _id: classData._id,
+        name: classData.name,
+        code: classData.code,
+        department: classData.department,
+        batch: classData.batch,
+        semester: classData.semester
+      },
+      records: formattedRecords,
+      total: formattedRecords.length,
+    }, "Class attendance detail retrieved"),
+  );
+});
+
