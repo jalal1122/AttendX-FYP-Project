@@ -219,7 +219,7 @@ export const getAdminTeacherReports = asyncHandler(async (req, res) => {
     throw ApiError.forbidden("Only admins can access admin reports");
   }
 
-  const { name, email, phone, department, startDate, endDate, export: isExport } = req.query;
+  const { name, email, phone, department, batch, section, semester, startDate, endDate, export: isExport } = req.query;
   const { page, limit, skip, sortBy, sortOrder } = buildPaginationSort(req.query);
 
   // Build teacher filter
@@ -262,7 +262,13 @@ export const getAdminTeacherReports = asyncHandler(async (req, res) => {
 
   const result = await Promise.all(
     teachers.map(async (teacher) => {
-      const teacherClasses = await Class.find({ teacher: teacher._id })
+      const classQuery = { teacher: teacher._id };
+      if (batch) classQuery.batch = buildArrayRegex(batch);
+      if (semester) classQuery.semester = buildArrayNumber(semester);
+      if (section) classQuery["sections.name"] = buildArrayRegex(section);
+      if (department) classQuery.department = buildArrayRegex(department);
+
+      const teacherClasses = await Class.find(classQuery)
         .select("_id name students")
         .lean();
       const classIds = teacherClasses.map((c) => c._id);
@@ -271,7 +277,7 @@ export const getAdminTeacherReports = asyncHandler(async (req, res) => {
       );
 
       // Get sessions
-      const sessionsQuery = { teacherId: teacher._id, active: false, ...sessionDateFilter };
+      const sessionsQuery = { teacherId: teacher._id, active: false, classId: { $in: classIds }, ...sessionDateFilter };
       
       const [totalSessions, liveSessions, retroactiveSessions] = await Promise.all([
         Session.countDocuments(sessionsQuery),
