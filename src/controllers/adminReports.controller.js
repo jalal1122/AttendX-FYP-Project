@@ -610,7 +610,7 @@ export const getAdminBatchReports = asyncHandler(async (req, res) => {
  * GET /api/v1/analytics/admin/semesters
  */
 export const getAdminSemesterReports = asyncHandler(async (req, res) => {
-  if (req.user.role !== "admin" && req.user.role !== "teacher") {
+  if (req.user.role !== "admin" && req.user.role !== "teacher" && req.user.role !== "student") {
     throw ApiError.forbidden("Not authorized to access reports");
   }
 
@@ -619,6 +619,7 @@ export const getAdminSemesterReports = asyncHandler(async (req, res) => {
 
   const classFilter = {};
   if (req.user.role === "teacher") classFilter.teacher = req.user._id;
+  if (req.user.role === "student") classFilter.students = req.user._id;
   if (department) classFilter.department = buildArrayRegex(department);
   if (batch) classFilter.batch = buildArrayRegex(batch);
 
@@ -638,6 +639,7 @@ export const getAdminSemesterReports = asyncHandler(async (req, res) => {
       const batchSet = new Set(semesterClasses.map((c) => c.batch));
 
       const attendanceMatch = { classId: { $in: classIds }, ...dateFilter };
+      if (req.user.role === "student") attendanceMatch.studentId = req.user._id;
       const attStats = classIds.length > 0
         ? await Attendance.aggregate([
             { $match: attendanceMatch },
@@ -811,7 +813,7 @@ export const getAdminSectionReports = asyncHandler(async (req, res) => {
  * GET /api/v1/analytics/admin/subjects
  */
 export const getAdminSubjectReports = asyncHandler(async (req, res) => {
-  if (req.user.role !== "admin" && req.user.role !== "teacher") {
+  if (req.user.role !== "admin" && req.user.role !== "teacher" && req.user.role !== "student") {
     throw ApiError.forbidden("Not authorized to access reports");
   }
 
@@ -820,9 +822,10 @@ export const getAdminSubjectReports = asyncHandler(async (req, res) => {
 
   const classFilter = {};
   if (req.user.role === "teacher") classFilter.teacher = req.user._id;
+  if (req.user.role === "student") classFilter.students = req.user._id;
   if (department) classFilter.department = buildArrayRegex(department);
   if (batch) classFilter.batch = buildArrayRegex(batch);
-  if (section) classFilter.section = buildArrayRegex(section);
+  if (section) classFilter["sections.name"] = buildArrayRegex(section);
 
   const subjects = await Class.distinct("name", classFilter);
 
@@ -840,6 +843,7 @@ export const getAdminSubjectReports = asyncHandler(async (req, res) => {
       const batchSet = new Set(subjectClasses.map((c) => c.batch));
 
       const attendanceMatch = { classId: { $in: classIds }, ...dateFilter };
+      if (req.user.role === "student") attendanceMatch.studentId = req.user._id;
       const attStats = classIds.length > 0
         ? await Attendance.aggregate([
             { $match: attendanceMatch },
@@ -903,7 +907,7 @@ export const getAdminSubjectReports = asyncHandler(async (req, res) => {
  * GET /api/v1/analytics/admin/classes
  */
 export const getAdminClassReports = asyncHandler(async (req, res) => {
-  if (req.user.role !== "admin" && req.user.role !== "teacher") {
+  if (req.user.role !== "admin" && req.user.role !== "teacher" && req.user.role !== "student") {
     throw ApiError.forbidden("Not authorized to access reports");
   }
 
@@ -936,10 +940,8 @@ export const getAdminClassReports = asyncHandler(async (req, res) => {
 
   const result = await Promise.all(
     classes.map(async (cls) => {
-      const attendanceMatch = {
-        classId: cls._id,
-        ...dateFilter,
-      };
+      const attendanceMatch = { classId: cls._id, ...dateFilter };
+      if (req.user.role === "student") attendanceMatch.studentId = req.user._id;
 
       const attStats = await Attendance.aggregate([
         { $match: attendanceMatch },

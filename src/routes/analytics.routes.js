@@ -59,10 +59,10 @@ router.get("/admin/students", hasRole("admin", "teacher"), getAdminStudentReport
 router.get("/admin/teachers", hasRole("admin"), getAdminTeacherReports);
 router.get("/admin/departments", hasRole("admin", "teacher"), getAdminDepartmentReports);
 router.get("/admin/batches", hasRole("admin", "teacher"), getAdminBatchReports);
-router.get("/admin/semesters", hasRole("admin", "teacher"), getAdminSemesterReports);
+router.get("/admin/semesters", hasRole("admin", "teacher", "student"), getAdminSemesterReports);
 router.get("/admin/sections", hasRole("admin", "teacher"), getAdminSectionReports);
-router.get("/admin/subjects", hasRole("admin", "teacher"), getAdminSubjectReports);
-router.get("/admin/classes", hasRole("admin", "teacher"), getAdminClassReports);
+router.get("/admin/subjects", hasRole("admin", "teacher", "student"), getAdminSubjectReports);
+router.get("/admin/classes", hasRole("admin", "teacher", "student"), getAdminClassReports);
 router.get("/admin/defaulters", hasRole("admin", "teacher"), getAdminDefaulters);
 // Missing sections & subjects from the plan, let's just make sure we add what we wrote.
 // Also drill down for attendance details
