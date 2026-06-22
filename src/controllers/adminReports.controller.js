@@ -720,7 +720,7 @@ export const getAdminSectionReports = asyncHandler(async (req, res) => {
         name: section,
         departments: [...deptSet],
         batches: [...batchSet],
-        totalClasses: sectionClasses.length,
+        totalClasses: classIds.length,
         totalStudents,
         totalPresent: stats.presentCount,
         totalAbsent: stats.absentCount,
