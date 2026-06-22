@@ -34,6 +34,7 @@ const userSchema = new mongoose.Schema(
         rollNo: { type: String, trim: true },
         semester: { type: Number, min: 1, max: 8 },
         batch: { type: String, trim: true },
+        section: { type: String, trim: true },
         enrollmentYear: { type: Number },
         designation: { type: String, trim: true },
         department: { type: String, trim: true },
