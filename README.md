@@ -24,6 +24,11 @@ Traditional classroom and seminar attendance procedures are prone to manual erro
 
 This platform provides dedicated portals for system administrators, teachers, and students, complete with real-time updates powered by WebSockets (Socket.io) and beautiful analytical reports exported directly to styled Excel worksheets.
 
+### 🌐 Unified Reporting Hub (Omni-Controller Architecture)
+The application leverages a central **Omni-Controller** for analytics. This single source of truth ensures that Admins, Teachers, and Students access exactly the same structured data, filtered automatically by a Role-Based Access Control (RBAC) layer.
+* **Cascade Filters:** Dynamic multi-select filtering across `Batches`, `Departments`, `Sections`, and `Semesters`.
+* **Standardized Tabs:** Consistent grid-views across roles while strictly limiting tab exposure to prevent feature-bloat (e.g. Students only see `Classes`).
+
 ---
 
 ## 🛠 Architecture & Tech Stack
@@ -76,11 +81,12 @@ CSIT Attendance System is built using a decoupled architecture, with an Express 
 * **Manual Override & Approvals:** Review students in the pending approval queue or manually change a student's status (Present, Absent, Late, Leave).
 * **Retroactive Registration:** Retroactively document past sessions for digitized bookkeeping.
 * **Email Defaulter Alerts:** Analyze attendance rates and dispatch email warnings to students falling below the 75% threshold.
+* **Advanced Reports:** Access unified data tabs (`Classes`, `Students`, `Defaulters`) filtered automatically by their assigned scope.
 
 ### 🎒 Student Portal
 * **One-Click Scanner:** Camera-enabled QR scanner capturing device ID and GPS coordinates automatically.
-* **Attendance Transcripts:** Review chronological records across all enrolled subjects with color-coded badges indicating compliance.
 * **Compliance Dashboards:** Self-analytics showing overall percentage, trends, and warning highlights.
+* **Streamlined Reports:** Access a simplified reporting hub focusing exclusively on enrolled `Classes`.
 
 ### 👑 Admin Operations
 * **Central User Manager:** Create, update, or remove profiles. Features bulk import of student accounts via Excel spreadsheet upload.
@@ -342,27 +348,21 @@ All requests and responses use JSON formatting. API endpoints (excluding authent
 
 ### Analytics Routes (`/api/v1/analytics`)
 
-* `GET /student/:studentId`
-  * **Role:** Admin, Student (Self)
-  * **Details:** Analytical breakdown of subject compliance rates.
-* `GET /class/:classId`
-  * **Role:** Teacher, Admin
-  * **Details:** Attendance trends (weekly/monthly) and statistics for a class.
-* `GET /class/:classId/defaulters`
-  * **Role:** Teacher, Admin
-  * **Details:** Lists enrolled students with attendance rates below the threshold (default: 75%).
-* `GET /teacher/stats`
-  * **Role:** Teacher, Admin
-  * **Details:** Summary of classes, active sessions, and student compliance.
-* `GET /comprehensive`
-  * **Role:** Admin
-  * **Details:** System-wide report filtered by department or semester.
-* `GET /export`
-  * **Role:** Private (Depends on query)
-  * **Details:** Downloads a generated Excel workbook (`.xlsx`) or `.csv` based on queries (`type=class_matrix`, `type=student_transcript`, or `type=dept_summary`).
-* `POST /check-defaulters`
-  * **Role:** Teacher, Admin
-  * **Details:** Checks attendance and sends emails to students falling below the 75% threshold.
+* **Legacy Endpoints (Gradually migrating to Omni-Controller):**
+  * `GET /student/:studentId` (Student/Admin stats)
+  * `GET /class/:classId` (Class trends)
+  * `GET /teacher/stats` (Teacher dashboard summary)
+  * `POST /check-defaulters` (Defaulter notification system)
+
+* **Omni-Controller Data Endpoints (Role-Agnostic):**
+  * `GET /admin/classes` (Filters: batch, dept, semester; returns class aggregations)
+  * `GET /admin/students` (Filters: batch, dept, semester; returns student aggregations)
+  * `GET /admin/defaulters` (Filters: batch, dept, semester; returns <75% compliance)
+  * `GET /admin/teachers` (Admin only; returns teacher stats)
+  * `GET /admin/departments`, `/admin/batches`, `/admin/sections`, `/admin/semesters` (Hierarchy aggregates)
+
+* **Omni-Controller Export Endpoints:**
+  * Appending `&export=true` to any `/admin/*` route instantly downloads an Excel (`.xlsx`) sheet replicating the applied cascade filters.
 
 ### User Routes (`/api/v1/user`)
 
