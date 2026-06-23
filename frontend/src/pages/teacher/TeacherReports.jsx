@@ -462,7 +462,8 @@ const TeacherReports = () => {
                 No attendance records found for the selected period.
               </div>
             ) : (
-              <table className="min-w-full divide-y divide-gray-200 mt-4 border border-gray-200 rounded-lg overflow-hidden">
+              <div className="mobile-table-container mt-4">
+                <table className="mobile-table divide-y divide-gray-200 border border-gray-200 rounded-lg overflow-hidden">
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Date</th>
@@ -495,6 +496,7 @@ const TeacherReports = () => {
                   })}
                 </tbody>
               </table>
+              </div>
             )}
           </div>
         )}

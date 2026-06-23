@@ -211,7 +211,7 @@ const SessionHistory = () => {
         )}
 
         {/* Session Info */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 mb-8">
           <Card>
             <h3 className="text-gray-500 text-sm font-medium">Date</h3>
             <p className="text-lg font-semibold text-gray-900 mt-1">
@@ -261,8 +261,8 @@ const SessionHistory = () => {
             </p>
           </Card>
         ) : (
-          <div className="bg-white rounded-lg shadow overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200">
+          <div className="bg-white shadow mobile-table-container">
+            <table className="mobile-table divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">

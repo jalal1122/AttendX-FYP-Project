@@ -83,15 +83,15 @@ const SortableTable = ({
 
   if (data.length === 0) {
     return (
-      <div className={`overflow-x-auto ${className}`}>
+      <div className={`mobile-table-container ${className}`}>
         <p className="text-center text-gray-500 py-8">{emptyMessage}</p>
       </div>
     );
   }
 
   return (
-    <div className={`overflow-x-auto ${className}`}>
-      <table className="min-w-full divide-y divide-gray-200">
+    <div className={`mobile-table-container ${className}`}>
+      <table className="mobile-table divide-y divide-gray-200">
         <thead className={`bg-gray-50 ${stickyHeader ? "sticky top-0 z-10" : ""}`}>
           <tr>
             {columns.map((col) => (

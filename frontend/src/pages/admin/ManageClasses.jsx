@@ -97,7 +97,7 @@ const ManageClasses = () => {
             <p className="text-center text-gray-500 py-8">No classes found</p>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="mobile-grid">
             {classes.map((cls) => (
               <Card key={cls._id} className="hover:shadow-lg transition-shadow">
                 <div className="flex justify-between items-start mb-3">

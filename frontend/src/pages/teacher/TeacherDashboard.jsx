@@ -185,8 +185,7 @@ const TeacherDashboard = () => {
           </div>
         )}
 
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
           <Card>
             <h3 className="text-gray-500 text-sm font-medium">Total Classes</h3>
             <p className="text-3xl font-bold text-gray-900 mt-2">
@@ -239,8 +238,7 @@ const TeacherDashboard = () => {
                 No classes yet. Create your first class!
               </p>
             </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="mobile-grid">
               {classes.map((cls) => (
                 <Card
                   key={cls._id}
@@ -404,16 +402,16 @@ const TeacherDashboard = () => {
             </div>
           )}
 
-          <div className="flex gap-3 mt-6">
+          <div className="flex flex-col sm:flex-row gap-3 mt-6">
             <Button
               type="button"
               variant="secondary"
               onClick={() => setShowCreateModal(false)}
-              className="flex-1"
+              className="flex-1 mobile-btn"
             >
               Cancel
             </Button>
-            <Button type="submit" variant="primary" className="flex-1">
+            <Button type="submit" variant="primary" className="flex-1 mobile-btn">
               Create Class
             </Button>
           </div>

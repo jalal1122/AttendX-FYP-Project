@@ -136,24 +136,24 @@ body {
 
   /* Headings */
   .heading-1 {
-    @apply text-3xl font-bold text-slate-900;
+    @apply text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-900;
   }
 
   .heading-2 {
-    @apply text-2xl font-semibold text-slate-900;
+    @apply text-2xl sm:text-3xl lg:text-4xl font-semibold text-slate-900;
   }
 
   .heading-3 {
-    @apply text-xl font-semibold text-slate-800;
+    @apply text-xl sm:text-2xl lg:text-3xl font-semibold text-slate-800;
   }
 
   .text-muted {
     @apply text-slate-500;
   }
 
-  /* Mobile-Specific Classes */
+  /* Responsive Specific Classes (formerly Mobile-Specific) */
   .mobile-container {
-    @apply px-4 py-6 max-w-7xl mx-auto;
+    @apply px-4 sm:px-6 lg:px-8 py-6 lg:py-8 max-w-7xl mx-auto;
   }
 
   .mobile-card {
@@ -161,7 +161,7 @@ body {
   }
 
   .mobile-btn {
-    @apply min-h-[44px] touch-manipulation;
+    @apply min-h-[44px] touch-manipulation w-full sm:w-auto;
   }
 
   .mobile-input {
@@ -169,7 +169,7 @@ body {
   }
 
   .mobile-grid {
-    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4;
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6;
   }
 
   /* Touch-friendly spacing */
@@ -179,11 +179,11 @@ body {
 
   /* Mobile-optimized table */
   .mobile-table-container {
-    @apply overflow-x-auto -mx-4 sm:mx-0;
+    @apply overflow-x-auto -mx-4 sm:mx-0 w-full sm:rounded-xl;
   }
 
   .mobile-table {
-    @apply table min-w-full text-sm;
+    @apply table min-w-full text-sm sm:text-base;
   }
 
   /* Bottom navigation for mobile */

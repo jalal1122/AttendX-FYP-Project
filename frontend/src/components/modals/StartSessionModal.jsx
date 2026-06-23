@@ -106,7 +106,7 @@ const StartSessionModal = ({ isOpen, onClose, onSubmit, className }) => {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Quick Presets
             </label>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <button
                 type="button"
                 onClick={() => setSecurityConfig({
@@ -324,7 +324,7 @@ const StartSessionModal = ({ isOpen, onClose, onSubmit, className }) => {
           {/* Preset Buttons */}
           <div className="border-t pt-4">
             <p className="text-xs text-gray-600 mb-2">Quick Presets:</p>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <Button
                 type="button"
                 variant="secondary"
@@ -362,7 +362,7 @@ const StartSessionModal = ({ isOpen, onClose, onSubmit, className }) => {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex gap-3 mt-6">
+        <div className="flex flex-col sm:flex-row gap-3 mt-6">
           <Button
             type="button"
             variant="secondary"

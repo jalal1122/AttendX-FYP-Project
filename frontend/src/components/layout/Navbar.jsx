@@ -158,7 +158,7 @@ const Navbar = () => {
 
       {/* Mobile Menu */}
       {user && isMobileMenuOpen && (
-        <div className="md:hidden border-t border-slate-100 bg-white">
+        <div className="md:hidden border-t border-slate-100 bg-white animate-in slide-in-from-top-2 duration-200">
           <div className="px-4 py-3 space-y-3">
             {/* User Info */}
             <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
