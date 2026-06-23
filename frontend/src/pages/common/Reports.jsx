@@ -465,11 +465,11 @@ const Reports = () => {
         {drillDownModal.loading ? (
           <p className="text-gray-500 py-4">Loading records...</p>
         ) : (
-          <div className="max-h-[60vh] overflow-y-auto">
+          <div className="mobile-table-container max-h-[60vh]">
             {drillDownModal.records.length === 0 ? (
               <p className="text-gray-500 py-4">No attendance records found for the selected period.</p>
             ) : (
-              <table className="min-w-full divide-y divide-gray-200 mt-4">
+              <table className="mobile-table divide-y divide-gray-200 mt-4">
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Date</th>

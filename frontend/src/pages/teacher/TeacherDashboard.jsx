@@ -238,6 +238,7 @@ const TeacherDashboard = () => {
                 No classes yet. Create your first class!
               </p>
             </div>
+          ) : (
             <div className="scrollable-list-container">
               <div className="mobile-grid">
                 {classes.map((cls) => (

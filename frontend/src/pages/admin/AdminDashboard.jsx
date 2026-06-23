@@ -219,8 +219,8 @@ const AdminDashboard = () => {
                 {recentClasses.length === 0 ? (
                   <div className="p-8 text-center text-slate-500">No classes found</div>
                 ) : (
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-slate-100">
+                  <div className="mobile-table-container">
+                    <table className="mobile-table divide-y divide-slate-100">
                       <thead className="bg-slate-50/50 backdrop-blur-sm">
                         <tr>
                           <th className="px-6 py-4 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Class Info</th>

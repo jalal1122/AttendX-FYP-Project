@@ -325,8 +325,8 @@ const MyAttendance = () => {
             Subject-wise Attendance
           </h2>
           {reportData?.subjectWise?.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
+            <div className="mobile-table-container">
+              <table className="mobile-table divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
@@ -390,8 +390,8 @@ const MyAttendance = () => {
             Recent Attendance History
           </h2>
           {reportData?.recentSessions?.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
+            <div className="mobile-table-container">
+              <table className="mobile-table divide-y divide-gray-200">
                 <thead className="bg-gray-50">
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
