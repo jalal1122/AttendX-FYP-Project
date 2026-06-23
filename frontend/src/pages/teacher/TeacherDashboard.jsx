@@ -238,8 +238,9 @@ const TeacherDashboard = () => {
                 No classes yet. Create your first class!
               </p>
             </div>
-            <div className="mobile-grid">
-              {classes.map((cls) => (
+            <div className="scrollable-list-container">
+              <div className="mobile-grid">
+                {classes.map((cls) => (
                 <Card
                   key={cls._id}
                   className="hover:border-primary-500 border-2 border-transparent"
@@ -288,6 +289,7 @@ const TeacherDashboard = () => {
                   </div>
                 </Card>
               ))}
+              </div>
             </div>
           )}
         </div>

@@ -228,8 +228,9 @@ const StudentDashboard = () => {
               </p>
             </div>
           ) : (
-            <div className="mobile-grid">
-              {classes.map((cls) => {
+            <div className="scrollable-list-container">
+              <div className="mobile-grid">
+                {classes.map((cls) => {
                 const attendancePercentage = calculateAttendancePercentage(cls);
                 const isLowAttendance = attendancePercentage < 75;
 
@@ -291,6 +292,7 @@ const StudentDashboard = () => {
                   </div>
                 );
               })}
+              </div>
             </div>
           )}
         </div>

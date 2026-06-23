@@ -177,13 +177,23 @@ body {
     @apply min-w-[44px] min-h-[44px] flex items-center justify-center;
   }
 
-  /* Mobile-optimized table */
+  /* Mobile-optimized table with vertical scroll */
   .mobile-table-container {
-    @apply overflow-x-auto -mx-4 sm:mx-0 w-full sm:rounded-xl;
+    @apply overflow-x-auto overflow-y-auto max-h-[75vh] -mx-4 sm:mx-0 w-full sm:rounded-xl;
   }
 
   .mobile-table {
     @apply table min-w-full text-sm sm:text-base;
+  }
+
+  /* Sticky headers for vertical scrolling */
+  .mobile-table thead th {
+    @apply sticky top-0 z-10 bg-gray-50 outline outline-1 outline-gray-200;
+  }
+  
+  /* Scrollable list container for grids/lists */
+  .scrollable-list-container {
+    @apply overflow-y-auto max-h-[75vh] pr-2;
   }
 
   /* Bottom navigation for mobile */
